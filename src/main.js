@@ -27,13 +27,11 @@ import { WalletAdapterNetwork } from '@solana/wallet-adapter-base'
 import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
-  BackpackWalletAdapter,
 } from '@solana/wallet-adapter-wallets'
 
 const walletOptions = {
   wallets: [
     new PhantomWalletAdapter(),
-    new BackpackWalletAdapter(),
     new SolflareWalletAdapter({ network: WalletAdapterNetwork.Mainnet }),
   ],
   autoConnect: true,
