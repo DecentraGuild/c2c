@@ -73,13 +73,9 @@
   }
 }
 
-/* Custom wallet button styling to match exchange button (btn-primary) */
+/* Custom wallet button styling to match exchange button (btn-primary) - ONLY for navbar button */
 .wallet-button-custom button,
-.wallet-button-custom > button,
-.wallet-button-custom button[class*="wallet"],
-button[data-testid="wallet-adapter-button"],
-.wallet-adapter-button,
-button.swv-button {
+.wallet-button-custom > button {
   background: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%) !important;
   color: #ffffff !important;
   border-radius: 0.75rem !important;
@@ -92,13 +88,25 @@ button.swv-button {
 }
 
 .wallet-button-custom button:hover,
-.wallet-button-custom > button:hover,
-.wallet-button-custom button[class*="wallet"]:hover,
-button[data-testid="wallet-adapter-button"]:hover,
-.wallet-adapter-button:hover,
-button.swv-button:hover {
+.wallet-button-custom > button:hover {
   background: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%) !important;
   opacity: 0.9 !important;
   box-shadow: none !important;
   transform: none !important;
+}
+
+/* Reset wallet modal individual wallet options to default styling */
+.swv-modal-wrapper button,
+.swv-modal-wrapper [class*="wallet"],
+.swv-modal-list button,
+.swv-modal-list-item button {
+  background: transparent !important;
+  color: inherit !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure wallet modal items have proper hover states */
+.swv-modal-list-item:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
 }
