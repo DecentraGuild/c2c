@@ -1,0 +1,359 @@
+/**
+ * Escrow Store
+ * Manages escrow creation and management state
+ */
+
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import { validateSolanaAddress, validateExpirationDate, validateSlippage } from '../utils/validators'
+import { fetchAllEscrows } from '../utils/escrowTransactions'
+import { useSolanaConnection } from '../composables/useSolanaConnection'
+import { useTokenRegistry } from '../composables/useTokenRegistry'
+import { fromSmallestUnits } from '../utils/formatters'
+import { PublicKey } from '@solana/web3.js'
+
+export const useEscrowStore = defineStore('escrow', () => {
+  // Create escrow form state
+  const offerToken = ref(null)
+  const offerAmount = ref('0.00')
+  const requestToken = ref(null)
+  const requestAmount = ref('0.00')
+  
+  // Settings
+  const settings = ref({
+    direct: false,
+    directAddress: '',
+    whitelist: false,
+    whitelistAddresses: [],
+    expire: false,
+    expireDate: null,
+    partialFill: false,
+    slippage: 1
+  })
+  
+  // Escrows list (from blockchain)
+  const escrows = ref([])
+  const loadingEscrows = ref(false)
+  
+  // Centralized error handling
+  const errors = ref({
+    form: {},
+    transaction: null,
+    network: null,
+    escrows: null
+  })
+  
+  // Computed
+  const activeEscrows = computed(() => {
+    return escrows.value.filter(e => e.status !== 'closed')
+  })
+  
+  const hasValidOffer = computed(() => {
+    return offerToken.value !== null && 
+           parseFloat(offerAmount.value) > 0
+  })
+  
+  const hasValidRequest = computed(() => {
+    return requestToken.value !== null && 
+           parseFloat(requestAmount.value) > 0
+  })
+  
+  const canCreateEscrow = computed(() => {
+    return hasValidOffer.value && hasValidRequest.value
+  })
+  
+  const exchangeRate = computed(() => {
+    if (!hasValidOffer.value || !hasValidRequest.value) return null
+    
+    const offer = parseFloat(offerAmount.value)
+    const request = parseFloat(requestAmount.value)
+    
+    if (offer === 0 || request === 0) return null
+    
+    return {
+      offerToRequest: request / offer,
+      requestToOffer: offer / request
+    }
+  })
+  
+  // Validation computed properties
+  const isValidOfferAmount = computed(() => {
+    if (!offerToken.value) return false
+    const amount = parseFloat(offerAmount.value)
+    if (isNaN(amount) || amount <= 0) return false
+    return true
+  })
+  
+  const isValidRequestAmount = computed(() => {
+    if (!requestToken.value) return false
+    const amount = parseFloat(requestAmount.value)
+    if (isNaN(amount) || amount <= 0) return false
+    return true
+  })
+  
+  const isValidDirectAddress = computed(() => {
+    if (!settings.value.direct || !settings.value.directAddress) return true // Optional if not enabled
+    const validation = validateSolanaAddress(settings.value.directAddress)
+    return validation.valid
+  })
+  
+  const isValidExpireDate = computed(() => {
+    if (!settings.value.expire || !settings.value.expireDate) return true // Optional if not enabled
+    const validation = validateExpirationDate(settings.value.expireDate)
+    return validation.valid
+  })
+  
+  const isValidSlippage = computed(() => {
+    if (!settings.value.partialFill) return true // Only validate if partial fill is enabled
+    const validation = validateSlippage(settings.value.slippage)
+    return validation.valid
+  })
+  
+  const isFormValid = computed(() => {
+    return hasValidOffer.value && 
+           hasValidRequest.value && 
+           isValidDirectAddress.value &&
+           isValidExpireDate.value &&
+           isValidSlippage.value &&
+           // Check that offer and request tokens are different
+           (offerToken.value?.mint !== requestToken.value?.mint)
+  })
+  
+  const formValidationErrors = computed(() => {
+    const errors = {}
+    
+    if (!offerToken.value) {
+      errors.offerToken = 'Please select a token to offer'
+    } else if (!isValidOfferAmount.value) {
+      errors.offerAmount = 'Please enter a valid offer amount'
+    }
+    
+    if (!requestToken.value) {
+      errors.requestToken = 'Please select a token to request'
+    } else if (!isValidRequestAmount.value) {
+      errors.requestAmount = 'Please enter a valid request amount'
+    }
+    
+    if (offerToken.value && requestToken.value && 
+        offerToken.value.mint === requestToken.value.mint) {
+      errors.tokens = 'Offer and request tokens must be different'
+    }
+    
+    // Only validate optional settings if they are enabled
+    if (settings.value.direct && settings.value.directAddress && !isValidDirectAddress.value) {
+      errors.directAddress = validateSolanaAddress(settings.value.directAddress).error
+    }
+    
+    if (settings.value.expire && settings.value.expireDate && !isValidExpireDate.value) {
+      errors.expireDate = validateExpirationDate(settings.value.expireDate).error
+    }
+    
+    if (settings.value.partialFill && !isValidSlippage.value) {
+      errors.slippage = validateSlippage(settings.value.slippage).error
+    }
+    
+    return errors
+  })
+  
+  // Actions
+  const setOfferToken = (token) => {
+    offerToken.value = token
+  }
+  
+  const setOfferAmount = (amount) => {
+    // Ensure amount is always a string
+    offerAmount.value = typeof amount === 'number' ? amount.toString() : (amount || '0.00')
+  }
+  
+  const setRequestToken = (token) => {
+    requestToken.value = token
+  }
+  
+  const setRequestAmount = (amount) => {
+    // Ensure amount is always a string
+    requestAmount.value = typeof amount === 'number' ? amount.toString() : (amount || '0.00')
+  }
+  
+  const updateSettings = (newSettings) => {
+    settings.value = { ...settings.value, ...newSettings }
+  }
+  
+  const resetForm = () => {
+    offerToken.value = null
+    offerAmount.value = '0.00'
+    requestToken.value = null
+    requestAmount.value = '0.00'
+    settings.value = {
+      direct: false,
+      directAddress: '',
+      whitelist: false,
+      whitelistAddresses: [],
+      expire: false,
+      expireDate: null,
+      partialFill: false,
+      slippage: 1
+    }
+  }
+  
+  const addEscrow = (escrow) => {
+    escrows.value.unshift(escrow)
+  }
+  
+  const updateEscrow = (escrowId, updates) => {
+    const index = escrows.value.findIndex(e => e.id === escrowId)
+    if (index !== -1) {
+      escrows.value[index] = { ...escrows.value[index], ...updates }
+    }
+  }
+  
+  const removeEscrow = (escrowId) => {
+    escrows.value = escrows.value.filter(e => e.id !== escrowId)
+  }
+  
+  const loadEscrows = async (makerPublicKey = null) => {
+    loadingEscrows.value = true
+    errors.value.escrows = null
+    try {
+      const connection = useSolanaConnection()
+      const tokenRegistry = useTokenRegistry()
+      
+      // Convert makerPublicKey to PublicKey if it's a string
+      const makerFilter = makerPublicKey 
+        ? (makerPublicKey instanceof PublicKey ? makerPublicKey : new PublicKey(makerPublicKey))
+        : null
+      
+      // Fetch escrows from blockchain
+      const rawEscrows = await fetchAllEscrows(connection, makerFilter)
+      
+      // Format escrows with token information
+      const formattedEscrows = await Promise.all(
+        rawEscrows.map(async (escrowData) => {
+          const escrowAccount = escrowData.account
+          const escrowPubkey = escrowData.publicKey
+          
+          // Fetch token info for deposit and request tokens
+          const [depositTokenInfo, requestTokenInfo] = await Promise.all([
+            tokenRegistry.fetchTokenInfo(escrowAccount.depositToken.toString()),
+            tokenRegistry.fetchTokenInfo(escrowAccount.requestToken.toString())
+          ])
+          
+          // Calculate remaining and initial amounts in human-readable format
+          const depositRemaining = fromSmallestUnits(
+            escrowAccount.tokensDepositRemaining.toString(),
+            depositTokenInfo.decimals
+          )
+          const depositInitial = fromSmallestUnits(
+            escrowAccount.tokensDepositInit.toString(),
+            depositTokenInfo.decimals
+          )
+          
+          // Calculate request amount based on remaining deposit and price
+          const requestAmount = depositRemaining * escrowAccount.price
+          
+          // Determine status
+          const isFilled = escrowAccount.tokensDepositRemaining.toString() === '0'
+          const expireTimestampNum = escrowAccount.expireTimestamp.toNumber()
+          const isExpired = expireTimestampNum > 0 && 
+                           expireTimestampNum < Math.floor(Date.now() / 1000)
+          const status = isFilled ? 'filled' : (isExpired ? 'expired' : 'active')
+          
+          return {
+            id: escrowPubkey.toString(),
+            publicKey: escrowPubkey,
+            maker: escrowAccount.maker.toString(),
+            depositToken: depositTokenInfo,
+            requestToken: requestTokenInfo,
+            depositAmount: depositInitial,
+            depositRemaining: depositRemaining,
+            requestAmount: requestAmount,
+            price: escrowAccount.price,
+            seed: escrowAccount.seed.toString(),
+            expireTimestamp: expireTimestampNum,
+            recipient: escrowAccount.recipient?.toString() || null,
+            onlyRecipient: escrowAccount.onlyRecipient,
+            onlyWhitelist: escrowAccount.onlyWhitelist,
+            allowPartialFill: escrowAccount.allowPartialFill,
+            whitelist: escrowAccount.whitelist?.toString() || null,
+            status,
+            createdAt: new Date().toISOString() // TODO: Get from transaction signature if available
+          }
+        })
+      )
+      
+      escrows.value = formattedEscrows
+    } catch (error) {
+      console.error('Failed to load escrows:', error)
+      errors.value.escrows = error.message || 'Failed to load escrows'
+    } finally {
+      loadingEscrows.value = false
+    }
+  }
+  
+  const validateForm = () => {
+    errors.value.form = formValidationErrors.value
+    return isFormValid.value
+  }
+  
+  const clearFormErrors = () => {
+    errors.value.form = {}
+  }
+  
+  const clearErrors = () => {
+    errors.value = {
+      form: {},
+      transaction: null,
+      network: null,
+      escrows: null
+    }
+  }
+  
+  const setError = (type, error) => {
+    if (type === 'form' && typeof error === 'object') {
+      errors.value.form = error
+    } else {
+      errors.value[type] = error
+    }
+  }
+  
+  return {
+    // State
+    offerToken,
+    offerAmount,
+    requestToken,
+    requestAmount,
+    settings,
+    escrows,
+    loadingEscrows,
+    errors,
+    
+    // Computed
+    activeEscrows,
+    hasValidOffer,
+    hasValidRequest,
+    canCreateEscrow,
+    exchangeRate,
+    isValidOfferAmount,
+    isValidRequestAmount,
+    isValidDirectAddress,
+    isValidExpireDate,
+    isValidSlippage,
+    isFormValid,
+    formValidationErrors,
+    
+    // Actions
+    setOfferToken,
+    setOfferAmount,
+    setRequestToken,
+    setRequestAmount,
+    updateSettings,
+    resetForm,
+    addEscrow,
+    updateEscrow,
+    removeEscrow,
+    loadEscrows,
+    validateForm,
+    clearFormErrors,
+    clearErrors,
+    setError
+  }
+})

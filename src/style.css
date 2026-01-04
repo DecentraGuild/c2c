@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --primary-bg: #0a0a0f;
+    --secondary-bg: #141420;
+    --card-bg: #1a1a2e;
+    --primary-color: #00d4ff;
+    --primary-hover: #00b8e6;
+    --accent-color: #8b5cf6;
+    --accent-secondary: #ff6b35;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0b3;
+    --text-muted: #6b6b80;
+    --border-color: #2a2a3e;
+  }
+
+  body {
+    @apply bg-primary-bg text-text-secondary font-primary;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-gradient-primary text-text-primary font-semibold py-2 px-4 rounded-xl transition-all duration-300 text-sm;
+  }
+  
+  .btn-secondary {
+    @apply bg-card-bg text-text-primary border-2 border-border-color hover:border-primary-color hover:bg-primary-color/10 font-semibold py-1.5 px-3 rounded-xl transition-all duration-300 text-sm;
+  }
+  
+  .input-field {
+    @apply bg-card-bg border border-border-color rounded-xl px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-primary-color focus:ring-1 focus:ring-primary-color/20 transition-all;
+  }
+  
+  /* Hide spinner arrows on number inputs */
+  .input-field[type="number"]::-webkit-inner-spin-button,
+  .input-field[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  .input-field[type="number"] {
+    -moz-appearance: textfield;
+  }
+  
+  .card {
+    @apply bg-card-bg border border-border-color rounded-[20px] p-4 shadow-card;
+  }
+  
+  .section-banner {
+    @apply bg-gradient-primary text-text-primary font-semibold text-sm font-bold py-1.5 px-4 rounded-t-xl;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-primary bg-clip-text text-transparent;
+  }
+}
+
+@layer utilities {
+  /* Hide broken images completely - no ugly broken image icon */
+  img[src]:not([src=""]) {
+    @apply inline-block;
+  }
+  
+  img:not([src]),
+  img[src=""],
+  img[src="null"],
+  img[src="undefined"] {
+    @apply hidden;
+  }
+}
+
+/* Custom wallet button styling to match exchange button (btn-primary) */
+.wallet-button-custom button,
+.wallet-button-custom > button,
+.wallet-button-custom button[class*="wallet"],
+button[data-testid="wallet-adapter-button"],
+.wallet-adapter-button,
+button.swv-button {
+  background: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%) !important;
+  color: #ffffff !important;
+  border-radius: 0.75rem !important;
+  font-weight: 600 !important;
+  padding: 0.5rem 1rem !important;
+  transition: all 0.3s ease !important;
+  border: none !important;
+  font-size: 0.875rem !important;
+  box-shadow: none !important;
+}
+
+.wallet-button-custom button:hover,
+.wallet-button-custom > button:hover,
+.wallet-button-custom button[class*="wallet"]:hover,
+button[data-testid="wallet-adapter-button"]:hover,
+.wallet-adapter-button:hover,
+button.swv-button:hover {
+  background: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%) !important;
+  opacity: 0.9 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}

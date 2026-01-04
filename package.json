@@ -1,0 +1,38 @@
+{
+  "name": "dGuild-escrow",
+  "version": "1.0.0",
+  "description": "Multi-tenant escrow service for SPL tokens on Solana",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "type-check": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.28.0",
+    "@iconify/vue": "^4.1.2",
+    "@solana/spl-token": "^0.4.14",
+    "@solana/spl-token-registry": "^0.2.4574",
+    "@solana/wallet-adapter-base": "^0.9.23",
+    "@solana/wallet-adapter-wallets": "^0.19.37",
+    "@solana/web3.js": "^1.98.4",
+    "buffer": "^6.0.3",
+    "pinia": "^2.1.7",
+    "qrcode": "^1.5.4",
+    "solana-wallets-vue": "^0.7.1",
+    "vue": "^3.4.21",
+    "vue-router": "^4.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "autoprefixer": "^10.4.18",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.9.3",
+    "vite": "^5.1.6",
+    "vite-plugin-node-polyfills": "^0.24.0",
+    "vue-tsc": "^3.2.1"
+  }
+}
