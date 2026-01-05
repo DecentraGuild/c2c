@@ -12,14 +12,12 @@ import { useTokenRegistry } from '../composables/useTokenRegistry'
 // LocalStorage keys
 const STORAGE_KEYS = {
   TOKEN_METADATA: 'token_metadata_cache',
-  TOKEN_BALANCES: 'token_balances_cache',
   CACHE_TIMESTAMP: 'token_cache_timestamp'
 }
 
-// Cache TTL: 1 hour for metadata, 5 minutes for balances
+// Cache TTL: 1 day for metadata
 const CACHE_TTL = {
-  METADATA: 24 * 60 * 60 * 1000, // 1 day
-  BALANCES: 5 * 60 * 1000 // 5 minutes
+  METADATA: 24 * 60 * 60 * 1000 // 1 day
 }
 
 /**
@@ -48,7 +46,6 @@ function setCachedData(key, data) {
     // If storage is full, clear old cache
     try {
       localStorage.removeItem(STORAGE_KEYS.TOKEN_METADATA)
-      localStorage.removeItem(STORAGE_KEYS.TOKEN_BALANCES)
       localStorage.setItem(key, JSON.stringify(data))
     } catch (clearErr) {
       console.debug('Failed to clear and write cache:', clearErr)
@@ -133,7 +130,12 @@ export const useTokenStore = defineStore('token', () => {
     if (cached && isCacheValid(cached.cachedAt, CACHE_TTL.METADATA)) {
       // Remove cachedAt before returning
       const { cachedAt, ...metadata } = cached
-      return metadata
+      // Don't return cached data if it has null/empty name and symbol (invalid cache)
+      if (metadata.name || metadata.symbol) {
+        return metadata
+      }
+      // If cache has null values, remove it and return null to force fresh fetch
+      tokenMetadataCache.value.delete(mint)
     }
     return null
   }
@@ -151,8 +153,8 @@ export const useTokenStore = defineStore('token', () => {
     // Fetch from registry
     const tokenInfo = await tokenRegistry.fetchTokenInfo(mint)
     
-    // Cache the result
-    if (tokenInfo) {
+    // Only cache if we have at least name or symbol (valid token info)
+    if (tokenInfo && (tokenInfo.name || tokenInfo.symbol)) {
       cacheMetadata(mint, {
         name: tokenInfo.name,
         symbol: tokenInfo.symbol,
@@ -166,6 +168,7 @@ export const useTokenStore = defineStore('token', () => {
   
   /**
    * Preload registry (shared across all components)
+   * Wrapper for consistent store API
    */
   async function preloadRegistry() {
     return tokenRegistry.preloadRegistry()
@@ -173,34 +176,40 @@ export const useTokenStore = defineStore('token', () => {
   
   /**
    * Search tokens (shared across all components)
+   * Wrapper for consistent store API
    */
   async function searchTokens(query) {
     return tokenRegistry.searchTokens(query)
   }
   
   /**
-   * Get token balance
+   * Get token balance from wallet balances
+   * Wrapper for consistent store API
    */
   function getTokenBalance(mint) {
     return walletBalances.getTokenBalance(mint)
   }
   
   /**
-   * Get token info from balances
+   * Get token info from wallet balances (only for tokens in wallet)
+   * For complete token info including metadata, use fetchTokenInfo instead
+   * Wrapper for consistent store API
    */
   function getTokenInfo(mint) {
     return walletBalances.getTokenInfo(mint)
   }
   
   /**
-   * Fetch balances (shared across all components)
+   * Fetch all wallet balances (shared across all components)
+   * Wrapper for consistent store API
    */
   async function fetchBalances() {
     return walletBalances.fetchBalances()
   }
   
   /**
-   * Fetch single token balance
+   * Fetch single token balance (shared across all components)
+   * Wrapper for consistent store API
    */
   async function fetchSingleTokenBalance(mint) {
     return walletBalances.fetchSingleTokenBalance(mint)

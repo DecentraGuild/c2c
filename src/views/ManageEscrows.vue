@@ -14,10 +14,7 @@
 
       <!-- Escrows List -->
       <div class="card">
-        <div v-if="loadingEscrows" class="text-center py-12">
-          <Icon icon="svg-spinners:ring-resize" class="w-16 h-16 text-text-muted/30 mx-auto mb-4" />
-          <p class="text-text-secondary">Loading escrows...</p>
-        </div>
+        <BaseLoading v-if="loadingEscrows" message="Loading escrows..." />
         <div v-else-if="activeEscrows.length === 0" class="text-center py-12">
           <Icon icon="mdi:inbox-outline" class="w-16 h-16 text-text-muted/30 mx-auto mb-4" />
           <p class="text-text-secondary">No active escrows</p>
@@ -179,6 +176,7 @@
 <script setup>
 import { onMounted, computed, ref, watch } from 'vue'
 import { Icon } from '@iconify/vue'
+import BaseLoading from '../components/BaseLoading.vue'
 import { useEscrowStore } from '../stores/escrow'
 import { useWallet, useAnchorWallet } from 'solana-wallets-vue'
 import { useEscrowTransactions } from '../composables/useEscrowTransactions'

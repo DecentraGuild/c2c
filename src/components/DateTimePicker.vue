@@ -28,11 +28,12 @@
         v-model="localDateTime"
         :min-date="minDate"
         :enable-time-picker="true"
-        :utc="true"
+        timezone="UTC"
         :dark="true"
+        format="yyyy-MM-dd HH:mm"
         auto-apply
         :close-on-auto-apply="true"
-        placeholder="Select date and time"
+        placeholder="Select date and time (UTC)"
         class="datetime-picker"
         @update:model-value="updateDateTime"
       />
@@ -89,11 +90,11 @@ const minDate = computed(() => {
 
 // Time presets for quick selection
 const timePresets = [
-  { label: '+1 hour', minutes: 60 },
-  { label: '+6 hours', minutes: 360 },
   { label: '+12 hours', minutes: 720 },
-  { label: '+24 hours', minutes: 1440 },
-  { label: '+7 days', minutes: 10080 }
+  { label: '+1 day', minutes: 1440 },
+  { label: '+3 days', minutes: 4320 },
+  { label: '+7 days', minutes: 10080 },
+  { label: '+30 days', minutes: 43200 }
 ]
 
 // Update current UTC time display
@@ -143,7 +144,7 @@ function formatDateTime(date) {
   return `${year}-${month}-${day}T${hours}:${minutes}`
 }
 
-// Validate the selected date/time
+// Validate the selected date/time (all comparisons in UTC)
 function validateDateTime(dateTime) {
   if (!dateTime) {
     validationError.value = null
@@ -152,8 +153,6 @@ function validateDateTime(dateTime) {
   }
   
   const selectedDate = dateTime instanceof Date ? dateTime : new Date(dateTime)
-  const now = new Date()
-  const minDate = new Date(now.getTime() + props.minMinutesFromNow * 60 * 1000)
   
   if (isNaN(selectedDate.getTime())) {
     validationError.value = 'Invalid date or time'
@@ -161,14 +160,38 @@ function validateDateTime(dateTime) {
     return false
   }
   
-  if (selectedDate <= now) {
+  // Get current UTC time
+  const now = new Date()
+  const nowUTC = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+    now.getUTCHours(),
+    now.getUTCMinutes(),
+    now.getUTCSeconds()
+  )
+  
+  // Calculate minimum date in UTC (now + minMinutesFromNow)
+  const minDateUTC = nowUTC + (props.minMinutesFromNow * 60 * 1000)
+  
+  // Get selected date in UTC
+  const selectedUTC = Date.UTC(
+    selectedDate.getUTCFullYear(),
+    selectedDate.getUTCMonth(),
+    selectedDate.getUTCDate(),
+    selectedDate.getUTCHours(),
+    selectedDate.getUTCMinutes(),
+    0
+  )
+  
+  if (selectedUTC <= nowUTC) {
     validationError.value = 'Expiration time must be in the future'
     emit('validation-change', { valid: false, error: 'Expiration time must be in the future' })
     return false
   }
   
-  if (selectedDate < minDate) {
-    const minTime = new Date(minDate)
+  if (selectedUTC < minDateUTC) {
+    const minTime = new Date(minDateUTC)
     const minHours = String(minTime.getUTCHours()).padStart(2, '0')
     const minMinutes = String(minTime.getUTCMinutes()).padStart(2, '0')
     validationError.value = `Expiration must be at least ${props.minMinutesFromNow} minutes from now (${minHours}:${minMinutes} UTC)`
@@ -193,21 +216,28 @@ function updateDateTime() {
   }
 }
 
-// Apply time preset
+// Apply time preset (adds time to current UTC time)
 function applyPreset(minutes) {
   const now = new Date()
-  const futureDate = new Date(now.getTime() + minutes * 60 * 1000)
   
-  // Create UTC date object
-  localDateTime.value = new Date(Date.UTC(
-    futureDate.getUTCFullYear(),
-    futureDate.getUTCMonth(),
-    futureDate.getUTCDate(),
-    futureDate.getUTCHours(),
-    futureDate.getUTCMinutes(),
-    0
-  ))
+  // Get current UTC timestamp
+  const currentUTC = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+    now.getUTCHours(),
+    now.getUTCMinutes(),
+    now.getUTCSeconds()
+  )
   
+  // Add minutes to UTC time (in milliseconds)
+  const futureUTC = currentUTC + (minutes * 60 * 1000)
+  
+  // Create Date object from UTC timestamp
+  // When VueDatePicker has :utc="true", it will interpret this as UTC
+  localDateTime.value = new Date(futureUTC)
+  
+  // Force update to trigger validation and emit
   updateDateTime()
 }
 

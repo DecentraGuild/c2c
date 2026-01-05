@@ -5,12 +5,12 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { validateSolanaAddress, validateExpirationDate, validateSlippage } from '../utils/validators'
+import { validateSolanaAddress, validateExpirationDate, validateSlippage, validateAmount } from '../utils/validators'
 import { fetchAllEscrows } from '../utils/escrowTransactions'
 import { useSolanaConnection } from '../composables/useSolanaConnection'
-import { useTokenRegistry } from '../composables/useTokenRegistry'
 import { fromSmallestUnits } from '../utils/formatters'
 import { PublicKey } from '@solana/web3.js'
+import { useTokenStore } from './token'
 
 export const useEscrowStore = defineStore('escrow', () => {
   // Create escrow form state
@@ -76,53 +76,27 @@ export const useEscrowStore = defineStore('escrow', () => {
     }
   })
   
+  // Get token store for balance checks
+  const tokenStore = useTokenStore()
+  
   // Validation computed properties
   const isValidOfferAmount = computed(() => {
     if (!offerToken.value) return false
-    const amount = parseFloat(offerAmount.value)
-    if (isNaN(amount) || amount <= 0) return false
-    
-    // For tokens with 0 decimals, ensure amount is a whole number
-    if (offerToken.value.decimals === 0) {
-      if (!Number.isInteger(amount)) return false
-      // Also check the string representation for decimal points
-      const amountStr = offerAmount.value.toString()
-      if (amountStr.includes('.')) {
-        const decimalPart = amountStr.split('.')[1]
-        if (decimalPart && decimalPart.length > 0) {
-          // Check if there are any non-zero digits after decimal point
-          if (decimalPart.split('').some(digit => digit !== '0')) {
-            return false
-          }
-        }
-      }
-    }
-    
-    return true
+    const validation = validateAmount(offerAmount.value, {
+      min: 0.000001,
+      decimals: offerToken.value.decimals,
+      balance: tokenStore.getTokenBalance(offerToken.value.mint)
+    })
+    return validation.valid
   })
   
   const isValidRequestAmount = computed(() => {
     if (!requestToken.value) return false
-    const amount = parseFloat(requestAmount.value)
-    if (isNaN(amount) || amount <= 0) return false
-    
-    // For tokens with 0 decimals, ensure amount is a whole number
-    if (requestToken.value.decimals === 0) {
-      if (!Number.isInteger(amount)) return false
-      // Also check the string representation for decimal points
-      const amountStr = requestAmount.value.toString()
-      if (amountStr.includes('.')) {
-        const decimalPart = amountStr.split('.')[1]
-        if (decimalPart && decimalPart.length > 0) {
-          // Check if there are any non-zero digits after decimal point
-          if (decimalPart.split('').some(digit => digit !== '0')) {
-            return false
-          }
-        }
-      }
-    }
-    
-    return true
+    const validation = validateAmount(requestAmount.value, {
+      min: 0.000001,
+      decimals: requestToken.value.decimals
+    })
+    return validation.valid
   })
   
   const isValidDirectAddress = computed(() => {
@@ -159,57 +133,22 @@ export const useEscrowStore = defineStore('escrow', () => {
     if (!offerToken.value) {
       errors.offerToken = 'Please select a token to offer'
     } else if (!isValidOfferAmount.value) {
-      // Check if it's a decimal issue for 0-decimal tokens
-      if (offerToken.value.decimals === 0) {
-        const amount = parseFloat(offerAmount.value)
-        if (!isNaN(amount) && amount > 0) {
-          const amountStr = offerAmount.value.toString()
-          if (amountStr.includes('.')) {
-            const decimalPart = amountStr.split('.')[1]
-            if (decimalPart && decimalPart.length > 0 && decimalPart.split('').some(digit => digit !== '0')) {
-              errors.offerAmount = 'This token does not support decimals. Please enter a whole number.'
-            } else {
-              errors.offerAmount = 'Please enter a valid offer amount'
-            }
-          } else if (!Number.isInteger(amount)) {
-            errors.offerAmount = 'This token does not support decimals. Please enter a whole number.'
-          } else {
-            errors.offerAmount = 'Please enter a valid offer amount'
-          }
-        } else {
-          errors.offerAmount = 'Please enter a valid offer amount'
-        }
-      } else {
-        errors.offerAmount = 'Please enter a valid offer amount'
-      }
+      const validation = validateAmount(offerAmount.value, {
+        min: 0.000001,
+        decimals: offerToken.value.decimals,
+        balance: tokenStore.getTokenBalance(offerToken.value.mint)
+      })
+      errors.offerAmount = validation.error || 'Please enter a valid offer amount'
     }
     
     if (!requestToken.value) {
       errors.requestToken = 'Please select a token to request'
     } else if (!isValidRequestAmount.value) {
-      // Check if it's a decimal issue for 0-decimal tokens
-      if (requestToken.value.decimals === 0) {
-        const amount = parseFloat(requestAmount.value)
-        if (!isNaN(amount) && amount > 0) {
-          const amountStr = requestAmount.value.toString()
-          if (amountStr.includes('.')) {
-            const decimalPart = amountStr.split('.')[1]
-            if (decimalPart && decimalPart.length > 0 && decimalPart.split('').some(digit => digit !== '0')) {
-              errors.requestAmount = 'This token does not support decimals. Please enter a whole number.'
-            } else {
-              errors.requestAmount = 'Please enter a valid request amount'
-            }
-          } else if (!Number.isInteger(amount)) {
-            errors.requestAmount = 'This token does not support decimals. Please enter a whole number.'
-          } else {
-            errors.requestAmount = 'Please enter a valid request amount'
-          }
-        } else {
-          errors.requestAmount = 'Please enter a valid request amount'
-        }
-      } else {
-        errors.requestAmount = 'Please enter a valid request amount'
-      }
+      const validation = validateAmount(requestAmount.value, {
+        min: 0.000001,
+        decimals: requestToken.value.decimals
+      })
+      errors.requestAmount = validation.error || 'Please enter a valid request amount'
     }
     
     if (offerToken.value && requestToken.value && 
@@ -293,7 +232,7 @@ export const useEscrowStore = defineStore('escrow', () => {
     errors.value.escrows = null
     try {
       const connection = useSolanaConnection()
-      const tokenRegistry = useTokenRegistry()
+      const tokenStore = useTokenStore()
       
       // Convert makerPublicKey to PublicKey if it's a string
       const makerFilter = makerPublicKey 
@@ -311,8 +250,8 @@ export const useEscrowStore = defineStore('escrow', () => {
           
           // Fetch token info for deposit and request tokens
           const [depositTokenInfo, requestTokenInfo] = await Promise.all([
-            tokenRegistry.fetchTokenInfo(escrowAccount.depositToken.toString()),
-            tokenRegistry.fetchTokenInfo(escrowAccount.requestToken.toString())
+            tokenStore.fetchTokenInfo(escrowAccount.depositToken.toString()),
+            tokenStore.fetchTokenInfo(escrowAccount.requestToken.toString())
           ])
           
           // Calculate remaining and initial amounts in human-readable format

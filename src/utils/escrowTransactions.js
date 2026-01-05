@@ -11,7 +11,9 @@ import {
 import { 
   getAssociatedTokenAddressSync,
   ASSOCIATED_TOKEN_PROGRAM_ID,
-  TOKEN_PROGRAM_ID
+  TOKEN_PROGRAM_ID,
+  createSyncNativeInstruction,
+  NATIVE_MINT
 } from '@solana/spl-token'
 import { Program, AnchorProvider, BN } from '@coral-xyz/anchor'
 import { ESCROW_PROGRAM_ID, CONTRACT_FEE_ACCOUNT, WHITELIST_PROGRAM_ID } from './constants'
@@ -296,6 +298,7 @@ export async function buildExchangeTransaction({
   requestTokenMint,
   amount,
   seed,
+  requestAmount = null, // Optional: request amount in lamports (for wrapped SOL)
   contractFeeAccount = CONTRACT_FEE_ACCOUNT,
   whitelistProgram = null,
   whitelist = null,
@@ -351,6 +354,9 @@ export async function buildExchangeTransaction({
   const takerAtaExists = await checkAtaExists(requestTokenPubkey, takerPubkey, connection)
   const takerReceiveAtaExists = await checkAtaExists(depositTokenPubkey, takerPubkey, connection)
   
+  // Check if request token is wrapped SOL (native SOL)
+  const isWrappedSOL = requestTokenPubkey.equals(NATIVE_MINT)
+  
   // Calculate costs that will be incurred
   let totalCostToFund = 0
   if (!takerAtaExists) {
@@ -360,6 +366,90 @@ export async function buildExchangeTransaction({
   if (!takerReceiveAtaExists) {
     transaction.add(makeAtaInstruction(depositTokenPubkey, takerPubkey, takerPubkey))
     totalCostToFund += TRANSACTION_COSTS.ATA_CREATION
+  }
+  
+  // Handle wrapped SOL: if request token is wrapped SOL, we need to wrap native SOL
+  if (isWrappedSOL) {
+    const wrappedSolAccount = takerAta
+    
+    // Get request amount in lamports
+    let requestAmountLamports
+    if (requestAmount) {
+      requestAmountLamports = requestAmount instanceof BN ? requestAmount : new BN(requestAmount.toString())
+    } else {
+      // Fallback: fetch escrow to calculate (less accurate)
+      const program = getEscrowProgram(connection, wallet)
+      const escrowAccount = await program.account.escrow.fetch(escrow)
+      const price = escrowAccount.price
+      const amountBN = amount instanceof BN ? amount : new BN(amount.toString())
+      // Estimate: this is approximate without exact decimals
+      const priceScaled = new BN(Math.floor(price * 1e9))
+      requestAmountLamports = amountBN.mul(priceScaled).div(new BN(1e9))
+    }
+    
+    // Rent-exempt amount for wrapped SOL account (0.00203928 SOL = 2,039,280 lamports)
+    const rentExemptAmount = new BN(2039280)
+    
+    // Calculate SOL to transfer:
+    // - If account doesn't exist: need request amount + rent (rent will be returned when account closes)
+    // - If account exists: check current balance and only transfer what's needed
+    let solToTransfer
+    if (!takerAtaExists) {
+      // New account: transfer request amount + rent
+      // Note: The rent will be returned when the account closes after exchange,
+      // which causes the confusing balance display, but this is necessary for account creation
+      solToTransfer = requestAmountLamports.add(rentExemptAmount)
+    } else {
+      // Existing account: check current balance
+      try {
+        const accountInfo = await connection.getAccountInfo(wrappedSolAccount)
+        if (accountInfo) {
+          // Account exists, check if it has enough balance
+          const tokenAccount = await connection.getParsedAccountInfo(wrappedSolAccount)
+          const currentBalance = tokenAccount.value?.data?.parsed?.info?.tokenAmount?.uiAmount || 0
+          const currentBalanceLamports = new BN(Math.floor(currentBalance * 1e9))
+          
+          if (currentBalanceLamports.gte(requestAmountLamports)) {
+            // Already has enough, no transfer needed
+            solToTransfer = new BN(0)
+          } else {
+            // Need to add more - only transfer the difference
+            const needed = requestAmountLamports.sub(currentBalanceLamports)
+            solToTransfer = needed
+          }
+        } else {
+          // Account doesn't exist (shouldn't happen if takerAtaExists is true, but handle it)
+          solToTransfer = requestAmountLamports.add(rentExemptAmount)
+        }
+      } catch (err) {
+        // If we can't check, transfer the full amount (safer)
+        console.warn('Could not check wrapped SOL account balance, transferring full amount:', err)
+        solToTransfer = requestAmountLamports.add(rentExemptAmount)
+      }
+    }
+    
+    // Only add transfer instruction if we need to transfer SOL
+    if (solToTransfer.gt(new BN(0))) {
+      // Transfer SOL from user's wallet to wrapped SOL account
+      // This must happen BEFORE the exchange instruction
+      const transferSolIx = SystemProgram.transfer({
+        fromPubkey: takerPubkey,
+        toPubkey: wrappedSolAccount,
+        lamports: solToTransfer.toNumber()
+      })
+      transaction.add(transferSolIx)
+    }
+    
+    // Sync native SOL to wrapped SOL
+    // This converts the native SOL in the account to wrapped SOL tokens
+    // Only needed if we transferred SOL or if account might have native SOL
+    if (!takerAtaExists || solToTransfer.gt(new BN(0))) {
+      const syncNativeIx = createSyncNativeInstruction(
+        wrappedSolAccount,
+        TOKEN_PROGRAM_ID
+      )
+      transaction.add(syncNativeIx)
+    }
   }
   
   // Add transaction fee estimate

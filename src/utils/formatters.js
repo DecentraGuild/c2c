@@ -3,6 +3,17 @@
  */
 
 /**
+ * Clean and trim a string, removing all whitespace, null bytes, and non-printable characters
+ * @param {string|null|undefined} str - String to clean
+ * @returns {string|null} Cleaned string or null
+ */
+export function cleanTokenString(str) {
+  if (!str || typeof str !== 'string') return null
+  // Remove null bytes, non-printable characters, and trim whitespace
+  return str.replace(/\0/g, '').replace(/[\x00-\x1F\x7F-\x9F]/g, '').trim() || null
+}
+
+/**
  * Format a number with dynamic decimal places based on value range
  * Supports both positive and negative values
  * @param {number} value - Number to format
@@ -78,10 +89,26 @@ export function formatDecimals(value) {
  */
 export function formatBalance(balance, decimals = 4, showLoading = true) {
   if (balance === null || balance === undefined) {
-    return showLoading ? 'Loading...' : '0.00'
+    return showLoading ? 'Loading...' : decimals === 0 ? '0' : '0.00'
   }
-  if (balance === 0) return '0.00'
+  if (balance === 0) {
+    return decimals === 0 ? '0' : '0.00'
+  }
   
+  // For 0-decimal tokens, always show whole numbers
+  if (decimals === 0) {
+    const wholeNumber = Math.floor(Math.abs(balance))
+    const sign = balance < 0 ? '-' : ''
+    
+    if (wholeNumber >= 1000000) {
+      return `${sign}${Math.floor(wholeNumber / 1000000)}M`
+    } else if (wholeNumber >= 1000) {
+      return `${sign}${Math.floor(wholeNumber / 1000)}K`
+    }
+    return `${sign}${wholeNumber}`
+  }
+  
+  // For tokens with decimals, use dynamic formatting
   if (balance >= 1000000) {
     return `${formatDecimals(balance / 1000000)}M`
   } else if (balance >= 1000) {
@@ -207,6 +234,11 @@ export function fromSmallestUnits(amount, decimals) {
     amountStr = amount.toString()
   } else {
     amountStr = amount.toString()
+  }
+  
+  // For 0-decimal tokens, return whole number directly
+  if (decimals === 0) {
+    return parseInt(amountStr, 10)
   }
   
   // Pad with zeros if needed

@@ -4,81 +4,14 @@
  */
 
 import { ref, computed } from 'vue'
-import { TokenListProvider } from '@solana/spl-token-registry'
 import { useSolanaConnection } from './useSolanaConnection'
 import { fetchTokenMetadata } from '../utils/metaplex'
 import { metadataRateLimiter } from '../utils/rateLimiter'
-
-// Token registry cache with expiration
-let tokenRegistryList = null
-let registryLoadTime = null
-let registryLoadPromise = null
-const REGISTRY_CACHE_TTL = 24 * 60 * 60 * 1000 // 24 hours
+import { loadTokenRegistryList, preloadTokenRegistry as preloadSharedRegistry } from '../utils/tokenRegistry'
+import { cleanTokenString } from '../utils/formatters'
 
 // Use shared connection
 const connection = useSolanaConnection()
-
-/**
- * Load token registry and return as array for searching
- * @returns {Promise<Array>} Array of token objects
- */
-async function loadTokenRegistryList() {
-  // Return existing promise if already loading
-  if (registryLoadPromise) {
-    return registryLoadPromise
-  }
-
-  // Return cached registry if still valid (within TTL)
-  if (tokenRegistryList && registryLoadTime && 
-      Date.now() - registryLoadTime < REGISTRY_CACHE_TTL) {
-    return tokenRegistryList
-  }
-  
-  // Clear expired cache
-  if (tokenRegistryList && registryLoadTime && 
-      Date.now() - registryLoadTime >= REGISTRY_CACHE_TTL) {
-    tokenRegistryList = null
-    registryLoadTime = null
-  }
-
-  // Start loading registry
-  registryLoadPromise = (async () => {
-    try {
-      const provider = new TokenListProvider()
-      const tokenList = await provider.resolve()
-      const mainnetTokens = tokenList.filterByClusterSlug('mainnet-beta').getList()
-      
-      // Convert to array format for easier searching
-      // Helper function to clean token strings (remove null bytes, non-printable chars, trim)
-      const cleanTokenString = (str) => {
-        if (!str || typeof str !== 'string') return null
-        return str.replace(/\0/g, '').replace(/[\x00-\x1F\x7F-\x9F]/g, '').trim() || null
-      }
-      
-      tokenRegistryList = mainnetTokens.map(token => ({
-        mint: token.address,
-        name: cleanTokenString(token.name),
-        symbol: cleanTokenString(token.symbol),
-        image: token.logoURI || null,
-        decimals: token.decimals || null
-      }))
-      
-      // Set cache timestamp
-      registryLoadTime = Date.now()
-      
-      return tokenRegistryList
-    } catch (err) {
-      console.warn('Failed to load token registry:', err)
-      // Return empty array on error
-      tokenRegistryList = []
-      return tokenRegistryList
-    } finally {
-      registryLoadPromise = null
-    }
-  })()
-
-  return registryLoadPromise
-}
 
 /**
  * Fetch token decimals from on-chain if not available in registry
@@ -103,6 +36,11 @@ async function fetchTokenDecimals(mintAddress) {
 
 /**
  * Fetch complete token info (metadata + decimals) for a mint address
+ * This is the primary function for fetching complete token information.
+ * It combines registry data, on-chain metadata, and decimals.
+ * 
+ * @param {string} mintAddress - Token mint address
+ * @returns {Promise<Object>} Token info { mint, name, symbol, image, decimals }
  */
 async function fetchTokenInfo(mintAddress) {
   try {
@@ -122,12 +60,6 @@ async function fetchTokenInfo(mintAddress) {
     }
     if (!decimals) {
       decimals = 9 // Default fallback
-    }
-    
-    // Helper function to clean token strings
-    const cleanTokenString = (str) => {
-      if (!str || typeof str !== 'string') return null
-      return str.replace(/\0/g, '').replace(/[\x00-\x1F\x7F-\x9F]/g, '').trim() || null
     }
     
     return {
@@ -257,11 +189,7 @@ export function useTokenRegistry() {
    * Preload registry for better UX
    */
   const preloadRegistry = async () => {
-    try {
-      await loadTokenRegistryList()
-    } catch (err) {
-      console.debug('Failed to preload token registry:', err.message)
-    }
+    return preloadSharedRegistry()
   }
 
   return {

@@ -4,75 +4,14 @@
  */
 
 import { PublicKey, Connection } from '@solana/web3.js'
-import { TokenListProvider } from '@solana/spl-token-registry'
-
-/**
- * Clean and trim a string, removing all whitespace, null bytes, and non-printable characters
- * @param {string|null|undefined} str - String to clean
- * @returns {string|null} Cleaned string or null
- */
-function cleanTokenString(str) {
-  if (!str || typeof str !== 'string') return null
-  // Remove null bytes, non-printable characters, and trim whitespace
-  return str.replace(/\0/g, '').replace(/[\x00-\x1F\x7F-\x9F]/g, '').trim() || null
-}
+import { cleanTokenString } from './formatters'
+import { loadTokenRegistryMap, preloadTokenRegistry as preloadSharedRegistry } from './tokenRegistry'
 
 // Metaplex Token Metadata Program ID
 const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s')
 
 // Wrapped SOL mint address (used for fetching SOL logo)
 const WRAPPED_SOL_MINT = 'So11111111111111111111111111111111111111112'
-
-// Token registry cache
-let tokenRegistryMap = null
-let registryLoadPromise = null
-
-/**
- * Initialize and load token registry
- * @returns {Promise<Map<string, Object>>} Map of mint address to token info
- */
-async function loadTokenRegistry() {
-  // Return existing promise if already loading
-  if (registryLoadPromise) {
-    return registryLoadPromise
-  }
-
-  // Return cached registry if already loaded
-  if (tokenRegistryMap) {
-    return tokenRegistryMap
-  }
-
-  // Start loading registry
-  registryLoadPromise = (async () => {
-    try {
-      const provider = new TokenListProvider()
-      const tokenList = await provider.resolve()
-      const mainnetTokens = tokenList.filterByClusterSlug('mainnet-beta').getList()
-      
-      // Create map: mint address -> token info
-      tokenRegistryMap = new Map()
-      for (const token of mainnetTokens) {
-        tokenRegistryMap.set(token.address, {
-          name: cleanTokenString(token.name),
-          symbol: cleanTokenString(token.symbol),
-          image: token.logoURI || null,
-          decimals: token.decimals || null
-        })
-      }
-      
-      return tokenRegistryMap
-    } catch (err) {
-      console.warn('Failed to load token registry, will use Metaplex only:', err)
-      // Return empty map on error - will fall back to Metaplex
-      tokenRegistryMap = new Map()
-      return tokenRegistryMap
-    } finally {
-      registryLoadPromise = null
-    }
-  })()
-
-  return registryLoadPromise
-}
 
 /**
  * Get SOL metadata fallback (used when registry doesn't have it or fails)
@@ -95,7 +34,7 @@ async function getTokenFromRegistry(mintAddress) {
   // Special handling for wrapped SOL - always return SOL metadata
   if (mintAddress === WRAPPED_SOL_MINT) {
     try {
-      const registry = await loadTokenRegistry()
+      const registry = await loadTokenRegistryMap()
       const tokenData = registry.get(mintAddress)
       
       // Use registry data if it has an image, otherwise use fallback
@@ -112,7 +51,7 @@ async function getTokenFromRegistry(mintAddress) {
   
   // For other tokens, lookup in registry
   try {
-    const registry = await loadTokenRegistry()
+    const registry = await loadTokenRegistryMap()
     return registry.get(mintAddress) || null
   } catch (err) {
     console.debug(`Registry lookup failed for ${mintAddress}:`, err.message)
@@ -122,15 +61,11 @@ async function getTokenFromRegistry(mintAddress) {
 
 /**
  * Preload token registry (call this early for better UX)
+ * @deprecated Use preloadTokenRegistry from tokenRegistry.js or token store instead
  * @returns {Promise<void>}
  */
 export async function preloadTokenRegistry() {
-  try {
-    await loadTokenRegistry()
-  } catch (err) {
-    // Silently fail - will fall back to Metaplex
-    console.debug('Failed to preload token registry:', err.message)
-  }
+  return preloadSharedRegistry()
 }
 
 /**
@@ -161,10 +96,14 @@ export async function getMetadataPDA(mintAddress) {
 
 /**
  * Fetch token metadata using hybrid approach: Registry first, then Metaplex
+ * 
+ * NOTE: This function returns metadata only (name, symbol, image, uri) without decimals.
+ * For complete token info including decimals, use fetchTokenInfo from useTokenRegistry instead.
+ * 
  * @param {Connection} connection - Solana connection
  * @param {string} mintAddress - Token mint address
  * @param {boolean} useRegistryFirst - Whether to check registry first (default: true)
- * @returns {Promise<Object|null>} Token metadata or null if not found
+ * @returns {Promise<Object|null>} Token metadata { name, symbol, image, uri } or null if not found
  */
 export async function fetchTokenMetadata(connection, mintAddress, useRegistryFirst = true) {
   let registryData = null
@@ -172,15 +111,15 @@ export async function fetchTokenMetadata(connection, mintAddress, useRegistryFir
   // Try registry first if enabled
   if (useRegistryFirst) {
     registryData = await getTokenFromRegistry(mintAddress)
-      // If registry has complete data with image, return it immediately (no RPC call needed)
-      if (registryData?.image) {
-        return {
-          name: cleanTokenString(registryData.name),
-          symbol: cleanTokenString(registryData.symbol),
-          image: registryData.image,
-          uri: null
-        }
+    // If registry has complete data with image, return it immediately (no RPC call needed)
+    if (registryData?.image) {
+      return {
+        name: cleanTokenString(registryData.name),
+        symbol: cleanTokenString(registryData.symbol),
+        image: registryData.image,
+        uri: null
       }
+    }
   }
 
   // Fetch from Metaplex on-chain (with retry logic for rate limits)

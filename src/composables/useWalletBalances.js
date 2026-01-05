@@ -9,6 +9,7 @@ import { NATIVE_SOL } from '../utils/constants'
 import { fetchTokenMetadata } from '../utils/metaplex'
 import { useSolanaConnection } from './useSolanaConnection'
 import { metadataRateLimiter } from '../utils/rateLimiter'
+import { cleanTokenString } from '../utils/formatters'
 
 export function useWalletBalances(options = {}) {
   const { autoFetch = true } = options
@@ -129,12 +130,6 @@ export function useWalletBalances(options = {}) {
       )
 
       if (metadata) {
-        // Helper function to clean token strings (remove null bytes, non-printable chars, trim)
-        const cleanTokenString = (str) => {
-          if (!str || typeof str !== 'string') return null
-          return str.replace(/\0/g, '').replace(/[\x00-\x1F\x7F-\x9F]/g, '').trim() || null
-        }
-        
         return {
           ...token,
           name: cleanTokenString(metadata.name || token.name),

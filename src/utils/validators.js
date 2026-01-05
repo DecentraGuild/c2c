@@ -161,8 +161,8 @@ export function validateAddressList(addresses) {
 }
 
 /**
- * Validate an expiration date
- * @param {string|Date} expirationDate - Date to validate
+ * Validate an expiration date (all comparisons in UTC)
+ * @param {string|Date} expirationDate - Date to validate (should be in UTC)
  * @param {number} minMinutesFromNow - Minimum minutes from now (default: 5)
  * @returns {{valid: boolean, error: string|null}} Validation result
  */
@@ -175,7 +175,6 @@ export function validateExpirationDate(expirationDate, minMinutesFromNow = 5) {
   }
   
   const date = new Date(expirationDate)
-  const now = new Date()
   
   if (isNaN(date.getTime())) {
     return {
@@ -184,12 +183,34 @@ export function validateExpirationDate(expirationDate, minMinutesFromNow = 5) {
     }
   }
   
-  const minDate = new Date(now.getTime() + minMinutesFromNow * 60 * 1000)
+  // Get current UTC time
+  const now = new Date()
+  const nowUTC = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+    now.getUTCHours(),
+    now.getUTCMinutes(),
+    now.getUTCSeconds()
+  )
   
-  if (date <= minDate) {
+  // Calculate minimum date in UTC (now + minMinutesFromNow)
+  const minDateUTC = nowUTC + (minMinutesFromNow * 60 * 1000)
+  
+  // Get selected date in UTC
+  const selectedUTC = Date.UTC(
+    date.getUTCFullYear(),
+    date.getUTCMonth(),
+    date.getUTCDate(),
+    date.getUTCHours(),
+    date.getUTCMinutes(),
+    0
+  )
+  
+  if (selectedUTC <= minDateUTC) {
     return {
       valid: false,
-      error: `Expiration must be at least ${minMinutesFromNow} minutes from now`
+      error: `Expiration must be at least ${minMinutesFromNow} minutes from now (UTC)`
     }
   }
   

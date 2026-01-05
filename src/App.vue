@@ -11,12 +11,13 @@ import { onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 import NavBar from './components/NavBar.vue'
 import ToastContainer from './components/ToastContainer.vue'
-import { preloadTokenRegistry } from './utils/metaplex'
+import { useTokenStore } from './stores/token'
 import { isMobileDevice, waitForWalletStandard, isBackpackAvailable } from './utils/walletDetection'
 
 // Preload token registry early for better performance
 onMounted(() => {
-  preloadTokenRegistry()
+  const tokenStore = useTokenStore()
+  tokenStore.preloadRegistry()
   
   // On mobile, wait a bit longer for Wallet Standard wallets to be injected
   // This is especially important for in-app browsers like Backpack

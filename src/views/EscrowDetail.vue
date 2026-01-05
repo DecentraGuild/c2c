@@ -29,230 +29,31 @@
       </div>
 
       <!-- Loading State -->
-      <div v-if="loading" class="card text-center py-12">
-        <Icon icon="svg-spinners:ring-resize" class="w-16 h-16 text-text-muted/30 mx-auto mb-4" />
-        <p class="text-text-secondary">Loading escrow details...</p>
-      </div>
+      <BaseLoading v-if="loading" message="Loading escrow details..." />
 
       <!-- Escrow Details -->
       <div v-else-if="escrow" class="space-y-4">
-        <!-- Price Display Card -->
-        <div class="card">
-          <h2 class="text-sm font-semibold text-text-primary mb-2 text-center">Price</h2>
-          <div class="bg-secondary-bg/50 rounded-xl p-3 space-y-2">
-            <!-- Price Line 1: 1 depositToken = price * requestToken -->
-            <div class="grid grid-cols-[1fr_auto_1fr] items-center text-sm text-text-secondary">
-              <div class="flex justify-end pr-3">
-                <TokenAmountDisplay
-                  v-if="escrow.depositToken"
-                  :token="escrow.depositToken"
-                  :amount="1"
-                  :decimals="escrow.depositToken.decimals"
-                  icon-size="sm"
-                  amount-class="text-text-secondary whitespace-nowrap"
-                  ticker-class="text-text-secondary whitespace-nowrap"
-                />
-              </div>
-              <div class="flex justify-center flex-shrink-0 px-2">
-                <Icon icon="mdi:arrow-left-right" class="w-5 h-5 text-text-primary" />
-              </div>
-              <div class="flex justify-start pl-3">
-                <TokenAmountDisplay
-                  v-if="escrow.requestToken"
-                  :token="escrow.requestToken"
-                  :amount="escrow.price"
-                  :decimals="escrow.requestToken.decimals"
-                  icon-size="sm"
-                  amount-class="text-text-secondary whitespace-nowrap"
-                  ticker-class="text-text-secondary whitespace-nowrap"
-                />
-              </div>
-            </div>
-            
-            <!-- Price Line 2: 1 requestToken = 1/price * depositToken -->
-            <div class="grid grid-cols-[1fr_auto_1fr] items-center text-sm text-text-secondary">
-              <div class="flex justify-end pr-3">
-                <TokenAmountDisplay
-                  v-if="escrow.requestToken"
-                  :token="escrow.requestToken"
-                  :amount="1"
-                  :decimals="escrow.requestToken.decimals"
-                  icon-size="sm"
-                  amount-class="text-text-secondary whitespace-nowrap"
-                  ticker-class="text-text-secondary whitespace-nowrap"
-                />
-              </div>
-              <div class="flex justify-center flex-shrink-0 px-2">
-                <Icon icon="mdi:arrow-left-right" class="w-5 h-5 text-text-primary" />
-              </div>
-              <div class="flex justify-start pl-3">
-                <TokenAmountDisplay
-                  v-if="escrow.depositToken"
-                  :token="escrow.depositToken"
-                  :amount="1 / escrow.price"
-                  :decimals="escrow.depositToken.decimals"
-                  icon-size="sm"
-                  amount-class="text-text-secondary whitespace-nowrap"
-                  ticker-class="text-text-secondary whitespace-nowrap"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Exchange/Fill Section -->
-        <div v-if="escrow && escrow.status === 'active'" class="card space-y-4">
-          <h2 class="text-lg font-bold text-text-primary">Fill Escrow</h2>
-          
-          <!-- Wallet Balance Display -->
-          <div class="bg-secondary-bg/50 rounded-xl p-3">
-            <div class="flex flex-col sm:grid sm:grid-cols-2 gap-2 sm:gap-4 items-start sm:items-center">
-              <span class="text-sm text-text-muted">Your {{ escrow.requestToken.symbol || 'Token' }} Balance:</span>
-              <span v-if="loadingRequestTokenBalance" class="text-text-muted text-sm whitespace-nowrap">Loading...</span>
-              <TokenAmountDisplay
-                v-else
-                :token="escrow.requestToken"
-                :amount="requestTokenBalance"
-                :decimals="escrow.requestToken.decimals"
-                icon-size="sm"
-                container-class="text-left"
-              />
-            </div>
-          </div>
+        <EscrowFillSection
+          :escrow="escrow"
+          :request-token-balance="requestTokenBalance"
+          :loading-request-token-balance="loadingRequestTokenBalance"
+          :max-fill-amount="maxFillAmount"
+          v-model:fill-amount-percent="fillAmountPercent"
+          v-model:fill-amount="fillAmount"
+          :expected-receive-amount="expectedReceiveAmount"
+          :exchange-costs="exchangeCosts"
+          :exchanging="exchanging"
+          :can-fill="canFill"
+          :can-exchange="canExchange"
+          @update-fill-amount-from-input="updateFillAmountFromInput"
+          @handle-fill-amount-keydown="handleFillAmountKeydown"
+          @set-fill-percentage="setFillPercentage"
+          @exchange="exchangeEscrow"
+        />
 
-          <!-- Partial Fill Input/Slider -->
-          <div v-if="escrow.allowPartialFill" class="space-y-3">
-            <div class="flex items-center justify-between">
-              <label class="text-sm font-semibold text-text-primary">Amount to Fill</label>
-              <div class="text-xs text-text-muted">
-                Max: 
-                <TokenAmountDisplay
-                  :token="escrow.requestToken"
-                  :amount="maxFillAmount"
-                  :decimals="escrow.requestToken.decimals"
-                  icon-size="xs"
-                  container-class="inline-flex"
-                  amount-class="text-text-muted text-xs"
-                  ticker-class="text-text-muted text-xs"
-                />
-              </div>
-            </div>
-            
-            <!-- Slider -->
-            <div class="space-y-2">
-              <input
-                v-model.number="fillAmountPercent"
-                type="range"
-                min="0"
-                max="100"
-                step="1"
-                class="w-full h-2 bg-secondary-bg rounded-lg appearance-none cursor-pointer accent-primary-color"
-              />
-              <div class="flex justify-between text-xs text-text-muted">
-                <span>0%</span>
-                <span>25%</span>
-                <span>50%</span>
-                <span>75%</span>
-                <span>100%</span>
-              </div>
-            </div>
-
-            <!-- Amount Input -->
-            <div>
-              <label class="text-sm text-text-muted mb-1 block">Fill Amount</label>
-              <div class="relative">
-                <input
-                  v-model="fillAmount"
-                  type="number"
-                  :step="getStepForDecimals(escrow.requestToken.decimals)"
-                  :min="0"
-                  :max="maxFillAmount"
-                  :placeholder="getPlaceholderForDecimals(escrow.requestToken.decimals)"
-                  class="input-field w-full pr-20"
-                  @input="updateFillAmountFromInput"
-                  @keydown="handleFillAmountKeydown"
-                />
-                <div class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">
-                  {{ escrow.requestToken.symbol || 'Token' }}
-                </div>
-              </div>
-              <div class="flex gap-2 mt-2">
-                <button
-                  v-for="percentage in [25, 50, 75, 100]"
-                  :key="percentage"
-                  @click="setFillPercentage(percentage)"
-                  class="px-3 py-1 text-xs font-medium rounded bg-secondary-bg/50 text-text-secondary hover:bg-secondary-bg transition-colors"
-                >
-                  {{ percentage }}%
-                </button>
-              </div>
-            </div>
-
-            <!-- Expected Receive -->
-            <div class="bg-secondary-bg/50 rounded-xl p-3">
-              <div class="flex flex-col sm:grid sm:grid-cols-2 gap-2 sm:gap-4 items-start sm:items-center">
-                <span class="text-sm text-text-muted">You will receive:</span>
-                <TokenAmountDisplay
-                  :token="escrow.depositToken"
-                  :amount="expectedReceiveAmount"
-                  :decimals="escrow.depositToken.decimals"
-                  icon-size="sm"
-                  container-class="text-left"
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- Full Fill Display (when partial fill disabled) -->
-          <div v-else class="bg-secondary-bg/50 rounded-xl p-3 space-y-2">
-            <div class="flex flex-col sm:grid sm:grid-cols-2 gap-2 sm:gap-4 items-start sm:items-center">
-              <span class="text-sm text-text-muted">You will pay:</span>
-              <TokenAmountDisplay
-                :token="escrow.requestToken"
-                :amount="escrow.requestAmount"
-                :decimals="escrow.requestToken.decimals"
-                icon-size="sm"
-                container-class="text-left"
-              />
-            </div>
-            <div class="flex flex-col sm:grid sm:grid-cols-2 gap-2 sm:gap-4 items-start sm:items-center">
-              <span class="text-sm text-text-muted">You will receive:</span>
-              <TokenAmountDisplay
-                :token="escrow.depositToken"
-                :amount="escrow.depositRemaining"
-                :decimals="escrow.depositToken.decimals"
-                icon-size="sm"
-                container-class="text-left"
-              />
-            </div>
-          </div>
-
-          <!-- Transaction Fee Info -->
-          <div v-if="exchangeCosts" class="bg-secondary-bg/50 rounded-xl p-3 border border-border-color/50">
-            <div class="flex flex-col sm:grid sm:grid-cols-2 gap-2 sm:gap-4 items-start sm:items-center mb-1">
-              <span class="text-sm text-text-muted">Transaction fee:</span>
-              <span class="text-text-primary font-semibold whitespace-nowrap">
-                {{ formatBalance(exchangeCosts.totalCost, 9) }} SOL
-              </span>
-            </div>
-            <div v-if="exchangeCosts.totalCost > 0" class="text-xs text-text-muted mt-1">
-              <span v-if="exchangeCosts.takerAtaCost > 0 || exchangeCosts.takerReceiveAtaCost > 0">
-                Includes account creation costs
-              </span>
-            </div>
-          </div>
-
-          <!-- Exchange Button -->
-          <button
-            @click="exchangeEscrow"
-            :disabled="exchanging || !canFill || !canExchange"
-            class="btn-primary w-full py-3 sm:py-3 disabled:opacity-50 min-h-[44px] text-sm sm:text-base"
-          >
-            <Icon v-if="exchanging" icon="svg-spinners:ring-resize" class="w-5 h-5 inline mr-2" />
-            <Icon v-else icon="mdi:swap-horizontal" class="w-5 h-5 inline mr-2" />
-            {{ escrow.allowPartialFill ? 'FILL ESCROW' : 'EXCHANGE' }}
-          </button>
-        </div>
+        <!-- Price Display Card -->
+        <EscrowPriceDisplay :escrow="escrow" />
 
         <!-- Cancel/Claim Button -->
         <div v-if="canCancel" class="flex flex-col sm:flex-row gap-3">
@@ -268,128 +69,22 @@
         </div>
 
         <!-- Escrow Details Card -->
-        <div class="card space-y-4">
-          <button
-            @click="showEscrowDetails = !showEscrowDetails"
-            class="flex items-center justify-between w-full text-left"
-          >
-            <h2 class="text-lg font-bold text-text-primary">Escrow Details</h2>
-            <Icon 
-              :icon="showEscrowDetails ? 'mdi:chevron-up' : 'mdi:chevron-down'" 
-              class="w-6 h-6 text-text-muted transition-transform"
-            />
-          </button>
-          
-          <div v-show="showEscrowDetails" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="text-sm text-text-muted mb-1 block">Escrow</label>
-              <BaseAddressDisplay :address="escrow.id" />
-            </div>
-            <div>
-              <label class="text-sm text-text-muted mb-1 block">Maker</label>
-              <BaseAddressDisplay :address="escrow.maker" />
-            </div>
-            <div>
-              <label class="text-sm text-text-muted mb-1 block">Deposited</label>
-              <BaseAddressDisplay :address="escrow.depositToken.mint" />
-            </div>
-            <div>
-              <label class="text-sm text-text-muted mb-1 block">Request</label>
-              <BaseAddressDisplay :address="escrow.requestToken.mint" />
-            </div>
-            <div>
-              <label class="text-sm text-text-muted">Deposit amount</label>
-              <div class="text-text-primary text-sm">
-                <TokenAmountDisplay
-                  :token="escrow.depositToken"
-                  :amount="escrow.depositAmount"
-                  :decimals="escrow.depositToken.decimals"
-                  icon-size="sm"
-                  amount-class="text-text-primary text-sm"
-                  ticker-class="text-text-primary text-sm"
-                />
-              </div>
-            </div>
-            <div>
-              <label class="text-sm text-text-muted">Remaining amount</label>
-              <div class="text-text-primary text-sm space-y-1">
-                <TokenAmountDisplay
-                  :token="escrow.depositToken"
-                  :amount="escrow.depositRemaining"
-                  :decimals="escrow.depositToken.decimals"
-                  icon-size="sm"
-                  amount-class="text-text-primary text-sm"
-                  ticker-class="text-text-primary text-sm"
-                />
-                <TokenAmountDisplay
-                  :token="escrow.requestToken"
-                  :amount="escrow.depositRemaining * escrow.price"
-                  :decimals="escrow.requestToken.decimals"
-                  icon-size="sm"
-                  amount-class="text-text-primary text-sm"
-                  ticker-class="text-text-primary text-sm"
-                />
-                <span class="text-text-primary text-sm">{{ remainingPercentage }}%</span>
-              </div>
-            </div>
-            <div>
-              <label class="text-sm text-text-muted">Price</label>
-              <div class="text-text-primary text-sm">
-                <TokenAmountDisplay
-                  :token="escrow.requestToken"
-                  :amount="escrow.price"
-                  :decimals="escrow.requestToken.decimals"
-                  icon-size="sm"
-                  amount-class="text-text-primary text-sm"
-                  ticker-class="text-text-primary text-sm"
-                />
-              </div>
-            </div>
-            <div>
-              <label class="text-sm text-text-muted mb-1 block">Recipient</label>
-              <p v-if="isPublicEscrow" class="text-text-primary text-sm">Any wallet</p>
-              <BaseAddressDisplay v-else :address="escrow.recipient" />
-            </div>
-          </div>
-
-          <!-- Flags -->
-          <div v-show="showEscrowDetails" class="flex flex-wrap gap-2 pt-4 border-t border-border-color">
-            <span
-              :class="[
-                'px-3 py-1 rounded-lg text-xs font-semibold',
-                escrow.allowPartialFill ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-500/20 text-gray-400'
-              ]"
-            >
-              Partial fill: {{ escrow.allowPartialFill ? 'yes' : 'no' }}
-            </span>
-            <span
-              :class="[
-                'px-3 py-1 rounded-lg text-xs font-semibold',
-                !escrow.recipient || escrow.recipient === '11111111111111111111111111111111' 
-                  ? 'bg-green-500/20 text-green-400' 
-                  : 'bg-gray-500/20 text-gray-400'
-              ]"
-            >
-              Public: {{ !escrow.recipient || escrow.recipient === '11111111111111111111111111111111' ? 'yes' : 'no' }}
-            </span>
-            <span
-              :class="[
-                'px-3 py-1 rounded-lg text-xs font-semibold',
-                escrow.expireTimestamp > 0 ? 'bg-orange-500/20 text-orange-400' : 'bg-gray-500/20 text-gray-400'
-              ]"
-            >
-              Expire timestamp: {{ escrow.expireTimestamp > 0 ? formatTimestamp(escrow.expireTimestamp * 1000) : 'never' }}
-            </span>
-          </div>
-        </div>
+        <EscrowDetailsSection
+          :escrow="escrow"
+          :show="showEscrowDetails"
+          @toggle="showEscrowDetails = !showEscrowDetails"
+        />
       </div>
 
       <!-- Not Found -->
-      <div v-else class="card text-center py-12">
-        <Icon icon="mdi:alert-circle-outline" class="w-16 h-16 text-text-muted/30 mx-auto mb-4" />
-        <p class="text-text-secondary">Escrow not found</p>
+      <BaseLoading
+        v-else
+        icon="mdi:alert-circle-outline"
+        message="Escrow not found"
+        :container-class="'card text-center py-12'"
+      >
         <p class="text-sm text-text-muted mt-2">The escrow you're looking for doesn't exist or has been closed.</p>
-      </div>
+      </BaseLoading>
     </div>
 
     <!-- Confirmation Modal (only for cancel/claim) -->
@@ -424,7 +119,6 @@ import { useSolanaConnection } from '../composables/useSolanaConnection'
 import { useTokenRegistry } from '../composables/useTokenRegistry'
 import { useWalletBalances } from '../composables/useWalletBalances'
 import { formatBalance, truncateAddress, formatTimestamp, fromSmallestUnits, toSmallestUnits, formatDecimals } from '../utils/formatters'
-import { DECIMAL_CONSTANTS } from '../utils/constants'
 import { fetchEscrowByAddress } from '../utils/escrowTransactions'
 import { calculateExchangeCosts } from '../utils/transactionCosts'
 import { FUND_TAKER_COSTS, TRANSACTION_COSTS } from '../utils/constants/fees'
@@ -435,7 +129,12 @@ import BaseShareModal from '../components/BaseShareModal.vue'
 import BaseAddressDisplay from '../components/BaseAddressDisplay.vue'
 import BaseTokenImage from '../components/BaseTokenImage.vue'
 import TokenAmountDisplay from '../components/TokenAmountDisplay.vue'
+import BaseLoading from '../components/BaseLoading.vue'
+import EscrowPriceDisplay from '../components/EscrowPriceDisplay.vue'
+import EscrowFillSection from '../components/EscrowFillSection.vue'
+import EscrowDetailsSection from '../components/EscrowDetailsSection.vue'
 import { useToast } from '../composables/useToast'
+import { useDecimalHandling } from '../composables/useDecimalHandling'
 
 const route = useRoute()
 const router = useRouter()
@@ -471,10 +170,6 @@ const exchangeCosts = ref(null)
 const loadingExchangeCosts = ref(false)
 
 // Computed
-const remainingPercentage = computed(() => {
-  if (!escrow.value) return 0
-  return formatDecimals((escrow.value.depositRemaining / escrow.value.depositAmount) * 100)
-})
 
 const canCancel = computed(() => {
   if (!escrow.value || !connected.value || !publicKey.value) return false
@@ -514,11 +209,6 @@ const canExchange = computed(() => {
   return true
 })
 
-const isPublicEscrow = computed(() => {
-  if (!escrow.value) return false
-  const NULL_ADDRESS = '11111111111111111111111111111111'
-  return !escrow.value.recipient || escrow.value.recipient === NULL_ADDRESS
-})
 
 // Fill/Exchange computed properties
 const requestTokenBalance = ref(0)
@@ -581,23 +271,7 @@ const canFill = computed(() => {
 })
 
 // Helper functions for fill amount
-const getStepForDecimals = (decimals) => {
-  // For tokens with 0 decimals, use step of 1 (whole numbers only)
-  if (decimals === 0) {
-    return '1'
-  }
-  const maxDecimals = Math.min(decimals - 1, DECIMAL_CONSTANTS.MAX_STEP_DECIMALS - 1)
-  return `0.${'0'.repeat(maxDecimals)}1`
-}
-
-const getPlaceholderForDecimals = (decimals) => {
-  // For tokens with 0 decimals, show whole number placeholder
-  if (decimals === 0) {
-    return '0'
-  }
-  const displayDecimals = Math.min(decimals, DECIMAL_CONSTANTS.MAX_DISPLAY_DECIMALS)
-  return `0.${'0'.repeat(displayDecimals)}`
-}
+const { getStepForDecimals, getPlaceholderForDecimals } = useDecimalHandling()
 
 const setFillPercentage = (percentage) => {
   fillAmountPercent.value = percentage
@@ -612,49 +286,93 @@ const setFillPercentage = (percentage) => {
 }
 
 const updateFillAmountFromInput = (event) => {
-  if (!escrow.value || !fillAmount.value) {
+  const inputElement = event?.target
+  let rawValue = inputElement?.value || fillAmount.value || ''
+  
+  // Handle empty input
+  if (rawValue === '' || rawValue === null || rawValue === undefined) {
+    fillAmount.value = ''
     fillAmountPercent.value = 0
     return
   }
   
-  // For tokens with 0 decimals, strip decimal points
-  if (escrow.value.requestToken.decimals === 0) {
-    const inputElement = event?.target
-    let rawValue = inputElement?.value || fillAmount.value
-    
-    // Check if the value contains a decimal point
-    if (String(rawValue).includes('.')) {
-      // Remove decimal point and everything after it
-      const wholeNumber = String(rawValue).split('.')[0]
-      fillAmount.value = wholeNumber
+  // Convert to string and trim
+  let amountValue = String(rawValue).trim()
+  
+  // Only apply restrictions for 0-decimal tokens
+  if (escrow.value && escrow.value.requestToken.decimals === 0) {
+    // Remove decimal point and everything after it
+    if (amountValue.includes('.')) {
+      amountValue = amountValue.split('.')[0]
       if (inputElement) {
-        inputElement.value = wholeNumber
+        const cursorPos = inputElement.selectionStart
+        inputElement.value = amountValue
+        const newPos = Math.min(cursorPos - 1, amountValue.length)
+        setTimeout(() => {
+          inputElement.setSelectionRange(newPos, newPos)
+        }, 0)
+      }
+    }
+    // Ensure it's a valid integer
+    const numValue = parseFloat(amountValue)
+    if (!isNaN(numValue)) {
+      const intValue = Math.floor(Math.abs(numValue)).toString()
+      if (intValue !== amountValue) {
+        amountValue = intValue
+        if (inputElement) {
+          inputElement.value = amountValue
+        }
+      }
+    }
+  } else {
+    // For tokens with decimals, validate the format
+    const validPattern = /^[0-9]*\.?[0-9]*$/
+    if (!validPattern.test(amountValue)) {
+      // Remove invalid characters
+      amountValue = amountValue.replace(/[^0-9.]/g, '')
+      // Ensure only one decimal point
+      const parts = amountValue.split('.')
+      if (parts.length > 2) {
+        amountValue = parts[0] + '.' + parts.slice(1).join('')
+      }
+      if (inputElement) {
+        const cursorPos = inputElement.selectionStart
+        inputElement.value = amountValue
+        setTimeout(() => {
+          inputElement.setSelectionRange(cursorPos, cursorPos)
+        }, 0)
       }
     }
   }
   
-  const amount = parseFloat(fillAmount.value)
+  // Update fillAmount
+  fillAmount.value = amountValue
+  
+  // Calculate percentage
+  const amount = parseFloat(amountValue)
   if (isNaN(amount) || maxFillAmount.value === 0) {
     fillAmountPercent.value = 0
     return
-  }
-  
-  // For 0-decimal tokens, ensure amount is an integer
-  if (escrow.value.requestToken.decimals === 0) {
-    const intAmount = Math.floor(amount)
-    if (intAmount !== amount) {
-      fillAmount.value = intAmount.toString()
-    }
   }
   
   fillAmountPercent.value = Math.min(100, Math.max(0, (amount / maxFillAmount.value) * 100))
 }
 
 const handleFillAmountKeydown = (event) => {
-  // For tokens with 0 decimals, prevent decimal point and comma from being entered
+  // For tokens with 0 decimals, prevent decimal point and invalid characters
   if (escrow.value && escrow.value.requestToken.decimals === 0) {
-    // Prevent decimal point (period) and comma
     if (event.key === '.' || event.key === ',' || event.key === 'e' || event.key === 'E' || event.key === '+' || event.key === '-') {
+      event.preventDefault()
+      return false
+    }
+  } else {
+    // For tokens with decimals, allow decimal point but prevent multiple
+    if (event.key === '.' && event.target.value.includes('.')) {
+      event.preventDefault()
+      return false
+    }
+    // Prevent scientific notation and other invalid characters
+    if (event.key === 'e' || event.key === 'E' || event.key === '+' || event.key === '-') {
       event.preventDefault()
       return false
     }
@@ -925,12 +643,25 @@ const exchangeEscrow = async () => {
   try {
     // Calculate the amount to exchange
     // For partial fill, use the fill amount converted to deposit token units
-    // For full fill, use the remaining deposit amount
+    // For full fill, use the exact remaining deposit amount (avoids slippage issues)
     let depositAmountToExchange
     
     if (escrow.value.allowPartialFill) {
-      // Convert fill amount (request token) to deposit token amount
-      depositAmountToExchange = currentFillAmount.value / escrow.value.price
+      // Check if this is effectively a full fill
+      // Compare with a small tolerance to account for floating point precision
+      const tolerance = 0.0001
+      const isFullFill = fillAmountPercent.value >= 99.99 || 
+                        Math.abs(currentFillAmount.value - maxFillAmount.value) < tolerance ||
+                        (maxFillAmount.value > 0 && currentFillAmount.value >= maxFillAmount.value * (1 - tolerance))
+      
+      if (isFullFill) {
+        // For full fill, use exact remaining deposit from escrow to avoid slippage
+        // This ensures we use the exact amount stored on-chain
+        depositAmountToExchange = escrow.value.depositRemaining
+      } else {
+        // Partial fill - convert fill amount (request token) to deposit token amount
+        depositAmountToExchange = currentFillAmount.value / escrow.value.price
+      }
     } else {
       // Full fill - use remaining deposit
       depositAmountToExchange = escrow.value.depositRemaining
@@ -943,6 +674,13 @@ const exchangeEscrow = async () => {
     )
     const amountBN = new BN(depositAmountRaw.toString())
     
+    // Calculate request amount needed (for wrapped SOL handling)
+    const requestAmountRaw = toSmallestUnits(
+      currentFillAmount.value.toString(),
+      escrow.value.requestToken.decimals
+    )
+    const requestAmountBN = new BN(requestAmountRaw.toString())
+    
     console.log('Exchange params:', {
       maker: escrow.value.maker,
       taker: publicKey.value.toString(),
@@ -951,6 +689,7 @@ const exchangeEscrow = async () => {
       recipientEqualsSystemProgram: escrow.value.recipientPubkey?.equals(SystemProgram.programId),
       onlyRecipient: escrow.value.onlyRecipient,
       amount: amountBN.toString(),
+      requestAmount: requestAmountBN.toString(),
       escrowId: escrow.value.id
     })
     
@@ -959,6 +698,7 @@ const exchangeEscrow = async () => {
       depositTokenMint: escrow.value.depositToken.mint,
       requestTokenMint: escrow.value.requestToken.mint,
       amount: amountBN,
+      requestAmount: requestAmountBN,
       seed: new BN(escrow.value.seed)
     })
 
