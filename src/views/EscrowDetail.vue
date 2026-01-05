@@ -100,7 +100,7 @@
         </div>
 
         <!-- Exchange/Fill Section -->
-        <div v-if="canExchange" class="card space-y-4">
+        <div v-if="escrow && escrow.status === 'active'" class="card space-y-4">
           <h2 class="text-lg font-bold text-text-primary">Fill Escrow</h2>
           
           <!-- Wallet Balance Display -->
@@ -243,7 +243,7 @@
           <!-- Exchange Button -->
           <button
             @click="exchangeEscrow"
-            :disabled="exchanging || !canFill"
+            :disabled="exchanging || !canFill || !canExchange"
             class="btn-primary w-full py-3 disabled:opacity-50"
           >
             <Icon v-if="exchanging" icon="svg-spinners:ring-resize" class="w-5 h-5 inline mr-2" />

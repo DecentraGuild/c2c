@@ -247,7 +247,7 @@ const showCancelConfirm = (escrow) => {
   }
 
   confirmTitle.value = 'Cancel Escrow'
-  confirmMessage.value = 'Are you sure you want to cancel this escrow? This action cannot be undone.'
+  confirmMessage.value = 'Are you sure you want to cancel this escrow? This action cannot be undone. This will claim back the deposit and token accounts.'
   pendingAction.value = () => executeCancel(escrow)
   showConfirm.value = true
 }
