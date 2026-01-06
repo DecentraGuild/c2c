@@ -1,44 +1,44 @@
 <template>
   <div v-if="show" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4" @click="handleBackdropClick">
     <div class="bg-secondary-bg rounded-none sm:rounded-xl p-4 sm:p-6 max-w-md w-full h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto border-0 sm:border border-border-color shadow-lg flex flex-col" @click.stop>
-      <div class="flex items-center justify-between mb-4 sm:mb-0">
+      <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-bold text-text-primary">{{ title }}</h3>
         <button @click="handleClose" class="text-text-muted hover:text-text-primary transition-colors">
           <Icon icon="mdi:close" class="w-5 h-5" />
         </button>
       </div>
       
-      <div class="flex-1 flex flex-col space-y-4 sm:space-y-4 pt-4">
-        <div v-if="showUrl">
-          <label class="text-sm text-text-muted mb-2 block">{{ urlLabel }}</label>
-          <div class="flex gap-2">
-            <input
-              :value="url"
-              readonly
-              class="flex-1 px-3 py-2 bg-primary-bg border border-border-color rounded-lg text-text-primary text-sm"
+      <!-- URL Section at top -->
+      <div v-if="showUrl" class="mb-4 sm:mb-6">
+        <label class="text-sm text-text-muted mb-2 block">{{ urlLabel }}</label>
+        <div class="flex gap-2">
+          <input
+            :value="url"
+            readonly
+            class="flex-1 px-3 py-2 bg-primary-bg border border-border-color rounded-lg text-text-primary text-sm"
+          />
+          <button
+            @click="handleCopyUrl"
+            class="px-4 py-2 bg-primary-color text-white rounded-lg hover:opacity-80 transition-opacity"
+          >
+            <Icon 
+              :icon="isCopying ? 'svg-spinners:ring-resize' : 'mdi:content-copy'" 
+              class="w-5 h-5" 
             />
-            <button
-              @click="handleCopyUrl"
-              class="px-4 py-2 bg-primary-color text-white rounded-lg hover:opacity-80 transition-opacity"
-            >
-              <Icon 
-                :icon="isCopying ? 'svg-spinners:ring-resize' : 'mdi:content-copy'" 
-                class="w-5 h-5" 
-              />
-            </button>
-          </div>
+          </button>
         </div>
-        
-        <div v-if="showQRCode" class="flex flex-col items-center">
-          <label class="text-sm text-text-muted mb-2 block">{{ qrLabel }}</label>
-          <div class="flex justify-center p-3 sm:p-4 bg-white rounded-lg w-[80%] sm:w-fit mx-auto">
-            <canvas 
-              ref="qrCanvas" 
-              :width="qrSize" 
-              :height="qrSize"
-              class="w-full h-auto"
-            ></canvas>
-          </div>
+      </div>
+      
+      <!-- QR Code Section - centered in remaining space -->
+      <div v-if="showQRCode" class="flex-1 flex flex-col items-center justify-center">
+        <label class="text-sm text-text-muted mb-3 sm:mb-4 block">{{ qrLabel }}</label>
+        <div class="aspect-square w-[min(75vw,320px)] sm:w-[280px] p-2 sm:p-3 bg-white rounded-xl flex items-center justify-center overflow-hidden">
+          <canvas 
+            ref="qrCanvas" 
+            :width="qrSize" 
+            :height="qrSize"
+            class="w-full h-full rounded-lg"
+          ></canvas>
         </div>
       </div>
     </div>
@@ -97,7 +97,8 @@ const { copyToClipboard, isCopying } = useClipboard()
 const { generateQRCode } = useQRCode()
 const { success, error: showError } = useToast()
 const qrCanvas = ref(null)
-const qrSize = 200 // QR code size in pixels
+// Larger QR code size for better mobile visibility
+const qrSize = 280 // QR code size in pixels (increased from 200)
 
 const handleClose = () => {
   emit('update:show', false)
@@ -133,7 +134,13 @@ watch(() => props.show, async (isShowing) => {
         qrCanvas.value.width = qrSize
         qrCanvas.value.height = qrSize
       }
-      const success = await generateQRCode(qrCanvas.value, props.url, { width: qrSize })
+      const success = await generateQRCode(qrCanvas.value, props.url, { 
+        width: qrSize,
+        logo: '/dguild-logo.png',
+        logoSize: Math.floor(qrSize * 0.2), // 20% of QR code size
+        logoPadding: Math.floor(qrSize * 0.03), // 3% padding
+        logoCornerRadius: Math.floor(qrSize * 0.04) // Rounded corners for logo background
+      })
       if (!success) {
         console.warn('QR code generation failed')
       }
@@ -151,7 +158,13 @@ watch(() => props.url, async (newUrl) => {
       qrCanvas.value.width = qrSize
       qrCanvas.value.height = qrSize
     }
-    await generateQRCode(qrCanvas.value, newUrl, { width: qrSize })
+    await generateQRCode(qrCanvas.value, newUrl, { 
+      width: qrSize,
+      logo: '/dguild-logo.png',
+      logoSize: Math.floor(qrSize * 0.2),
+      logoPadding: Math.floor(qrSize * 0.03),
+      logoCornerRadius: Math.floor(qrSize * 0.04)
+    })
   }
 })
 </script>

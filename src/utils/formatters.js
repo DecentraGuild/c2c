@@ -102,7 +102,7 @@ export function formatBalance(balance, decimals = 4, showLoading = true) {
     
     if (wholeNumber >= 1000000) {
       return `${sign}${Math.floor(wholeNumber / 1000000)}M`
-    } else if (wholeNumber >= 1000) {
+    } else if (wholeNumber >= 100000) {
       return `${sign}${Math.floor(wholeNumber / 1000)}K`
     }
     return `${sign}${wholeNumber}`
@@ -111,7 +111,7 @@ export function formatBalance(balance, decimals = 4, showLoading = true) {
   // For tokens with decimals, use dynamic formatting
   if (balance >= 1000000) {
     return `${formatDecimals(balance / 1000000)}M`
-  } else if (balance >= 1000) {
+  } else if (balance >= 100000) {
     return `${formatDecimals(balance / 1000)}K`
   }
   
@@ -191,11 +191,12 @@ export function formatLargeNumber(num, decimals = 2) {
     return `${sign}${formatDecimals(absNum / 1e9)}B`
   } else if (absNum >= 1e6) {
     return `${sign}${formatDecimals(absNum / 1e6)}M`
-  } else if (absNum >= 1e3) {
+  } else if (absNum >= 1e5) {
     return `${sign}${formatDecimals(absNum / 1e3)}K`
   }
   
-  return formatDecimals(num)
+  // For numbers below 100k, show full number without decimals
+  return `${sign}${Math.floor(absNum)}`
 }
 
 /**
