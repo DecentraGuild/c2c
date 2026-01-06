@@ -1,14 +1,14 @@
 <template>
   <div v-if="show" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4" @click="handleBackdropClick">
-    <div class="bg-secondary-bg rounded-none sm:rounded-xl p-4 sm:p-6 max-w-md w-full h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto border-0 sm:border border-border-color shadow-lg" @click.stop>
-      <div class="flex items-center justify-between mb-4">
+    <div class="bg-secondary-bg rounded-none sm:rounded-xl p-4 sm:p-6 max-w-md w-full h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto border-0 sm:border border-border-color shadow-lg flex flex-col" @click.stop>
+      <div class="flex items-center justify-between mb-4 sm:mb-0">
         <h3 class="text-lg font-bold text-text-primary">{{ title }}</h3>
         <button @click="handleClose" class="text-text-muted hover:text-text-primary transition-colors">
           <Icon icon="mdi:close" class="w-5 h-5" />
         </button>
       </div>
       
-      <div class="space-y-4">
+      <div class="flex-1 flex flex-col justify-center space-y-4 sm:space-y-4">
         <div v-if="showUrl">
           <label class="text-sm text-text-muted mb-2 block">{{ urlLabel }}</label>
           <div class="flex gap-2">
@@ -29,14 +29,14 @@
           </div>
         </div>
         
-        <div v-if="showQRCode">
+        <div v-if="showQRCode" class="flex flex-col items-center">
           <label class="text-sm text-text-muted mb-2 block">{{ qrLabel }}</label>
-          <div class="flex justify-center p-4 bg-white rounded-lg">
+          <div class="flex justify-center p-3 sm:p-4 bg-white rounded-lg w-fit mx-auto">
             <canvas 
               ref="qrCanvas" 
               :width="qrSize" 
               :height="qrSize"
-              class="max-w-full h-auto"
+              class="w-full max-w-[280px] sm:max-w-none h-auto"
             ></canvas>
           </div>
         </div>
