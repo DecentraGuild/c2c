@@ -2,10 +2,23 @@
  * Shared Token Registry Utility
  * Single source of truth for token registry loading and caching
  * Used by both useTokenRegistry composable and metaplex utilities
+ * 
+ * NOTE: Token registry is lazy loaded to reduce initial bundle size (~2-3 MB)
+ * It will only be loaded when actually needed (searching tokens, fetching token info)
  */
 
-import { TokenListProvider } from '@solana/spl-token-registry'
 import { cleanTokenString } from './formatters'
+
+// Lazy load TokenListProvider - only import when needed
+// This prevents the entire registry from being bundled in initial load
+let TokenListProvider = null
+async function getTokenListProvider() {
+  if (!TokenListProvider) {
+    const module = await import('@solana/spl-token-registry')
+    TokenListProvider = module.TokenListProvider
+  }
+  return TokenListProvider
+}
 
 // Shared registry cache (module-level singleton)
 let tokenRegistryList = null
@@ -38,10 +51,12 @@ export async function loadTokenRegistryList() {
     registryLoadTime = null
   }
 
-  // Start loading registry
+  // Start loading registry (lazy load TokenListProvider)
   registryLoadPromise = (async () => {
     try {
-      const provider = new TokenListProvider()
+      // Lazy load TokenListProvider - only loads when actually needed
+      const ProviderClass = await getTokenListProvider()
+      const provider = new ProviderClass()
       const tokenList = await provider.resolve()
       const mainnetTokens = tokenList.filterByClusterSlug('mainnet-beta').getList()
       
@@ -100,11 +115,16 @@ export async function getTokenFromRegistry(mintAddress) {
 
 /**
  * Preload registry for better UX (call this early)
+ * NOTE: This is now lazy - registry will load on-demand when first needed
+ * Calling this will trigger lazy loading in background (non-blocking)
  * @returns {Promise<void>}
  */
 export async function preloadTokenRegistry() {
   try {
-    await loadTokenRegistryList()
+    // Load in background - don't block if it fails
+    loadTokenRegistryList().catch(err => {
+      console.debug('Failed to preload token registry:', err.message)
+    })
   } catch (err) {
     // Silently fail - will fall back to on-chain metadata
     console.debug('Failed to preload token registry:', err.message)

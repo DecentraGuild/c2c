@@ -92,7 +92,7 @@
       v-model:show="showConfirm"
       :title="confirmTitle"
       :message="confirmMessage"
-      :loading="cancelling"
+      :loading="confirmLoading || cancelling"
       confirm-text="Confirm"
       cancel-text="Cancel"
       @confirm="handleConfirmAction"
@@ -135,6 +135,10 @@ import EscrowFillSection from '../components/EscrowFillSection.vue'
 import EscrowDetailsSection from '../components/EscrowDetailsSection.vue'
 import { useToast } from '../composables/useToast'
 import { useDecimalHandling } from '../composables/useDecimalHandling'
+import { useConfirmationModal } from '../composables/useConfirmationModal'
+import { useShareModal } from '../composables/useShareModal'
+import { canUserExchangeEscrow } from '../utils/escrowValidation'
+import { debounce } from '../utils/debounce'
 
 const route = useRoute()
 const router = useRouter()
@@ -148,19 +152,29 @@ const { getTokenBalance, fetchSingleTokenBalance } = useWalletBalances({ autoFet
 const { cancelEscrow: cancelEscrowTx, exchangeEscrow: exchangeEscrowTx, loading: txLoading } = useEscrowTransactions()
 const { success, error: showError, warning } = useToast()
 
+// Use composables for modal management
+const {
+  showConfirm,
+  confirmTitle,
+  confirmMessage,
+  loading: confirmLoading,
+  show: showConfirmModal,
+  handleConfirm: handleConfirmAction
+} = useConfirmationModal()
+
+const {
+  showShare,
+  shareUrl,
+  open: openShareModal
+} = useShareModal()
+
 // State
 const escrowId = computed(() => route.params.id)
 const loading = ref(true)
 const error = ref(null)
 const escrow = ref(null)
-const showShare = ref(false)
-const shareUrl = ref('')
 const cancelling = ref(false)
 const exchanging = ref(false)
-const showConfirm = ref(false)
-const confirmTitle = ref('')
-const confirmMessage = ref('')
-const pendingAction = ref(null)
 const showEscrowDetails = ref(false)
 
 // Fill/Exchange state
@@ -178,35 +192,7 @@ const canCancel = computed(() => {
 
 const canExchange = computed(() => {
   if (!escrow.value || !connected.value || !publicKey.value) return false
-  
-  // Can't exchange if you're the maker
-  if (escrow.value.maker === publicKey.value.toString()) return false
-  
-  // Escrow must be active
-  if (escrow.value.status !== 'active') return false
-  
-  // Check recipient restriction
-  const NULL_ADDRESS = '11111111111111111111111111111111'
-  const SYSTEM_PROGRAM = '11111111111111111111111111111111' // SystemProgram.programId is all 1s
-  const isPublic = !escrow.value.recipient || 
-                  escrow.value.recipient === NULL_ADDRESS || 
-                  escrow.value.recipient === SYSTEM_PROGRAM
-  
-  // If escrow has a recipient and onlyRecipient is true, taker must match recipient
-  if (escrow.value.recipient && escrow.value.onlyRecipient) {
-    return escrow.value.recipient === publicKey.value.toString()
-  }
-  
-  // If escrow has a recipient but onlyRecipient is false, anyone can fill (but program may still check)
-  // For now, allow if public or if recipient matches
-  if (escrow.value.recipient && !isPublic) {
-    // The program will validate this, but we can show UI feedback
-    // Allow it and let the program reject if wrong
-    return true
-  }
-  
-  // Public escrow - anyone can fill
-  return true
+  return canUserExchangeEscrow(escrow.value, publicKey.value)
 })
 
 
@@ -417,14 +403,18 @@ const loadExchangeCosts = async () => {
   }
 }
 
+// Debounced version - waits 300ms after last call before executing
+// This prevents excessive API calls when values change rapidly
+const debouncedLoadExchangeCosts = debounce(loadExchangeCosts, 300)
+
 // Watch escrow changes to reset fill amount and load balance
 watch(() => escrow.value, (newEscrow) => {
   if (newEscrow) {
-    // Load the request token balance
+    // Load the request token balance (immediate - needed for UI)
     loadRequestTokenBalance()
     
-    // Load exchange costs
-    loadExchangeCosts()
+    // Load exchange costs (debounced - expensive operation)
+    debouncedLoadExchangeCosts()
     
     if (newEscrow.allowPartialFill) {
       fillAmountPercent.value = 100
@@ -588,8 +578,7 @@ const loadEscrow = async () => {
 }
 
 const showShareModal = () => {
-  shareUrl.value = `${window.location.origin}/escrow/${escrowId.value}`
-  showShare.value = true
+  openShareModal(`${window.location.origin}/escrow/${escrowId.value}`)
 }
 
 const showCancelConfirm = () => {
@@ -598,20 +587,12 @@ const showCancelConfirm = () => {
     return
   }
 
-  confirmTitle.value = escrow.value.status === 'filled' ? 'Complete Escrow' : 'Cancel Escrow'
-  confirmMessage.value = escrow.value.status === 'filled' 
+  const title = escrow.value.status === 'filled' ? 'Complete Escrow' : 'Cancel Escrow'
+  const message = escrow.value.status === 'filled' 
     ? 'This will close the escrow account and recover the account rent (SOL). Tokens have already been received automatically when the escrow was filled.'
     : 'Are you sure you want to cancel this escrow? This action cannot be undone.'
-  pendingAction.value = executeCancel
-  showConfirm.value = true
-}
-
-const handleConfirmAction = async () => {
-  if (pendingAction.value) {
-    await pendingAction.value()
-  }
-  showConfirm.value = false
-  pendingAction.value = null
+  
+  showConfirmModal(title, message, executeCancel)
 }
 
 const executeCancel = async () => {
@@ -771,7 +752,7 @@ watch(() => route.params.id, () => {
 watch([connected, publicKey], ([newConnected, newPublicKey]) => {
   if (newConnected && newPublicKey && escrow.value) {
     loadRequestTokenBalance()
-    loadExchangeCosts()
+    debouncedLoadExchangeCosts()
   }
 })
 </script>

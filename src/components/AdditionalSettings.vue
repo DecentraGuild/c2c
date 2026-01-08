@@ -94,10 +94,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, defineAsyncComponent } from 'vue'
 import { Icon } from '@iconify/vue'
 import ToggleSwitch from './ToggleSwitch.vue'
-import DateTimePicker from './DateTimePicker.vue'
+
+// Lazy load date picker - only loads when expire toggle is enabled
+// This saves ~200-300 KB from initial bundle
+const DateTimePicker = defineAsyncComponent(() => import('./DateTimePicker.vue'))
 
 const props = defineProps({
   direct: {

@@ -304,9 +304,12 @@ async function fetchTokenMetadataFromChain(connection, mintAddress) {
           }
         } catch (fetchErr) {
           clearTimeout(timeoutId)
-          // Only log if it's not an abort error (timeout)
-          if (fetchErr.name !== 'AbortError') {
-            console.warn(`Failed to fetch metadata JSON from ${metadataUrl}:`, fetchErr.message)
+          // Silently handle errors - not all tokens have valid metadata URIs
+          // Only log unexpected errors (not timeouts, not 404s, not network errors)
+          if (fetchErr.name !== 'AbortError' && 
+              !fetchErr.message?.includes('Failed to fetch') &&
+              !fetchErr.message?.includes('404')) {
+            console.debug(`Failed to fetch metadata JSON from ${metadataUrl}:`, fetchErr.message)
           }
         }
       } catch (err) {

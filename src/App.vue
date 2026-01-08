@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-primary-bg">
+  <div class="min-h-screen bg-primary-bg safe-area-y">
     <NavBar />
     <RouterView />
     <ToastContainer />
@@ -13,11 +13,21 @@ import NavBar from './components/NavBar.vue'
 import ToastContainer from './components/ToastContainer.vue'
 import { useTokenStore } from './stores/token'
 import { isMobileDevice, waitForWalletStandard, isBackpackAvailable } from './utils/walletDetection'
+import { useNetworkStatus } from './composables/useNetworkStatus'
 
-// Preload token registry early for better performance
+// Initialize network status monitoring (for mobile)
+useNetworkStatus()
+
+// Preload token registry in background (non-blocking, lazy loaded)
+// Registry will load on-demand when user searches tokens
+// This reduces initial bundle size by ~2-3 MB
 onMounted(() => {
   const tokenStore = useTokenStore()
-  tokenStore.preloadRegistry()
+  // Preload in background - won't block initial load
+  // Registry will be lazy loaded when actually needed
+  tokenStore.preloadRegistry().catch(() => {
+    // Silently fail - registry will load on-demand when needed
+  })
   
   // On mobile, wait a bit longer for Wallet Standard wallets to be injected
   // This is especially important for in-app browsers like Backpack

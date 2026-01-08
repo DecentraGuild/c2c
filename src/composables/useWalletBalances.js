@@ -10,6 +10,7 @@ import { fetchTokenMetadata } from '../utils/metaplex'
 import { useSolanaConnection } from './useSolanaConnection'
 import { metadataRateLimiter } from '../utils/rateLimiter'
 import { cleanTokenString } from '../utils/formatters'
+import { useTokenStore } from '../stores/token'
 
 export function useWalletBalances(options = {}) {
   const { autoFetch = true } = options
@@ -98,47 +99,68 @@ export function useWalletBalances(options = {}) {
   }
 
   /**
-   * Fetch and update metadata for a single token (no retries, fail fast)
+   * Fetch and update metadata for a single token (uses token store cache)
+   * Only uses cache if it has a name (successful fetch)
+   * Failed fetches are not cached, allowing retry on refresh
    */
   const fetchAndUpdateTokenMetadata = async (token) => {
-    // For native SOL, only fetch the image from wrapped SOL, preserve name/symbol
-    if (token.isNative) {
-      try {
-        const metadata = await metadataRateLimiter.execute(() =>
-          fetchTokenMetadata(connection, token.mint, true)
-        )
-
-        if (metadata && metadata.image) {
-          // Only update the image, keep original name and symbol for SOL
-          return {
-            ...token,
-            image: metadata.image
-            // name and symbol stay as "Solana" and "SOL"
-          }
-        }
-      } catch (err) {
-        // Silently fail - SOL logo is optional, no retry
-        return token
-      }
-      return token
-    }
-
-    // For SPL tokens, fetch full metadata (no retry on failure)
+    // Use token store's fetchTokenInfo which handles caching
+    const tokenStore = useTokenStore()
+    
     try {
-      const metadata = await metadataRateLimiter.execute(() =>
-        fetchTokenMetadata(connection, token.mint)
-      )
-
-      if (metadata) {
+      // Check cache first - only use if it has a name (successful fetch)
+      const cached = tokenStore.getCachedTokenInfo(token.mint)
+      if (cached && cached.name) {
+        // Use cached data (has name = successful fetch)
         return {
           ...token,
-          name: cleanTokenString(metadata.name || token.name),
-          symbol: cleanTokenString(metadata.symbol || token.symbol),
-          image: metadata.image || token.image
+          name: cached.name || token.name,
+          symbol: cached.symbol || token.symbol,
+          image: cached.image || token.image,
+          decimals: cached.decimals !== undefined ? cached.decimals : token.decimals
         }
       }
+      
+      // For native SOL, only fetch the image from wrapped SOL, preserve name/symbol
+      if (token.isNative) {
+        try {
+          const metadata = await metadataRateLimiter.execute(() =>
+            fetchTokenMetadata(connection, token.mint, true)
+          )
+
+          if (metadata && metadata.image) {
+            // Only update the image, keep original name and symbol for SOL
+            return {
+              ...token,
+              image: metadata.image
+              // name and symbol stay as "Solana" and "SOL"
+            }
+          }
+        } catch (err) {
+          // Silently fail - SOL logo is optional, no retry
+          return token
+        }
+        return token
+      }
+
+      // For SPL tokens, use token store's fetchTokenInfo (handles caching)
+      // This will only cache if fetch succeeds (has name)
+      const tokenInfo = await tokenStore.fetchTokenInfo(token.mint)
+      
+      // Only update if we got valid data (has name)
+      if (tokenInfo && tokenInfo.name) {
+        return {
+          ...token,
+          name: cleanTokenString(tokenInfo.name || token.name),
+          symbol: cleanTokenString(tokenInfo.symbol || token.symbol),
+          image: tokenInfo.image || token.image,
+          decimals: tokenInfo.decimals !== undefined ? tokenInfo.decimals : token.decimals
+        }
+      }
+      
+      // If fetch failed (no name), return token as-is (will retry on next refresh)
     } catch (err) {
-      // Silently fail - metadata is optional, no retry
+      // Silently fail - metadata is optional
       return token
     }
 

@@ -42,9 +42,18 @@ async function fetchTokenDecimals(mintAddress) {
  * It combines registry data, on-chain metadata, and decimals.
  * 
  * @param {string} mintAddress - Token mint address
+ * @param {Function} getCachedTokenInfo - Optional function to check cache first
  * @returns {Promise<Object>} Token info { mint, name, symbol, image, decimals }
  */
-async function fetchTokenInfo(mintAddress) {
+async function fetchTokenInfo(mintAddress, getCachedTokenInfo = null) {
+  // Check cache first if provided (from token store)
+  if (getCachedTokenInfo) {
+    const cached = getCachedTokenInfo(mintAddress)
+    if (cached) {
+      return cached // Return cached data immediately
+    }
+  }
+  
   try {
     // First try to get from registry
     const registry = await loadTokenRegistryList()
@@ -62,28 +71,36 @@ async function fetchTokenInfo(mintAddress) {
       decimals = registryToken?.decimals || null
     }
     if (decimals === null || decimals === undefined) {
-      console.warn(`Could not determine decimals for token ${mintAddress}, defaulting to 9`)
-      decimals = 9 // Default fallback
+      decimals = 9 // Default fallback (don't warn, it's common for new tokens)
     }
     
-    // Log decimals for debugging
-    if (decimals !== registryToken?.decimals) {
-      console.debug(`Token ${mintAddress} decimals: ${decimals} (registry had: ${registryToken?.decimals || 'none'})`)
-    }
+    // Only return data if we have at least a name (successful fetch)
+    // If no name, return null name to indicate failure (won't be cached)
+    const name = cleanTokenString(metadata?.name || registryToken?.name || null)
+    const symbol = cleanTokenString(metadata?.symbol || registryToken?.symbol || null)
+    const image = metadata?.image || registryToken?.image || null
     
     return {
       mint: mintAddress,
-      name: cleanTokenString(metadata?.name || registryToken?.name || null),
-      symbol: cleanTokenString(metadata?.symbol || registryToken?.symbol || null),
-      image: metadata?.image || registryToken?.image || null,
+      name: name, // Will be null if fetch failed
+      symbol: symbol,
+      image: image,
       decimals: decimals
     }
   } catch (err) {
-    console.error(`Error fetching token info for ${mintAddress}:`, err)
-    // Return minimal info with default decimals
+    // Only log non-rate-limit errors to reduce console spam
+    const isRateLimit = err?.message?.includes('429') || 
+                       err?.message?.includes('Too Many Requests') ||
+                       err?.code === 429
+    
+    if (!isRateLimit) {
+      console.debug(`Error fetching token info for ${mintAddress}:`, err.message)
+    }
+    
+    // Return with null name to indicate failure (won't be cached, will retry)
     return {
       mint: mintAddress,
-      name: null,
+      name: null, // Null name = failed fetch, will retry on refresh
       symbol: null,
       image: null,
       decimals: 9

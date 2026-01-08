@@ -130,7 +130,9 @@ import PricingModal from '../components/PricingModal.vue'
 import { useEscrowStore } from '../stores/escrow'
 import { useEscrowTransactions } from '../composables/useEscrowTransactions'
 import { useSolanaConnection } from '../composables/useSolanaConnection'
+import { useErrorHandling } from '../composables/useErrorHandling'
 import { toSmallestUnits, formatDecimals } from '../utils/formatters'
+import { debounce } from '../utils/debounce'
 import { CONTRACT_FEE_ACCOUNT } from '../utils/constants'
 import { ESCROW_PROGRAM_ID } from '../utils/constants/escrow'
 import { calculateEscrowCreationCosts, formatCostBreakdown } from '../utils/transactionCosts'
@@ -143,6 +145,7 @@ const anchorWallet = useAnchorWallet() // Get Anchor-compatible wallet
 const { publicKey, connected } = walletAdapter
 const connection = useSolanaConnection()
 const { initializeEscrow, loading: txLoading, error: txError } = useEscrowTransactions()
+const { getDisplayError } = useErrorHandling()
 
 const loading = ref(false)
 const costBreakdown = ref(null)
@@ -151,10 +154,14 @@ const showPricing = ref(false)
 
 // Computed error from store or transaction
 const displayError = computed(() => {
-  return escrowStore.errors.transaction || 
-         escrowStore.errors.form?.general || 
-         txError.value || 
-         null
+  // Check transaction error from composable first
+  if (txError.value) return txError.value
+  // Then check store errors
+  const storeError = getDisplayError(['transaction', 'form']).value
+  if (storeError) return storeError
+  // Check form general error
+  if (escrowStore.errors.form?.general) return escrowStore.errors.form.general
+  return null
 })
 
 const canSubmit = computed(() => {
@@ -254,9 +261,13 @@ const updateTransactionCosts = async () => {
   }
 }
 
-// Watch for token changes to update costs
+// Debounced version - waits 300ms after last change before calculating costs
+// This prevents excessive API calls when user is rapidly changing tokens/amounts
+const debouncedUpdateTransactionCosts = debounce(updateTransactionCosts, 300)
+
+// Watch for token changes to update costs (debounced)
 watch([() => escrowStore.offerToken, () => escrowStore.requestToken, connected, publicKey], () => {
-  updateTransactionCosts()
+  debouncedUpdateTransactionCosts()
 }, { immediate: true })
 
 /**

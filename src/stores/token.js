@@ -15,9 +15,9 @@ const STORAGE_KEYS = {
   CACHE_TIMESTAMP: 'token_cache_timestamp'
 }
 
-// Cache TTL: 1 day for metadata
+// Cache TTL: 1 month for metadata (token data doesn't change often)
 const CACHE_TTL = {
-  METADATA: 24 * 60 * 60 * 1000 // 1 day
+  METADATA: 30 * 24 * 60 * 60 * 1000 // 30 days (1 month)
 }
 
 /**
@@ -92,12 +92,24 @@ export const useTokenStore = defineStore('token', () => {
       const cached = getCachedData(STORAGE_KEYS.TOKEN_METADATA)
       const timestamp = getCachedData(STORAGE_KEYS.CACHE_TIMESTAMP)
       
-      if (cached && timestamp && isCacheValid(timestamp, CACHE_TTL.METADATA)) {
+      if (cached && Array.isArray(cached) && timestamp && isCacheValid(timestamp, CACHE_TTL.METADATA)) {
+        // Convert array of [key, value] pairs back to Map
         tokenMetadataCache.value = new Map(cached)
+        console.debug(`Loaded ${cached.length} cached token metadata entries from localStorage`)
         return true
+      } else if (cached && Array.isArray(cached)) {
+        // Cache expired, clear it
+        console.debug('Token metadata cache expired, clearing...')
+        localStorage.removeItem(STORAGE_KEYS.TOKEN_METADATA)
+        localStorage.removeItem(STORAGE_KEYS.CACHE_TIMESTAMP)
       }
     } catch (err) {
       console.debug('Failed to load cached metadata:', err)
+      // Clear corrupted cache
+      try {
+        localStorage.removeItem(STORAGE_KEYS.TOKEN_METADATA)
+        localStorage.removeItem(STORAGE_KEYS.CACHE_TIMESTAMP)
+      } catch {}
     }
     return false
   }
@@ -124,51 +136,77 @@ export const useTokenStore = defineStore('token', () => {
   
   /**
    * Get cached metadata for a token
+   * Returns complete token info if cache is valid
+   * Only returns cache if we have at least a name (successful fetch)
+   * Missing name = failed fetch, so retry on refresh
    */
   function getCachedMetadata(mint) {
     const cached = tokenMetadataCache.value.get(mint)
     if (cached && isCacheValid(cached.cachedAt, CACHE_TTL.METADATA)) {
       // Remove cachedAt before returning
       const { cachedAt, ...metadata } = cached
-      // Don't return cached data if it has null/empty name and symbol (invalid cache)
-      if (metadata.name || metadata.symbol) {
-        return metadata
+      
+      // Only use cache if we have at least a name (indicates successful fetch)
+      // If name is missing, it means the fetch failed, so retry on refresh
+      if (metadata.name) {
+        // Valid cache - return it (even if symbol/image missing, we have name)
+        return {
+          ...metadata,
+          mint: mint // Ensure mint is included
+        }
+      } else {
+        // Cache has no name = failed fetch, remove it to force retry
+        console.debug(`Cache entry for ${mint} has no name, removing to force retry`)
+        tokenMetadataCache.value.delete(mint)
+        // Also remove from localStorage
+        try {
+          const cacheArray = Array.from(tokenMetadataCache.value.entries())
+          setCachedData(STORAGE_KEYS.TOKEN_METADATA, cacheArray)
+        } catch (err) {
+          console.debug('Failed to update cache after removing invalid entry:', err)
+        }
       }
-      // If cache has null values, remove it and return null to force fresh fetch
-      tokenMetadataCache.value.delete(mint)
     }
     return null
   }
   
   /**
+   * Get cached token info (complete with decimals)
+   * This is the main function to check cache before fetching
+   * Only returns cache if we have at least a name (successful fetch)
+   */
+  function getCachedTokenInfo(mint) {
+    return getCachedMetadata(mint)
+  }
+  
+  /**
    * Fetch token info with caching
-   * Note: Decimals are always fetched fresh from on-chain to ensure accuracy
+   * Checks cache first - only fetches if cache is missing, expired, or invalid
+   * Only caches successful fetches (has name) - failed fetches are not cached
    */
   async function fetchTokenInfo(mint) {
-    // Check cache first for metadata (name, symbol, image)
-    const cached = getCachedMetadata(mint)
-    
-    // Always fetch fresh token info to get accurate decimals
-    // This ensures decimals are always correct even if cached metadata exists
-    const tokenInfo = await tokenRegistry.fetchTokenInfo(mint)
-    
-    // If we had cached metadata, merge it with fresh token info
-    // But always use fresh decimals
-    if (cached) {
-      tokenInfo.name = tokenInfo.name || cached.name
-      tokenInfo.symbol = tokenInfo.symbol || cached.symbol
-      tokenInfo.image = tokenInfo.image || cached.image
-      // Decimals are always from fresh fetch, don't use cached
+    // Check cache first - if valid and has name, return immediately
+    const cached = getCachedTokenInfo(mint)
+    if (cached && cached.name) {
+      // Cache hit with valid data! Return cached data (no network call)
+      return cached
     }
     
-    // Only cache if we have at least name or symbol (valid token info)
-    if (tokenInfo && (tokenInfo.name || tokenInfo.symbol)) {
+    // Cache miss, expired, or invalid (no name) - fetch fresh data
+    const tokenInfo = await tokenRegistry.fetchTokenInfo(mint, getCachedTokenInfo)
+    
+    // Only cache if we have at least a name (successful fetch)
+    // Don't cache failures - this allows retry on refresh
+    if (tokenInfo && tokenInfo.name) {
       cacheMetadata(mint, {
         name: tokenInfo.name,
         symbol: tokenInfo.symbol,
         image: tokenInfo.image,
-        decimals: tokenInfo.decimals // Cache fresh decimals
+        decimals: tokenInfo.decimals
       })
+    } else {
+      // Failed fetch (no name) - don't cache, will retry on next refresh
+      console.debug(`Token ${mint} fetch failed (no name), not caching to allow retry`)
     }
     
     return tokenInfo
@@ -254,6 +292,7 @@ export const useTokenStore = defineStore('token', () => {
     fetchBalances,
     fetchSingleTokenBalance,
     cacheMetadata,
-    getCachedMetadata
+    getCachedMetadata,
+    getCachedTokenInfo
   }
 })

@@ -157,7 +157,7 @@
       v-model:show="showConfirm"
       :title="confirmTitle"
       :message="confirmMessage"
-      :loading="cancellingEscrow !== null"
+      :loading="confirmLoading || cancellingEscrow !== null"
       confirm-text="Confirm"
       cancel-text="Cancel"
       @confirm="handleConfirmAction"
@@ -189,6 +189,8 @@ import BaseAddressDisplay from '../components/BaseAddressDisplay.vue'
 import TokenAmountDisplay from '../components/TokenAmountDisplay.vue'
 import { useExplorer } from '../composables/useExplorer'
 import { useToast } from '../composables/useToast'
+import { useConfirmationModal } from '../composables/useConfirmationModal'
+import { useShareModal } from '../composables/useShareModal'
 
 const escrowStore = useEscrowStore()
 const walletAdapter = useWallet()
@@ -198,15 +200,25 @@ const connection = useSolanaConnection()
 const { cancelEscrow: cancelEscrowTx, loading: txLoading } = useEscrowTransactions()
 const { success, error: showError, warning } = useToast()
 
+// Use composables for modal management
+const {
+  showConfirm,
+  confirmTitle,
+  confirmMessage,
+  loading: confirmLoading,
+  show: showConfirmModal,
+  handleConfirm: handleConfirmAction
+} = useConfirmationModal()
+
+const {
+  showShare,
+  shareUrl,
+  open: openShareModal
+} = useShareModal()
+
 // State
-const showShare = ref(false)
-const shareUrl = ref('')
 const selectedEscrow = ref(null)
 const cancellingEscrow = ref(null)
-const showConfirm = ref(false)
-const confirmTitle = ref('')
-const confirmMessage = ref('')
-const pendingAction = ref(null)
 
 // Use store computed properties
 const activeEscrows = computed(() => {
@@ -231,8 +243,7 @@ watch([connected, publicKey], ([newConnected, newPublicKey]) => {
 
 const showShareModal = (escrow) => {
   selectedEscrow.value = escrow
-  shareUrl.value = `${window.location.origin}/escrow/${escrow.id}`
-  showShare.value = true
+  openShareModal(`${window.location.origin}/escrow/${escrow.id}`)
 }
 
 const showCancelConfirm = (escrow) => {
@@ -246,10 +257,11 @@ const showCancelConfirm = (escrow) => {
     return
   }
 
-  confirmTitle.value = 'Cancel Escrow'
-  confirmMessage.value = 'Are you sure you want to cancel this escrow? This action cannot be undone. This will claim back the deposit and token accounts.'
-  pendingAction.value = () => executeCancel(escrow)
-  showConfirm.value = true
+  showConfirmModal(
+    'Cancel Escrow',
+    'Are you sure you want to cancel this escrow? This action cannot be undone. This will claim back the deposit and token accounts.',
+    () => executeCancel(escrow)
+  )
 }
 
 const showClaimConfirm = (escrow) => {
@@ -263,18 +275,11 @@ const showClaimConfirm = (escrow) => {
     return
   }
 
-  confirmTitle.value = 'Complete Escrow'
-  confirmMessage.value = 'This will close the escrow account and recover the account rent (SOL). Tokens have already been received automatically when the escrow was filled.'
-  pendingAction.value = () => executeCancel(escrow)
-  showConfirm.value = true
-}
-
-const handleConfirmAction = async () => {
-  if (pendingAction.value) {
-    await pendingAction.value()
-  }
-  showConfirm.value = false
-  pendingAction.value = null
+  showConfirmModal(
+    'Complete Escrow',
+    'This will close the escrow account and recover the account rent (SOL). Tokens have already been received automatically when the escrow was filled.',
+    () => executeCancel(escrow)
+  )
 }
 
 const executeCancel = async (escrow) => {

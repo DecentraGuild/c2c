@@ -1,5 +1,5 @@
 <template>
-  <nav class="bg-primary-bg/95 backdrop-blur-xl border-b border-border-color sticky top-0 z-50">
+  <nav class="bg-primary-bg/95 backdrop-blur-xl border-b border-border-color sticky top-0 z-50 safe-area-top safe-area-x">
     <div class="max-w-7xl mx-auto px-3 sm:px-4">
       <!-- Mobile Layout -->
       <div class="flex items-center justify-between h-14 sm:h-16 md:hidden">
