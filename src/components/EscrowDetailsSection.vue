@@ -88,7 +88,7 @@
       <span
         :class="[
           'px-3 py-1 rounded-lg text-xs font-semibold',
-          escrow.allowPartialFill ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-500/20 text-gray-400'
+          escrow.allowPartialFill ? 'bg-accent-color/20 text-accent-color' : 'bg-secondary-bg/50 text-text-muted'
         ]"
       >
         Partial fill: {{ escrow.allowPartialFill ? 'yes' : 'no' }}
@@ -97,8 +97,8 @@
         :class="[
           'px-3 py-1 rounded-lg text-xs font-semibold',
           !escrow.recipient || escrow.recipient === '11111111111111111111111111111111' 
-            ? 'bg-green-500/20 text-green-400' 
-            : 'bg-gray-500/20 text-gray-400'
+            ? 'bg-status-success/20 text-status-success' 
+            : 'bg-secondary-bg/50 text-text-muted'
         ]"
       >
         Public: {{ !escrow.recipient || escrow.recipient === '11111111111111111111111111111111' ? 'yes' : 'no' }}
@@ -106,7 +106,7 @@
       <span
         :class="[
           'px-3 py-1 rounded-lg text-xs font-semibold',
-          escrow.expireTimestamp > 0 ? 'bg-orange-500/20 text-orange-400' : 'bg-gray-500/20 text-gray-400'
+          escrow.expireTimestamp > 0 ? 'bg-status-warning/20 text-status-warning' : 'bg-secondary-bg/50 text-text-muted'
         ]"
       >
         Expire timestamp: {{ escrow.expireTimestamp > 0 ? formatTimestamp(escrow.expireTimestamp * 1000) : 'never' }}

@@ -19,7 +19,8 @@
           />
           <button
             @click="handleCopyUrl"
-            class="px-4 py-2 bg-primary-color text-white rounded-lg hover:opacity-80 transition-opacity"
+            class="px-4 py-2 rounded-lg hover:opacity-80 transition-opacity"
+            style="background: var(--theme-gradient-primary); color: var(--theme-text-primary);"
           >
             <Icon 
               :icon="isCopying ? 'svg-spinners:ring-resize' : 'mdi:content-copy'" 
@@ -136,7 +137,7 @@ watch(() => props.show, async (isShowing) => {
       }
       const success = await generateQRCode(qrCanvas.value, props.url, { 
         width: qrSize,
-        logo: '/dguild-logo.png',
+        logo: '/dguild-logo-p2p.svg',
         logoSize: Math.floor(qrSize * 0.2), // 20% of QR code size
         logoPadding: Math.floor(qrSize * 0.03), // 3% padding
         logoCornerRadius: Math.floor(qrSize * 0.04) // Rounded corners for logo background
@@ -160,7 +161,7 @@ watch(() => props.url, async (newUrl) => {
     }
     await generateQRCode(qrCanvas.value, newUrl, { 
       width: qrSize,
-      logo: '/dguild-logo.png',
+      logo: '/dguild-logo-p2p.svg',
       logoSize: Math.floor(qrSize * 0.2),
       logoPadding: Math.floor(qrSize * 0.03),
       logoCornerRadius: Math.floor(qrSize * 0.04)

@@ -14,8 +14,8 @@
 
         <!-- Error State -->
         <div v-else-if="error" class="p-4 text-center text-text-muted">
-          <Icon icon="mdi:alert-circle-outline" class="w-8 h-8 inline-block mb-2 text-red-400" />
-          <p class="text-sm text-red-400">{{ error }}</p>
+          <Icon icon="mdi:alert-circle-outline" class="w-8 h-8 inline-block mb-2 text-status-error" />
+          <p class="text-sm text-status-error">{{ error }}</p>
         </div>
 
         <!-- No Wallet Connected -->

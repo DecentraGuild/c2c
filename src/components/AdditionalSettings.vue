@@ -97,6 +97,7 @@
 import { ref, computed, defineAsyncComponent } from 'vue'
 import { Icon } from '@iconify/vue'
 import ToggleSwitch from './ToggleSwitch.vue'
+import { useVModel } from '../composables/useVModel'
 
 // Lazy load date picker - only loads when expire toggle is enabled
 // This saves ~200-300 KB from initial bundle
@@ -150,36 +151,22 @@ const emit = defineEmits([
 
 const expanded = ref(true)
 
-// Use computed properties with getters/setters for cleaner v-model binding
-const localDirect = computed({
-  get: () => props.direct,
-  set: (val) => emit('update:direct', val)
-})
-
-const localDirectAddress = computed({
-  get: () => props.directAddress,
-  set: (val) => emit('update:directAddress', val)
-})
-
-const localExpire = computed({
-  get: () => props.expire,
-  set: (val) => emit('update:expire', val)
-})
-
-const localExpireDate = computed({
-  get: () => props.expireDate,
-  set: (val) => emit('update:expireDate', val)
-})
-
-const localPartialFill = computed({
-  get: () => props.partialFill,
-  set: (val) => emit('update:partialFill', val)
-})
-
-const localSlippage = computed({
-  get: () => props.slippage,
-  set: (val) => emit('update:slippage', val)
-})
+// Use composable to create v-model bindings
+const {
+  localDirect,
+  localDirectAddress,
+  localExpire,
+  localExpireDate,
+  localPartialFill,
+  localSlippage
+} = useVModel(props, emit, [
+  'direct',
+  'directAddress',
+  'expire',
+  'expireDate',
+  'partialFill',
+  'slippage'
+])
 
 // Handle expiration date validation
 const expireValidationError = ref(null)

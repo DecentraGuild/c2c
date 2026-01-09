@@ -11,10 +11,20 @@ import {
 import { 
   getAssociatedTokenAddressSync,
   ASSOCIATED_TOKEN_PROGRAM_ID,
-  TOKEN_PROGRAM_ID,
-  createSyncNativeInstruction,
-  NATIVE_MINT
+  TOKEN_PROGRAM_ID
 } from '@solana/spl-token'
+import {
+  isWrappedSol,
+  getWrappedSolAccount,
+  getRequestAmountLamports,
+  calculateSolToTransfer,
+  addWrappedSolInstructions
+} from './wrappedSolHelpers'
+import {
+  getExchangeATAs,
+  prepareTakerATAs
+} from './transactionBuilders'
+import { toPublicKey, toBN } from './solanaUtils'
 import { Program, AnchorProvider, BN } from '@coral-xyz/anchor'
 import { ESCROW_PROGRAM_ID, CONTRACT_FEE_ACCOUNT, WHITELIST_PROGRAM_ID } from './constants'
 import { FEE_CONFIG, FUND_TAKER_COSTS, TRANSACTION_COSTS } from './constants/fees'
@@ -164,9 +174,9 @@ export async function buildInitializeTransaction({
   wallet
 }) {
   const transaction = new Transaction()
-  const programId = new PublicKey(ESCROW_PROGRAM_ID)
-  const makerPubkey = maker instanceof PublicKey ? maker : new PublicKey(maker)
-  const seedBN = seed instanceof BN ? seed : new BN(seed.toString())
+  const programId = toPublicKey(ESCROW_PROGRAM_ID)
+  const makerPubkey = toPublicKey(maker)
+  const seedBN = toBN(seed)
   
   const { auth, vault, escrow } = deriveEscrowAccounts(makerPubkey, seedBN, programId)
   
@@ -186,9 +196,9 @@ export async function buildInitializeTransaction({
     ASSOCIATED_TOKEN_PROGRAM_ID
   )
   
-  const depositTokenPubkey = new PublicKey(depositTokenMint)
-  const requestTokenPubkey = new PublicKey(requestTokenMint)
-  const feeAccount = new PublicKey(contractFeeAccount || CONTRACT_FEE_ACCOUNT)
+  const depositTokenPubkey = toPublicKey(depositTokenMint)
+  const requestTokenPubkey = toPublicKey(requestTokenMint)
+  const feeAccount = toPublicKey(contractFeeAccount || CONTRACT_FEE_ACCOUNT)
   
   // Create ATAs if they don't exist
   if (!(await checkAtaExists(depositTokenPubkey, makerPubkey, connection))) {
@@ -212,24 +222,24 @@ export async function buildInitializeTransaction({
   
   const program = getEscrowProgram(connection, wallet)
   
-  const depositAmountBN = depositAmount instanceof BN ? depositAmount : new BN(depositAmount.toString())
-  const requestAmountBN = requestAmount instanceof BN ? requestAmount : new BN(requestAmount.toString())
-  const expireTimestampBN = expireTimestamp instanceof BN ? expireTimestamp : new BN(expireTimestamp || 0)
+  const depositAmountBN = toBN(depositAmount)
+  const requestAmountBN = toBN(requestAmount)
+  const expireTimestampBN = toBN(expireTimestamp || 0)
   
   // Build instruction accounts - Anchor 0.28.0 requires ALL accounts, even optional ones
   // IMPORTANT: When recipient is null/undefined, pass null (not SystemProgram)
   // The program will handle setting it to SystemProgram internally and set onlyRecipient=false
   // If we pass SystemProgram here, the program might incorrectly set onlyRecipient=true
   const whitelistProgramPubkey = whitelistProgram 
-    ? new PublicKey(whitelistProgram) 
-    : new PublicKey(WHITELIST_PROGRAM_ID)
+    ? toPublicKey(whitelistProgram) 
+    : toPublicKey(WHITELIST_PROGRAM_ID)
   
   // Handle recipient: pass null if not provided, otherwise pass the actual address
   // The program logic: if recipient is null -> sets to SystemProgram and onlyRecipient=false
   //                    if recipient is provided -> uses that address and onlyRecipient=true (if direct)
   let recipientPubkey = null
   if (recipient) {
-    recipientPubkey = new PublicKey(recipient)
+    recipientPubkey = toPublicKey(recipient)
     // Validate it's not SystemProgram
     if (recipientPubkey.equals(SystemProgram.programId)) {
       throw new Error('Cannot use SystemProgram as recipient. Use null for public escrows or a valid wallet address for direct escrows.')
@@ -250,8 +260,8 @@ export async function buildInitializeTransaction({
     systemProgram: SystemProgram.programId,
     fee: feeAccount,
     whitelistProgram: whitelistProgramPubkey,
-    whitelist: whitelist ? new PublicKey(whitelist) : null,
-    entry: entry ? new PublicKey(entry) : null
+    whitelist: whitelist ? toPublicKey(whitelist) : null,
+    entry: entry ? toPublicKey(entry) : null
   }
   
   console.log('Initialize escrow accounts:', {
@@ -313,143 +323,65 @@ export async function buildExchangeTransaction({
   const seedBN = seed instanceof BN ? seed : new BN(seed.toString())
   
   // Convert maker to PublicKey if it's a string
-  const makerPubkey = maker instanceof PublicKey ? maker : new PublicKey(maker)
+  const makerPubkey = toPublicKey(maker)
   
   // Derive PDAs
   const { auth, vault, escrow } = deriveEscrowAccounts(makerPubkey, seedBN, programId)
   
-  // Get associated token accounts
-  const makerReceiveAta = getAssociatedTokenAddressSync(
-    new PublicKey(requestTokenMint),
-    makerPubkey,
-    false,
-    TOKEN_PROGRAM_ID,
-    ASSOCIATED_TOKEN_PROGRAM_ID
-  )
+  // Get all ATAs needed for exchange
+  const { makerReceiveAta, takerAta, takerReceiveAta } = getExchangeATAs({
+    maker: makerPubkey,
+    taker,
+    depositTokenMint,
+    requestTokenMint
+  })
   
-  const takerPubkey = taker instanceof PublicKey ? taker : new PublicKey(taker)
-  const takerAta = getAssociatedTokenAddressSync(
-    new PublicKey(requestTokenMint),
-    takerPubkey,
-    false,
-    TOKEN_PROGRAM_ID,
-    ASSOCIATED_TOKEN_PROGRAM_ID
-  )
+  const takerPubkey = toPublicKey(taker)
+  const depositTokenPubkey = toPublicKey(depositTokenMint)
+  const requestTokenPubkey = toPublicKey(requestTokenMint)
+  const feeAccount = toPublicKey(contractFeeAccount || CONTRACT_FEE_ACCOUNT)
   
-  const takerReceiveAta = getAssociatedTokenAddressSync(
-    new PublicKey(depositTokenMint),
-    takerPubkey,
-    false,
-    TOKEN_PROGRAM_ID,
-    ASSOCIATED_TOKEN_PROGRAM_ID
-  )
+  // Prepare taker ATAs (check existence and add creation instructions if needed)
+  const { takerAtaExists, takerReceiveAtaExists, totalCost: ataCost } = await prepareTakerATAs({
+    transaction,
+    requestTokenMint: requestTokenPubkey,
+    depositTokenMint: depositTokenPubkey,
+    taker: takerPubkey,
+    connection
+  })
   
-  const depositTokenPubkey = new PublicKey(depositTokenMint)
-  const requestTokenPubkey = new PublicKey(requestTokenMint)
-  const feeAccount = new PublicKey(contractFeeAccount || CONTRACT_FEE_ACCOUNT)
-  
-  // Check if taker ATAs exist and create them if needed
-  // If FUND_TAKER_COSTS is true, we could fund from platform wallet
-  // For now, taker pays for ATA creation, but we show the cost
-  const takerAtaExists = await checkAtaExists(requestTokenPubkey, takerPubkey, connection)
-  const takerReceiveAtaExists = await checkAtaExists(depositTokenPubkey, takerPubkey, connection)
-  
-  // Check if request token is wrapped SOL (native SOL)
-  const isWrappedSOL = requestTokenPubkey.equals(NATIVE_MINT)
-  
-  // Calculate costs that will be incurred
-  let totalCostToFund = 0
-  if (!takerAtaExists) {
-    transaction.add(makeAtaInstruction(requestTokenPubkey, takerPubkey, takerPubkey))
-    totalCostToFund += TRANSACTION_COSTS.ATA_CREATION
-  }
-  if (!takerReceiveAtaExists) {
-    transaction.add(makeAtaInstruction(depositTokenPubkey, takerPubkey, takerPubkey))
-    totalCostToFund += TRANSACTION_COSTS.ATA_CREATION
-  }
+  let totalCostToFund = ataCost
   
   // Handle wrapped SOL: if request token is wrapped SOL, we need to wrap native SOL
-  if (isWrappedSOL) {
-    const wrappedSolAccount = takerAta
+  if (isWrappedSol(requestTokenMint)) {
+    const wrappedSolAccount = getWrappedSolAccount(takerPubkey)
     
     // Get request amount in lamports
-    let requestAmountLamports
-    if (requestAmount) {
-      requestAmountLamports = requestAmount instanceof BN ? requestAmount : new BN(requestAmount.toString())
-    } else {
-      // Fallback: fetch escrow to calculate (less accurate)
-      const program = getEscrowProgram(connection, wallet)
-      const escrowAccount = await program.account.escrow.fetch(escrow)
-      const price = escrowAccount.price
-      const amountBN = amount instanceof BN ? amount : new BN(amount.toString())
-      // Estimate: this is approximate without exact decimals
-      const priceScaled = new BN(Math.floor(price * 1e9))
-      requestAmountLamports = amountBN.mul(priceScaled).div(new BN(1e9))
-    }
+    const requestAmountLamports = await getRequestAmountLamports({
+      requestAmount,
+      fetchEscrowAccount: async () => {
+        const program = getEscrowProgram(connection, wallet)
+        return await program.account.escrow.fetch(escrow)
+      },
+      amountBN: amount
+    })
     
-    // Rent-exempt amount for wrapped SOL account (0.00203928 SOL = 2,039,280 lamports)
-    const rentExemptAmount = new BN(2039280)
+    // Calculate SOL to transfer
+    const solToTransfer = await calculateSolToTransfer({
+      wrappedSolAccount,
+      requestAmountLamports,
+      accountExists: takerAtaExists,
+      connection
+    })
     
-    // Calculate SOL to transfer:
-    // - If account doesn't exist: need request amount + rent (rent will be returned when account closes)
-    // - If account exists: check current balance and only transfer what's needed
-    let solToTransfer
-    if (!takerAtaExists) {
-      // New account: transfer request amount + rent
-      // Note: The rent will be returned when the account closes after exchange,
-      // which causes the confusing balance display, but this is necessary for account creation
-      solToTransfer = requestAmountLamports.add(rentExemptAmount)
-    } else {
-      // Existing account: check current balance
-      try {
-        const accountInfo = await connection.getAccountInfo(wrappedSolAccount)
-        if (accountInfo) {
-          // Account exists, check if it has enough balance
-          const tokenAccount = await connection.getParsedAccountInfo(wrappedSolAccount)
-          const currentBalance = tokenAccount.value?.data?.parsed?.info?.tokenAmount?.uiAmount || 0
-          const currentBalanceLamports = new BN(Math.floor(currentBalance * 1e9))
-          
-          if (currentBalanceLamports.gte(requestAmountLamports)) {
-            // Already has enough, no transfer needed
-            solToTransfer = new BN(0)
-          } else {
-            // Need to add more - only transfer the difference
-            const needed = requestAmountLamports.sub(currentBalanceLamports)
-            solToTransfer = needed
-          }
-        } else {
-          // Account doesn't exist (shouldn't happen if takerAtaExists is true, but handle it)
-          solToTransfer = requestAmountLamports.add(rentExemptAmount)
-        }
-      } catch (err) {
-        // If we can't check, transfer the full amount (safer)
-        console.warn('Could not check wrapped SOL account balance, transferring full amount:', err)
-        solToTransfer = requestAmountLamports.add(rentExemptAmount)
-      }
-    }
-    
-    // Only add transfer instruction if we need to transfer SOL
-    if (solToTransfer.gt(new BN(0))) {
-      // Transfer SOL from user's wallet to wrapped SOL account
-      // This must happen BEFORE the exchange instruction
-      const transferSolIx = SystemProgram.transfer({
-        fromPubkey: takerPubkey,
-        toPubkey: wrappedSolAccount,
-        lamports: solToTransfer.toNumber()
-      })
-      transaction.add(transferSolIx)
-    }
-    
-    // Sync native SOL to wrapped SOL
-    // This converts the native SOL in the account to wrapped SOL tokens
-    // Only needed if we transferred SOL or if account might have native SOL
-    if (!takerAtaExists || solToTransfer.gt(new BN(0))) {
-      const syncNativeIx = createSyncNativeInstruction(
-        wrappedSolAccount,
-        TOKEN_PROGRAM_ID
-      )
-      transaction.add(syncNativeIx)
-    }
+    // Add wrapped SOL instructions to transaction
+    addWrappedSolInstructions({
+      transaction,
+      takerPubkey,
+      wrappedSolAccount,
+      solToTransfer,
+      accountExists: takerAtaExists
+    })
   }
   
   // Add transaction fee estimate
@@ -478,12 +410,12 @@ export async function buildExchangeTransaction({
   }
   
   const program = getEscrowProgram(connection, wallet)
-  const amountBN = amount instanceof BN ? amount : new BN(amount.toString())
+  const amountBN = toBN(amount)
   
   // Build instruction accounts - include optional whitelist accounts
   const whitelistProgramPubkey = whitelistProgram 
-    ? new PublicKey(whitelistProgram) 
-    : new PublicKey(WHITELIST_PROGRAM_ID)
+    ? toPublicKey(whitelistProgram) 
+    : toPublicKey(WHITELIST_PROGRAM_ID)
   
   const accounts = {
     maker: makerPubkey,
@@ -501,8 +433,8 @@ export async function buildExchangeTransaction({
     systemProgram: SystemProgram.programId,
     fee: feeAccount,
     whitelistProgram: whitelistProgramPubkey,
-    whitelist: whitelist ? new PublicKey(whitelist) : null,
-    entry: entry ? new PublicKey(entry) : null
+    whitelist: whitelist ? toPublicKey(whitelist) : null,
+    entry: entry ? toPublicKey(entry) : null
   }
   
   // Note: The exchange instruction doesn't have a recipient account in the IDL.
@@ -540,18 +472,18 @@ export async function buildCancelTransaction({
   wallet
 }) {
   const transaction = new Transaction()
-  const programId = new PublicKey(ESCROW_PROGRAM_ID)
+  const programId = toPublicKey(ESCROW_PROGRAM_ID)
   
   // Ensure seed is BN
-  const seedBN = seed instanceof BN ? seed : new BN(seed.toString())
+  const seedBN = toBN(seed)
   
   // Derive PDAs
-  const { auth, vault, escrow } = deriveEscrowAccounts(maker, seedBN, programId)
+  const makerPubkey = toPublicKey(maker)
+  const { auth, vault, escrow } = deriveEscrowAccounts(makerPubkey, seedBN, programId)
   
   // Get associated token accounts
-  const makerPubkey = maker instanceof PublicKey ? maker : new PublicKey(maker)
   const makerAta = getAssociatedTokenAddressSync(
-    new PublicKey(depositTokenMint),
+    toPublicKey(depositTokenMint),
     makerPubkey,
     false,
     TOKEN_PROGRAM_ID,
@@ -559,15 +491,15 @@ export async function buildCancelTransaction({
   )
   
   const makerAtaRequest = getAssociatedTokenAddressSync(
-    new PublicKey(requestTokenMint),
+    toPublicKey(requestTokenMint),
     makerPubkey,
     false,
     TOKEN_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID
   )
   
-  const depositTokenPubkey = new PublicKey(depositTokenMint)
-  const requestTokenPubkey = new PublicKey(requestTokenMint)
+  const depositTokenPubkey = toPublicKey(depositTokenMint)
+  const requestTokenPubkey = toPublicKey(requestTokenMint)
   
   const program = getEscrowProgram(connection, wallet)
   
@@ -669,7 +601,7 @@ export async function fetchAllEscrows(connection, makerFilter = null) {
 export async function fetchEscrowByAddress(connection, escrowAddress) {
   try {
     const program = getEscrowProgramReadOnly(connection)
-    const escrowPubkey = escrowAddress instanceof PublicKey ? escrowAddress : new PublicKey(escrowAddress)
+    const escrowPubkey = toPublicKey(escrowAddress)
     
     const escrowAccount = await program.account.escrow.fetch(escrowPubkey)
     

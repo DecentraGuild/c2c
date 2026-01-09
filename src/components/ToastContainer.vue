@@ -39,10 +39,10 @@ const { toasts, removeToast } = useToast()
 const getToastClasses = (type) => {
   const baseClasses = 'bg-secondary-bg border-border-color'
   const typeClasses = {
-    success: 'border-green-500/30 bg-green-500/10',
-    error: 'border-red-500/30 bg-red-500/10',
-    info: 'border-blue-500/30 bg-blue-500/10',
-    warning: 'border-orange-500/30 bg-orange-500/10'
+    success: 'border-status-success/30 bg-status-success/10',
+    error: 'border-status-error/30 bg-status-error/10',
+    info: 'border-primary-color/30 bg-primary-color/10',
+    warning: 'border-status-warning/30 bg-status-warning/10'
   }
   return `${baseClasses} ${typeClasses[type] || ''}`
 }
@@ -50,20 +50,20 @@ const getToastClasses = (type) => {
 const getIconClasses = (type) => {
   const baseClasses = 'w-5 h-5'
   const typeClasses = {
-    success: 'text-green-400',
-    error: 'text-red-400',
-    info: 'text-blue-400',
-    warning: 'text-orange-400'
+    success: 'text-status-success',
+    error: 'text-status-error',
+    info: 'text-primary-color',
+    warning: 'text-status-warning'
   }
   return `${baseClasses} ${typeClasses[type] || 'text-text-muted'}`
 }
 
 const getTextClasses = (type) => {
   const typeClasses = {
-    success: 'text-green-300',
-    error: 'text-red-300',
-    info: 'text-blue-300',
-    warning: 'text-orange-300'
+    success: 'text-status-success',
+    error: 'text-status-error',
+    info: 'text-primary-light',
+    warning: 'text-status-warning'
   }
   return typeClasses[type] || 'text-text-primary'
 }

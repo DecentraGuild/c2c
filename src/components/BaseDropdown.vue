@@ -16,7 +16,7 @@ const props = defineProps({
   },
   containerClass: {
     type: String,
-    default: 'bg-[#252540] border border-border-color rounded-xl shadow-xl max-h-64 overflow-y-auto'
+    default: 'bg-card-bg border border-border-color rounded-xl shadow-xl max-h-64 overflow-y-auto'
   }
 })
 

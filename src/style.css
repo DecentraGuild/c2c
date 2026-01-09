@@ -4,17 +4,67 @@
 
 @layer base {
   :root {
-    --primary-bg: #0a0a0f;
-    --secondary-bg: #141420;
-    --card-bg: #1a1a2e;
-    --primary-color: #00d4ff;
-    --primary-hover: #00b8e6;
-    --accent-color: #8b5cf6;
-    --accent-secondary: #ff6b35;
-    --text-primary: #ffffff;
-    --text-secondary: #a0a0b3;
-    --text-muted: #6b6b80;
-    --border-color: #2a2a3e;
+    /* Theme variables are set by the theme store via JavaScript */
+    /* Default fallback values (green primary, red secondary theme) */
+    --theme-primary: #00951a;
+    --theme-primary-hover: #00b820;
+    --theme-primary-light: #00cc22;
+    --theme-primary-dark: #007a14;
+    
+    --theme-secondary: #cf0000;
+    --theme-secondary-hover: #b30000;
+    --theme-secondary-light: #ff3333;
+    --theme-secondary-dark: #990000;
+    
+    --theme-accent: #8b5cf6;
+    --theme-accent-hover: #7c3aed;
+    
+    --theme-bg-primary: #0a0a0f;
+    --theme-bg-secondary: #141420;
+    --theme-bg-card: #1a1a2e;
+    
+    --theme-text-primary: #ffffff;
+    --theme-text-secondary: #a0a0b3;
+    --theme-text-muted: #6b6b80;
+    
+    --theme-border: #2a2a3e;
+    --theme-border-light: #3a3a4e;
+    
+    --theme-success: #00951a;
+    --theme-error: #cf0000;
+    --theme-warning: #ff6b35;
+    --theme-info: #00d4ff;
+    
+    --theme-radius-sm: 0.5rem;
+    --theme-radius-md: 0.75rem;
+    --theme-radius-lg: 1rem;
+    --theme-radius-xl: 1.25rem;
+    --theme-radius-full: 9999px;
+    
+    --theme-border-thin: 1px;
+    --theme-border-medium: 2px;
+    --theme-border-thick: 4px;
+    
+    --theme-gradient-primary: linear-gradient(135deg, #00951a 0%, #00cc22 50%, #007a14 100%);
+    --theme-gradient-secondary: linear-gradient(135deg, #ff6b35 0%, #f59e0b 100%);
+    --theme-gradient-accent: linear-gradient(135deg, #00951a 0%, #cf0000 100%);
+    
+    --theme-shadow-glow: 0 0 20px rgba(0, 149, 26, 0.3);
+    --theme-shadow-glow-hover: 0 0 40px rgba(0, 149, 26, 0.6);
+    --theme-shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4);
+    
+    /* Legacy variables for backward compatibility */
+    --primary-bg: var(--theme-bg-primary);
+    --secondary-bg: var(--theme-bg-secondary);
+    --card-bg: var(--theme-bg-card);
+    --primary-color: var(--theme-primary);
+    --primary-hover: var(--theme-primary-hover);
+    --accent-color: var(--theme-accent);
+    --accent-secondary: var(--theme-warning);
+    --text-primary: var(--theme-text-primary);
+    --text-secondary: var(--theme-text-secondary);
+    --text-muted: var(--theme-text-muted);
+    --border-color: var(--theme-border);
   }
 
   body {
@@ -45,21 +95,96 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-gradient-primary text-text-primary font-semibold py-2 px-4 rounded-xl transition-all duration-300 text-sm;
+    background: var(--theme-gradient-primary);
+    @apply text-text-primary font-semibold py-2 px-4 rounded-xl transition-all duration-300 text-sm;
     /* Ensure minimum touch target size for mobile */
     min-height: 44px;
+  }
+  
+  .btn-primary:hover {
+    box-shadow: var(--theme-shadow-glow);
+  }
+  
+  .btn-primary:focus,
+  .btn-primary:focus-visible {
+    outline: 2px solid var(--theme-primary);
+    outline-offset: 2px;
+    box-shadow: var(--theme-shadow-glow), 0 0 0 2px var(--theme-primary);
   }
   
   .btn-secondary {
-    @apply bg-card-bg text-text-primary border-2 border-border-color hover:border-primary-color hover:bg-primary-color/10 font-semibold py-1.5 px-3 rounded-xl transition-all duration-300 text-sm;
+    @apply bg-card-bg text-text-primary border-2 border-border-color hover:border-primary-color font-semibold py-1.5 px-3 rounded-xl transition-all duration-300 text-sm;
     /* Ensure minimum touch target size for mobile */
     min-height: 44px;
+    position: relative;
+  }
+  
+  .btn-secondary:hover::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-color: var(--theme-primary);
+    opacity: 0.1;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  .btn-secondary:hover > * {
+    position: relative;
+    z-index: 1;
+  }
+  
+  .btn-secondary:focus,
+  .btn-secondary:focus-visible {
+    outline: 2px solid var(--theme-primary);
+    outline-offset: 2px;
+    border-color: var(--theme-primary);
+  }
+  
+  .btn-cancel {
+    background-color: var(--theme-bg-card);
+    border: 2px solid var(--theme-secondary);
+    color: var(--theme-secondary);
+    @apply font-semibold rounded-xl transition-all duration-300;
+  }
+  
+  .btn-cancel:hover:not(:disabled) {
+    background-color: var(--theme-secondary);
+    color: var(--theme-text-primary);
+    border-color: var(--theme-secondary);
+  }
+  
+  .link-red {
+    color: var(--theme-secondary);
+  }
+  
+  .link-red:hover {
+    color: var(--theme-secondary-hover);
+  }
+  
+  /* Navbar link styles */
+  .nav-link:focus,
+  .nav-link:focus-visible {
+    outline: 2px solid var(--theme-primary);
+    outline-offset: 2px;
+    border-radius: 0.5rem;
   }
   
   .input-field {
-    @apply bg-card-bg border border-border-color rounded-xl px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-primary-color focus:ring-1 focus:ring-primary-color/20 transition-all;
+    @apply bg-card-bg border border-border-color rounded-xl px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-primary-color focus:ring-1 transition-all;
     /* Prevent iOS zoom on input focus - font size must be at least 16px */
     font-size: 16px;
+  }
+  
+  .input-field:focus {
+    box-shadow: 0 0 0 1px var(--theme-primary), 0 0 0 3px color-mix(in srgb, var(--theme-primary) 20%, transparent);
+  }
+  
+  @supports not (color: color-mix(in srgb, var(--theme-primary) 20%, transparent)) {
+    .input-field:focus {
+      box-shadow: 0 0 0 1px var(--theme-primary), 0 0 0 3px rgba(0, 149, 26, 0.2);
+    }
   }
   
   @media (min-width: 640px) {
@@ -85,8 +210,18 @@
   }
 
   .datetime-picker .dp__input_wrap input {
-    @apply bg-card-bg border border-border-color rounded-xl px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-primary-color focus:ring-1 focus:ring-primary-color/20 transition-all min-h-[44px];
+    @apply bg-card-bg border border-border-color rounded-xl px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-primary-color focus:ring-1 transition-all min-h-[44px];
     font-size: 16px;
+  }
+  
+  .datetime-picker .dp__input_wrap input:focus {
+    box-shadow: 0 0 0 1px var(--theme-primary), 0 0 0 3px color-mix(in srgb, var(--theme-primary) 20%, transparent);
+  }
+  
+  @supports not (color: color-mix(in srgb, var(--theme-primary) 20%, transparent)) {
+    .datetime-picker .dp__input_wrap input:focus {
+      box-shadow: 0 0 0 1px var(--theme-primary), 0 0 0 3px rgba(0, 149, 26, 0.2);
+    }
   }
 
   @media (min-width: 640px) {
@@ -116,16 +251,18 @@
   }
 
   .datetime-picker .dp__calendar_item.dp__active_date {
-    @apply bg-primary-color text-text-primary;
+    background: var(--theme-primary);
+    @apply text-text-primary;
   }
 
   .datetime-picker .dp__calendar_item.dp__range_start,
   .datetime-picker .dp__calendar_item.dp__range_end {
-    @apply bg-primary-color text-text-primary;
+    background: var(--theme-primary);
+    @apply text-text-primary;
   }
 
   .datetime-picker .dp__calendar_item.dp__today {
-    @apply border-primary-color;
+    border-color: var(--theme-primary);
   }
 
   .datetime-picker .dp__time_input {
@@ -133,7 +270,14 @@
   }
 
   .datetime-picker .dp__time_input:focus {
-    @apply border-primary-color ring-1 ring-primary-color/20;
+    border-color: var(--theme-primary);
+    box-shadow: 0 0 0 1px var(--theme-primary), 0 0 0 3px color-mix(in srgb, var(--theme-primary) 20%, transparent);
+  }
+  
+  @supports not (color: color-mix(in srgb, var(--theme-primary) 20%, transparent)) {
+    .datetime-picker .dp__time_input:focus {
+      box-shadow: 0 0 0 1px var(--theme-primary), 0 0 0 3px rgba(0, 149, 26, 0.2);
+    }
   }
 
   .datetime-picker .dp__time_col_reg {
@@ -161,11 +305,13 @@
   }
   
   .section-banner {
-    @apply bg-gradient-primary text-text-primary font-semibold text-sm font-bold py-1.5 px-4 rounded-t-xl;
+    background: var(--theme-gradient-primary);
+    @apply text-text-primary font-semibold text-sm font-bold py-1.5 px-4 rounded-t-xl;
   }
 
   .text-gradient {
-    @apply bg-gradient-primary bg-clip-text text-transparent;
+    background: var(--theme-gradient-primary);
+    @apply bg-clip-text text-transparent;
   }
   
   /* Safe area utility classes for notched devices */
@@ -218,39 +364,40 @@
   img[src="undefined"] {
     @apply hidden;
   }
+  
 }
 
 /* Custom wallet button styling to match exchange button (btn-primary) - ONLY for navbar button */
 .wallet-button-custom button,
 .wallet-button-custom > button {
-  background: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%) !important;
-  color: #ffffff !important;
-  border-radius: 0.75rem !important;
-  font-weight: 600 !important;
-  padding: 0.5rem 0.75rem !important;
-  transition: all 0.3s ease !important;
-  border: none !important;
-  font-size: 0.75rem !important;
-  box-shadow: none !important;
-  min-height: 36px !important;
-  white-space: nowrap !important;
+  background: var(--theme-gradient-primary);
+  color: var(--theme-text-primary);
+  border-radius: var(--theme-radius-md);
+  font-weight: 600;
+  padding: 0.5rem 0.75rem;
+  transition: all 0.3s ease;
+  border: none;
+  font-size: 0.75rem;
+  box-shadow: none;
+  min-height: 36px;
+  white-space: nowrap;
 }
 
 @media (min-width: 640px) {
   .wallet-button-custom button,
   .wallet-button-custom > button {
-    padding: 0.5rem 1rem !important;
-    font-size: 0.875rem !important;
-    min-height: auto !important;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    min-height: auto;
   }
 }
 
 .wallet-button-custom button:hover,
 .wallet-button-custom > button:hover {
-  background: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%) !important;
-  opacity: 0.9 !important;
-  box-shadow: none !important;
-  transform: none !important;
+  background: var(--theme-gradient-primary);
+  opacity: 0.9;
+  box-shadow: var(--theme-shadow-glow);
+  transform: none;
 }
 
 /* Reset wallet modal individual wallet options to default styling */

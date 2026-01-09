@@ -24,7 +24,7 @@
       </div>
 
       <!-- Error Message -->
-      <div v-if="error" class="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
+      <div v-if="error" class="mb-4 p-3 bg-status-error/10 border border-status-error/20 rounded-lg text-sm text-status-error">
         {{ error }}
       </div>
 
@@ -33,7 +33,13 @@
 
       <!-- Escrow Details -->
       <div v-else-if="escrow" class="space-y-4">
-        <!-- Exchange/Fill Section -->
+        <!-- Status Message (for filled/expired escrows) -->
+        <EscrowStatusMessage 
+          v-if="escrow.status !== 'active'"
+          :escrow="escrow"
+        />
+
+        <!-- Exchange/Fill Section (only for active escrows) -->
         <EscrowFillSection
           :escrow="escrow"
           :request-token-balance="requestTokenBalance"
@@ -60,7 +66,7 @@
           <button
             @click="cancelEscrow"
             :disabled="cancelling"
-            class="btn-secondary flex-1 py-3 disabled:opacity-50 min-h-[44px] text-sm sm:text-base"
+            class="btn-cancel flex-1 py-3 disabled:opacity-50 min-h-[44px] text-sm sm:text-base"
           >
             <Icon v-if="cancelling" icon="svg-spinners:ring-resize" class="w-5 h-5 inline mr-2" />
             <Icon v-else :icon="escrow.status === 'filled' ? 'mdi:check-circle' : 'mdi:close'" class="w-5 h-5 inline mr-2" />
@@ -121,9 +127,9 @@ import { useWalletBalances } from '../composables/useWalletBalances'
 import { formatBalance, truncateAddress, formatTimestamp, fromSmallestUnits, toSmallestUnits, formatDecimals } from '../utils/formatters'
 import { fetchEscrowByAddress } from '../utils/escrowTransactions'
 import { calculateExchangeCosts } from '../utils/transactionCosts'
+import { useTransactionCosts } from '../composables/useTransactionCosts'
 import { FUND_TAKER_COSTS, TRANSACTION_COSTS } from '../utils/constants/fees'
-import { BN } from '@coral-xyz/anchor'
-import { SystemProgram, PublicKey } from '@solana/web3.js'
+import { PublicKey } from '@solana/web3.js'
 import ConfirmModal from '../components/ConfirmModal.vue'
 import BaseShareModal from '../components/BaseShareModal.vue'
 import BaseAddressDisplay from '../components/BaseAddressDisplay.vue'
@@ -133,12 +139,19 @@ import BaseLoading from '../components/BaseLoading.vue'
 import EscrowPriceDisplay from '../components/EscrowPriceDisplay.vue'
 import EscrowFillSection from '../components/EscrowFillSection.vue'
 import EscrowDetailsSection from '../components/EscrowDetailsSection.vue'
+import EscrowStatusMessage from '../components/EscrowStatusMessage.vue'
 import { useToast } from '../composables/useToast'
 import { useDecimalHandling } from '../composables/useDecimalHandling'
 import { useConfirmationModal } from '../composables/useConfirmationModal'
 import { useShareModal } from '../composables/useShareModal'
 import { canUserExchangeEscrow } from '../utils/escrowValidation'
-import { debounce } from '../utils/debounce'
+import { useDebounce, DEBOUNCE_DELAYS } from '../composables/useDebounce'
+import { processAmountInput, shouldPreventKeydown } from '../utils/inputHandling'
+import { validateRecipientAddress, canTakerExchange, isPublicRecipient } from '../utils/recipientValidation'
+import { toPublicKey, toBN } from '../utils/solanaUtils'
+import { formatEscrowData, calculateEscrowStatus } from '../utils/escrowHelpers'
+import { calculateDepositAmountToExchange, prepareExchangeAmounts } from '../utils/exchangeHelpers'
+import { formatUserFriendlyError } from '../utils/errorMessages'
 
 const route = useRoute()
 const router = useRouter()
@@ -180,8 +193,6 @@ const showEscrowDetails = ref(false)
 // Fill/Exchange state
 const fillAmountPercent = ref(100)
 const fillAmount = ref('')
-const exchangeCosts = ref(null)
-const loadingExchangeCosts = ref(false)
 
 // Computed
 
@@ -285,51 +296,9 @@ const updateFillAmountFromInput = (event) => {
   // Convert to string and trim
   let amountValue = String(rawValue).trim()
   
-  // Only apply restrictions for 0-decimal tokens
-  if (escrow.value && escrow.value.requestToken.decimals === 0) {
-    // Remove decimal point and everything after it
-    if (amountValue.includes('.')) {
-      amountValue = amountValue.split('.')[0]
-      if (inputElement) {
-        const cursorPos = inputElement.selectionStart
-        inputElement.value = amountValue
-        const newPos = Math.min(cursorPos - 1, amountValue.length)
-        setTimeout(() => {
-          inputElement.setSelectionRange(newPos, newPos)
-        }, 0)
-      }
-    }
-    // Ensure it's a valid integer
-    const numValue = parseFloat(amountValue)
-    if (!isNaN(numValue)) {
-      const intValue = Math.floor(Math.abs(numValue)).toString()
-      if (intValue !== amountValue) {
-        amountValue = intValue
-        if (inputElement) {
-          inputElement.value = amountValue
-        }
-      }
-    }
-  } else {
-    // For tokens with decimals, validate the format
-    const validPattern = /^[0-9]*\.?[0-9]*$/
-    if (!validPattern.test(amountValue)) {
-      // Remove invalid characters
-      amountValue = amountValue.replace(/[^0-9.]/g, '')
-      // Ensure only one decimal point
-      const parts = amountValue.split('.')
-      if (parts.length > 2) {
-        amountValue = parts[0] + '.' + parts.slice(1).join('')
-      }
-      if (inputElement) {
-        const cursorPos = inputElement.selectionStart
-        inputElement.value = amountValue
-        setTimeout(() => {
-          inputElement.setSelectionRange(cursorPos, cursorPos)
-        }, 0)
-      }
-    }
-  }
+  // Process input based on token decimals
+  const decimals = escrow.value?.requestToken?.decimals ?? 9
+  amountValue = processAmountInput(amountValue, decimals, inputElement)
   
   // Update fillAmount
   fillAmount.value = amountValue
@@ -345,23 +314,10 @@ const updateFillAmountFromInput = (event) => {
 }
 
 const handleFillAmountKeydown = (event) => {
-  // For tokens with 0 decimals, prevent decimal point and invalid characters
-  if (escrow.value && escrow.value.requestToken.decimals === 0) {
-    if (event.key === '.' || event.key === ',' || event.key === 'e' || event.key === 'E' || event.key === '+' || event.key === '-') {
-      event.preventDefault()
-      return false
-    }
-  } else {
-    // For tokens with decimals, allow decimal point but prevent multiple
-    if (event.key === '.' && event.target.value.includes('.')) {
-      event.preventDefault()
-      return false
-    }
-    // Prevent scientific notation and other invalid characters
-    if (event.key === 'e' || event.key === 'E' || event.key === '+' || event.key === '-') {
-      event.preventDefault()
-      return false
-    }
+  const decimals = escrow.value?.requestToken?.decimals ?? 9
+  if (shouldPreventKeydown(event, decimals)) {
+    event.preventDefault()
+    return false
   }
 }
 
@@ -379,47 +335,41 @@ watch(fillAmountPercent, (newPercent) => {
   }
 })
 
-// Calculate exchange costs
-const loadExchangeCosts = async () => {
-  if (!escrow.value || !connected.value || !publicKey.value) {
-    exchangeCosts.value = null
-    return
-  }
-
-  loadingExchangeCosts.value = true
-  try {
-    const costs = await calculateExchangeCosts({
+// Transaction costs composable for exchange
+const { costBreakdown: exchangeCosts, loadingCosts: loadingExchangeCosts, calculateCosts: debouncedLoadExchangeCosts } = useTransactionCosts({
+  costCalculator: calculateExchangeCosts,
+  getParams: () => {
+    if (!escrow.value || !connected.value || !publicKey.value) {
+      return null
+    }
+    return {
       taker: publicKey.value,
       depositTokenMint: escrow.value.depositToken.mint,
-      requestTokenMint: escrow.value.requestToken.mint,
-      connection
-    })
-    exchangeCosts.value = costs
-  } catch (error) {
-    console.error('Failed to calculate exchange costs:', error)
-    exchangeCosts.value = null
-  } finally {
-    loadingExchangeCosts.value = false
+      requestTokenMint: escrow.value.requestToken.mint
+    }
   }
-}
-
-// Debounced version - waits 300ms after last call before executing
-// This prevents excessive API calls when values change rapidly
-const debouncedLoadExchangeCosts = debounce(loadExchangeCosts, 300)
+})
 
 // Watch escrow changes to reset fill amount and load balance
 watch(() => escrow.value, (newEscrow) => {
   if (newEscrow) {
-    // Load the request token balance (immediate - needed for UI)
-    loadRequestTokenBalance()
-    
-    // Load exchange costs (debounced - expensive operation)
-    debouncedLoadExchangeCosts()
-    
-    if (newEscrow.allowPartialFill) {
-      fillAmountPercent.value = 100
-      // Will be set after balance loads
+    // Only load balance and costs for active escrows (needed for filling)
+    if (newEscrow.status === 'active') {
+      // Load the request token balance (immediate - needed for UI)
+      loadRequestTokenBalance()
+      
+      // Load exchange costs (debounced - expensive operation)
+      debouncedLoadExchangeCosts()
+      
+      if (newEscrow.allowPartialFill) {
+        fillAmountPercent.value = 100
+        // Will be set after balance loads
+      } else {
+        fillAmount.value = ''
+        fillAmountPercent.value = 100
+      }
     } else {
+      // For filled/expired escrows, reset fill amount state
       fillAmount.value = ''
       fillAmountPercent.value = 100
     }
@@ -448,9 +398,9 @@ const loadEscrow = async () => {
 
   // Validate escrow ID format (should be a valid Solana public key)
   try {
-    new PublicKey(escrowId.value)
+    toPublicKey(escrowId.value, 'Invalid escrow ID format')
   } catch (err) {
-    error.value = 'Invalid escrow ID format'
+    error.value = formatUserFriendlyError(err, 'validate escrow ID')
     loading.value = false
     return
   }
@@ -477,6 +427,13 @@ const loadEscrow = async () => {
       tokenRegistry.fetchTokenInfo(escrowAccount.requestToken.toString())
     ])
 
+    // Format escrow data using helper function
+    escrow.value = formatEscrowData(
+      { account: escrowAccount, publicKey: escrowPubkey },
+      depositTokenInfo,
+      requestTokenInfo
+    )
+    
     // Debug logging for decimal issues
     console.debug('Escrow token info:', {
       depositToken: {
@@ -489,76 +446,21 @@ const loadEscrow = async () => {
         mint: escrowAccount.requestToken.toString(),
         decimals: requestTokenInfo.decimals,
         symbol: requestTokenInfo.symbol
+      },
+      amounts: {
+        depositInitial: escrow.value.depositAmount,
+        depositRemaining: escrow.value.depositRemaining
       }
     })
-
-    // Calculate amounts
-    const depositRemaining = fromSmallestUnits(
-      escrowAccount.tokensDepositRemaining.toString(),
-      depositTokenInfo.decimals
-    )
-    const depositInitial = fromSmallestUnits(
-      escrowAccount.tokensDepositInit.toString(),
-      depositTokenInfo.decimals
-    )
-    
-    console.debug('Escrow amounts calculated:', {
-      depositInitialRaw: escrowAccount.tokensDepositInit.toString(),
-      depositInitialDisplay: depositInitial,
-      depositRemainingRaw: escrowAccount.tokensDepositRemaining.toString(),
-      depositRemainingDisplay: depositRemaining,
-      decimalsUsed: depositTokenInfo.decimals
-    })
-    const requestAmount = depositRemaining * escrowAccount.price
-
-    // Determine status
-    const isFilled = escrowAccount.tokensDepositRemaining.toString() === '0'
-    const expireTimestampNum = escrowAccount.expireTimestamp.toNumber()
-    const isExpired = expireTimestampNum > 0 && expireTimestampNum < Math.floor(Date.now() / 1000)
-    const status = isFilled ? 'filled' : (isExpired ? 'expired' : 'active')
-
-    // Handle recipient - keep both PublicKey and string for different uses
-    const recipientPubkey = escrowAccount.recipient
-    const SYSTEM_PROGRAM_ID = SystemProgram.programId
-    const isPublicRecipient = !recipientPubkey || recipientPubkey.equals(SYSTEM_PROGRAM_ID)
     
     // Log the actual escrow state for debugging
     console.log('Loaded escrow recipient state:', {
-      recipient: recipientPubkey?.toString() || 'null',
-      recipientIsSystemProgram: recipientPubkey?.equals(SYSTEM_PROGRAM_ID) || false,
-      onlyRecipient: escrowAccount.onlyRecipient,
-      isPublicRecipient,
-      escrowId: escrowPubkey.toString()
+      recipient: escrow.value.recipient || 'null',
+      recipientIsSystemProgram: isPublicRecipient(escrow.value.recipientPubkey),
+      onlyRecipient: escrow.value.onlyRecipient,
+      isPublicRecipient: isPublicRecipient(escrow.value.recipientPubkey),
+      escrowId: escrow.value.id
     })
-    
-    // Store recipient as string for display, but keep PublicKey for validation
-    let recipientStr = null
-    if (recipientPubkey && !isPublicRecipient) {
-      recipientStr = recipientPubkey.toString()
-    }
-
-    escrow.value = {
-      id: escrowPubkey.toString(),
-      publicKey: escrowPubkey,
-      maker: escrowAccount.maker.toString(),
-      depositToken: depositTokenInfo,
-      requestToken: requestTokenInfo,
-      depositAmount: depositInitial,
-      depositRemaining: depositRemaining,
-      depositAmountRaw: escrowAccount.tokensDepositInit.toString(),
-      depositRemainingRaw: escrowAccount.tokensDepositRemaining.toString(),
-      requestAmount: requestAmount,
-      price: escrowAccount.price,
-      seed: escrowAccount.seed.toString(),
-      expireTimestamp: expireTimestampNum,
-      recipient: recipientStr,
-      recipientPubkey: recipientPubkey, // Keep original PublicKey for program validation
-      onlyRecipient: escrowAccount.onlyRecipient,
-      onlyWhitelist: escrowAccount.onlyWhitelist,
-      allowPartialFill: escrowAccount.allowPartialFill,
-      whitelist: escrowAccount.whitelist?.toString() || null,
-      status
-    }
 
     // Auto-open share modal if share query parameter is present
     if (route.query.share === 'true') {
@@ -571,7 +473,7 @@ const loadEscrow = async () => {
     }
   } catch (err) {
     console.error('Failed to load escrow:', err)
-    error.value = err.message || 'Failed to load escrow'
+    error.value = formatUserFriendlyError(err, 'load escrow')
   } finally {
     loading.value = false
   }
@@ -599,7 +501,7 @@ const executeCancel = async () => {
   cancelling.value = true
 
   try {
-    const seedBN = new BN(escrow.value.seed)
+    const seedBN = toBN(escrow.value.seed)
     
     await cancelEscrowTx({
       depositTokenMint: escrow.value.depositToken.mint,
@@ -611,7 +513,7 @@ const executeCancel = async () => {
     router.push('/manage')
   } catch (error) {
     console.error('Failed to cancel escrow:', error)
-    showError(error.message || 'Failed to cancel escrow')
+      showError(formatUserFriendlyError(error, 'cancel escrow'))
   } finally {
     cancelling.value = false
   }
@@ -628,81 +530,54 @@ const exchangeEscrow = async () => {
   }
 
   // Validate recipient before attempting exchange
-  // Use PublicKey comparison like the program does
-  const recipientPubkey = escrow.value.recipientPubkey
-  const SYSTEM_PROGRAM_ID = SystemProgram.programId
-  const takerPubkey = publicKey.value
-  const isPublicRecipient = !recipientPubkey || recipientPubkey.equals(SYSTEM_PROGRAM_ID)
+  const validation = canTakerExchange(
+    escrow.value.recipientPubkey,
+    escrow.value.onlyRecipient,
+    publicKey.value
+  )
   
-  // The program validates recipient - if recipient is set (not SystemProgram), taker must match
-  // Note: If recipient is SystemProgram and onlyRecipient is true, this is an invalid state
-  // but we'll still attempt the exchange as SystemProgram means "public"
-  if (recipientPubkey && !isPublicRecipient) {
-    if (escrow.value.onlyRecipient && !recipientPubkey.equals(takerPubkey)) {
-      warning(`This escrow can only be filled by: ${truncateAddress(recipientPubkey.toString())}`)
-      return
-    }
+  if (!validation.canExchange) {
+    warning(validation.reason || 'You cannot fill this escrow')
+    return
   }
   
   // Log recipient state for debugging
   console.log('Recipient validation:', {
-    recipient: recipientPubkey?.toString() || 'null',
-    isSystemProgram: isPublicRecipient,
+    recipient: escrow.value.recipient || 'null',
+    isSystemProgram: isPublicRecipient(escrow.value.recipientPubkey),
     onlyRecipient: escrow.value.onlyRecipient,
-    taker: takerPubkey.toString()
+    taker: publicKey.value.toString()
   })
 
   exchanging.value = true
 
   try {
     // Calculate the amount to exchange
-    // For partial fill, use the fill amount converted to deposit token units
-    // For full fill, use the exact remaining deposit amount (avoids slippage issues)
-    let depositAmountToExchange
+    const depositAmountToExchange = calculateDepositAmountToExchange({
+      allowPartialFill: escrow.value.allowPartialFill,
+      fillAmountPercent: fillAmountPercent.value,
+      currentFillAmount: currentFillAmount.value,
+      maxFillAmount: maxFillAmount.value,
+      depositRemaining: escrow.value.depositRemaining,
+      price: escrow.value.price
+    })
     
-    if (escrow.value.allowPartialFill) {
-      // Check if this is effectively a full fill
-      // Compare with a small tolerance to account for floating point precision
-      const tolerance = 0.0001
-      const isFullFill = fillAmountPercent.value >= 99.99 || 
-                        Math.abs(currentFillAmount.value - maxFillAmount.value) < tolerance ||
-                        (maxFillAmount.value > 0 && currentFillAmount.value >= maxFillAmount.value * (1 - tolerance))
-      
-      if (isFullFill) {
-        // For full fill, use exact remaining deposit from escrow to avoid slippage
-        // This ensures we use the exact amount stored on-chain
-        depositAmountToExchange = escrow.value.depositRemaining
-      } else {
-        // Partial fill - convert fill amount (request token) to deposit token amount
-        depositAmountToExchange = currentFillAmount.value / escrow.value.price
-      }
-    } else {
-      // Full fill - use remaining deposit
-      depositAmountToExchange = escrow.value.depositRemaining
-    }
-    
-    // Convert to smallest units
-    const depositAmountRaw = toSmallestUnits(
-      depositAmountToExchange.toString(),
-      escrow.value.depositToken.decimals
-    )
-    const amountBN = new BN(depositAmountRaw.toString())
-    
-    // Calculate request amount needed (for wrapped SOL handling)
-    const requestAmountRaw = toSmallestUnits(
-      currentFillAmount.value.toString(),
-      escrow.value.requestToken.decimals
-    )
-    const requestAmountBN = new BN(requestAmountRaw.toString())
+    // Prepare exchange amounts
+    const { depositAmountBN, requestAmountBN } = prepareExchangeAmounts({
+      depositAmountToExchange,
+      currentFillAmount: currentFillAmount.value,
+      depositTokenDecimals: escrow.value.depositToken.decimals,
+      requestTokenDecimals: escrow.value.requestToken.decimals
+    })
     
     console.log('Exchange params:', {
       maker: escrow.value.maker,
       taker: publicKey.value.toString(),
       recipient: escrow.value.recipient,
       recipientPubkey: escrow.value.recipientPubkey?.toString(),
-      recipientEqualsSystemProgram: escrow.value.recipientPubkey?.equals(SystemProgram.programId),
+      recipientEqualsSystemProgram: isPublicRecipient(escrow.value.recipientPubkey),
       onlyRecipient: escrow.value.onlyRecipient,
-      amount: amountBN.toString(),
+      amount: depositAmountBN.toString(),
       requestAmount: requestAmountBN.toString(),
       escrowId: escrow.value.id
     })
@@ -711,9 +586,9 @@ const exchangeEscrow = async () => {
       maker: escrow.value.maker,
       depositTokenMint: escrow.value.depositToken.mint,
       requestTokenMint: escrow.value.requestToken.mint,
-      amount: amountBN,
+      amount: depositAmountBN,
       requestAmount: requestAmountBN,
-      seed: new BN(escrow.value.seed)
+      seed: toBN(escrow.value.seed)
     })
 
     success('Exchange successful!')
@@ -727,15 +602,8 @@ const exchangeEscrow = async () => {
     console.error('Current user:', publicKey.value.toString())
     console.error('Only recipient flag:', escrow.value.onlyRecipient)
     
-    // Provide more helpful error message for recipient errors
-    if (error.message && (error.message.includes('6004') || error.message.includes('EscrowRecipientError'))) {
-      const recipientInfo = escrow.value.recipientPubkey 
-        ? `Recipient: ${truncateAddress(escrow.value.recipientPubkey.toString())}` 
-        : 'Recipient: Public (SystemProgram)'
-      showError(`Recipient validation failed (Error 6004). ${recipientInfo}`)
-    } else {
-      showError(error.message || 'Failed to exchange escrow')
-    }
+    // Use centralized error formatting
+    showError(formatUserFriendlyError(error, 'exchange escrow'))
   } finally {
     exchanging.value = false
   }

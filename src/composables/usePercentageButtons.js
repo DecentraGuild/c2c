@@ -22,10 +22,15 @@ export function usePercentageButtons(options = {}) {
     }))
   })
 
-  const setPercentage = (percentage, currentAmount) => {
+  const setPercentage = (percentage, currentAmount = '') => {
     if (maxAmount <= 0) return currentAmount
     
     const amount = maxAmount * percentage
+    
+    // For tokens with 0 decimals, ensure we use whole numbers only
+    if (decimals === 0) {
+      return Math.floor(amount).toString()
+    }
     
     // Format amount using formatDecimals utility
     return formatDecimals(amount)

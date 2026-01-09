@@ -1,6 +1,6 @@
 <template>
   <div v-if="escrow && escrow.status === 'active'" class="card space-y-4">
-    <h2 class="text-lg font-bold text-text-primary">Fill Escrow</h2>
+    <div class="section-banner bg-gradient-to-r from-secondary-color to-secondary-dark">FILL ESCROW</div>
     
     <!-- Wallet Balance Display -->
     <div class="bg-secondary-bg/50 rounded-xl p-3">
@@ -46,7 +46,8 @@
             min="0"
             max="100"
             step="1"
-            class="w-full h-2 bg-secondary-bg rounded-lg appearance-none cursor-pointer accent-primary-color slider-filled"
+            class="w-full h-2 bg-secondary-bg rounded-lg appearance-none cursor-pointer slider-filled"
+            style="accent-color: var(--theme-secondary);"
             :style="{ '--fill-percent': fillAmountPercent + '%' }"
           />
         </div>
@@ -259,10 +260,10 @@ const handlePercentageClick = (percentage) => {
 .slider-filled {
   background: linear-gradient(
     to right,
-    var(--primary-color, rgb(99, 102, 241)) 0%,
-    var(--primary-color, rgb(99, 102, 241)) var(--fill-percent, 0%),
-    rgb(55, 65, 81) var(--fill-percent, 0%),
-    rgb(55, 65, 81) 100%
+    var(--theme-secondary) 0%,
+    var(--theme-secondary) var(--fill-percent, 0%),
+    var(--theme-bg-secondary) var(--fill-percent, 0%),
+    var(--theme-bg-secondary) 100%
   );
 }
 
@@ -271,9 +272,9 @@ const handlePercentageClick = (percentage) => {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: var(--primary-color, rgb(99, 102, 241));
+  background: var(--theme-secondary);
   cursor: pointer;
-  border: 2px solid rgb(255, 255, 255);
+  border: 2px solid var(--theme-text-primary);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
@@ -281,9 +282,9 @@ const handlePercentageClick = (percentage) => {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: var(--primary-color, rgb(99, 102, 241));
+  background: var(--theme-secondary);
   cursor: pointer;
-  border: 2px solid rgb(255, 255, 255);
+  border: 2px solid var(--theme-text-primary);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 </style>

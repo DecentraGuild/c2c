@@ -35,12 +35,12 @@ export default defineConfig(({ mode }) => {
     }),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['dguild-logo.png'],
+      includeAssets: ['dguild-logo-p2p.svg'],
       manifest: {
         name: 'dGuild Escrow',
         short_name: 'dGuild',
         description: 'P2P Escrow Service for Solana SPL Tokens',
-        theme_color: '#00d4ff',
+        theme_color: '#00951a',
         background_color: '#0a0a0f',
         display: 'standalone',
         orientation: 'portrait',
@@ -48,13 +48,13 @@ export default defineConfig(({ mode }) => {
         start_url: '/',
         icons: [
           {
-            src: '/dguild-logo.png',
+            src: '/dguild-logo-p2p.svg',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any maskable'
           },
           {
-            src: '/dguild-logo.png',
+            src: '/dguild-logo-p2p.svg',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'

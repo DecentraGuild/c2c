@@ -12,8 +12,12 @@ import { RouterView } from 'vue-router'
 import NavBar from './components/NavBar.vue'
 import ToastContainer from './components/ToastContainer.vue'
 import { useTokenStore } from './stores/token'
+import { useThemeStore } from './stores/theme'
 import { isMobileDevice, waitForWalletStandard, isBackpackAvailable } from './utils/walletDetection'
 import { useNetworkStatus } from './composables/useNetworkStatus'
+
+// Theme store is already initialized in main.js before app mount
+// This ensures CSS variables are available immediately for all components
 
 // Initialize network status monitoring (for mobile)
 useNetworkStatus()

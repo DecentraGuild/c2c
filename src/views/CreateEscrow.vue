@@ -46,7 +46,7 @@
         />
 
         <!-- Error Message -->
-        <div v-if="displayError" class="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
+        <div v-if="displayError" class="p-3 bg-status-error/10 border border-status-error/20 rounded-lg text-sm text-status-error">
           {{ displayError }}
         </div>
 
@@ -81,14 +81,14 @@
               <span class="text-text-primary font-bold">{{ formatDecimals(costBreakdown.total) }} SOL</span>
             </div>
             <div class="text-xs pt-1">
-              <span class="text-green-400">{{ formatDecimals(costBreakdown.recoverable) }} SOL recoverable</span>
+              <span class="text-status-success">{{ formatDecimals(costBreakdown.recoverable) }} SOL recoverable</span>
               <span class="mx-1 text-text-secondary">•</span>
               <span class="text-text-secondary">{{ formatDecimals(costBreakdown.nonRecoverable) }} SOL fee</span>
             </div>
             <div class="text-xs text-text-muted pt-1">
               <button
                 @click="showPricing = true"
-                class="text-primary-color hover:underline inline"
+                class="hover:underline inline link-red"
               >
                 See pricelist
               </button>
@@ -102,7 +102,7 @@
             Select tokens to see your fee or 
             <button
               @click="showPricing = true"
-              class="text-primary-color hover:underline inline"
+              class="hover:underline inline link-red"
             >
               click here for pricing
             </button>
@@ -130,13 +130,18 @@ import PricingModal from '../components/PricingModal.vue'
 import { useEscrowStore } from '../stores/escrow'
 import { useEscrowTransactions } from '../composables/useEscrowTransactions'
 import { useSolanaConnection } from '../composables/useSolanaConnection'
-import { useErrorHandling } from '../composables/useErrorHandling'
+import { useErrorDisplay } from '../composables/useErrorDisplay'
 import { toSmallestUnits, formatDecimals } from '../utils/formatters'
-import { debounce } from '../utils/debounce'
+import { useDebounce, DEBOUNCE_DELAYS } from '../composables/useDebounce'
 import { CONTRACT_FEE_ACCOUNT } from '../utils/constants'
 import { ESCROW_PROGRAM_ID } from '../utils/constants/escrow'
-import { calculateEscrowCreationCosts, formatCostBreakdown } from '../utils/transactionCosts'
+import { calculateEscrowCreationCosts } from '../utils/transactionCosts'
+import { useTransactionCosts } from '../composables/useTransactionCosts'
 import { deriveEscrowAccounts } from '../utils/escrowTransactions'
+import { validateRecipientAddress } from '../utils/recipientValidation'
+import { toBN, toPublicKey } from '../utils/solanaUtils'
+import { useWalletValidation } from '../composables/useWalletValidation'
+import { formatUserFriendlyError } from '../utils/errorMessages'
 
 const router = useRouter()
 const escrowStore = useEscrowStore()
@@ -145,24 +150,11 @@ const anchorWallet = useAnchorWallet() // Get Anchor-compatible wallet
 const { publicKey, connected } = walletAdapter
 const connection = useSolanaConnection()
 const { initializeEscrow, loading: txLoading, error: txError } = useEscrowTransactions()
-const { getDisplayError } = useErrorHandling()
+const { validateWallet: validateWalletReady } = useWalletValidation()
+const { displayError } = useErrorDisplay({ txError, errorTypes: ['transaction', 'form'] })
 
 const loading = ref(false)
-const costBreakdown = ref(null)
-const loadingCosts = ref(false)
 const showPricing = ref(false)
-
-// Computed error from store or transaction
-const displayError = computed(() => {
-  // Check transaction error from composable first
-  if (txError.value) return txError.value
-  // Then check store errors
-  const storeError = getDisplayError(['transaction', 'form']).value
-  if (storeError) return storeError
-  // Check form general error
-  if (escrowStore.errors.form?.general) return escrowStore.errors.form.general
-  return null
-})
 
 const canSubmit = computed(() => {
   // Ensure Anchor wallet is available for transaction building
@@ -235,39 +227,24 @@ const settingsSlippage = computed({
   set: (value) => escrowStore.updateSettings({ slippage: value })
 })
 
-/**
- * Calculate transaction costs when tokens are selected
- */
-const updateTransactionCosts = async () => {
-  if (!connected.value || !publicKey.value || !escrowStore.offerToken || !escrowStore.requestToken) {
-    costBreakdown.value = null
-    return
-  }
-
-  loadingCosts.value = true
-  try {
-    const costs = await calculateEscrowCreationCosts({
+// Transaction costs composable
+const { costBreakdown, loadingCosts, calculateCosts } = useTransactionCosts({
+  costCalculator: calculateEscrowCreationCosts,
+  getParams: () => {
+    if (!connected.value || !publicKey.value || !escrowStore.offerToken || !escrowStore.requestToken) {
+      return null
+    }
+    return {
       maker: publicKey.value,
       depositTokenMint: escrowStore.offerToken.mint,
-      requestTokenMint: escrowStore.requestToken.mint,
-      connection
-    })
-    costBreakdown.value = formatCostBreakdown(costs)
-  } catch (err) {
-    console.error('Failed to calculate transaction costs:', err)
-    costBreakdown.value = null
-  } finally {
-    loadingCosts.value = false
+      requestTokenMint: escrowStore.requestToken.mint
+    }
   }
-}
-
-// Debounced version - waits 300ms after last change before calculating costs
-// This prevents excessive API calls when user is rapidly changing tokens/amounts
-const debouncedUpdateTransactionCosts = debounce(updateTransactionCosts, 300)
+})
 
 // Watch for token changes to update costs (debounced)
 watch([() => escrowStore.offerToken, () => escrowStore.requestToken, connected, publicKey], () => {
-  debouncedUpdateTransactionCosts()
+  calculateCosts()
 }, { immediate: true })
 
 /**
@@ -279,14 +256,12 @@ const handleCreateEscrow = async () => {
     return
   }
 
-  if (!connected.value || !publicKey.value) {
-    error.value = 'Please connect your wallet first'
-    return
-  }
-
-  // Validate Anchor wallet is available (required for Anchor operations)
-  if (!anchorWallet.value) {
-    error.value = 'Anchor wallet is not available. Please wait for wallet to fully connect or reconnect your wallet.'
+  // Validate wallet is ready
+  try {
+    validateWalletReady('create escrow')
+  } catch (err) {
+    escrowStore.setError('form', { general: err.message })
+    loading.value = false
     return
   }
 
@@ -297,37 +272,20 @@ const handleCreateEscrow = async () => {
     // VALIDATION: Ensure recipient and onlyRecipient are consistent
     // If recipient is SystemProgram or null, onlyRecipient must be false
     // The program sets onlyRecipient based on whether recipient is provided and not SystemProgram
-    const SYSTEM_PROGRAM_ID = SystemProgram.programId.toString()
-    
     let recipientAddress = null
     if (escrowStore.settings.direct && escrowStore.settings.directAddress) {
-      const recipientStr = escrowStore.settings.directAddress.trim()
+      const validation = validateRecipientAddress(escrowStore.settings.directAddress)
       
-      // Validate recipient address
-      if (!recipientStr) {
-        escrowStore.setError('form', { general: 'Recipient address cannot be empty when Direct is enabled' })
-        loading.value = false
-        return
-      }
-      
-      // Check if recipient is SystemProgram (invalid for direct escrows)
-      if (recipientStr === SYSTEM_PROGRAM_ID || recipientStr === '11111111111111111111111111111111') {
+      if (!validation.valid) {
         escrowStore.setError('form', { 
-          general: 'Cannot use SystemProgram (1111...1111) as recipient. Use a valid wallet address or disable Direct mode for public escrows.' 
+          general: validation.error || 'Invalid recipient address',
+          directAddress: validation.error
         })
         loading.value = false
         return
       }
       
-      // Validate it's a valid Solana address
-      try {
-        new PublicKey(recipientStr)
-        recipientAddress = recipientStr
-      } catch (err) {
-        escrowStore.setError('form', { directAddress: 'Invalid Solana address format' })
-        loading.value = false
-        return
-      }
+      recipientAddress = validation.pubkey.toString()
     }
     
     // Convert amounts to smallest units
@@ -344,7 +302,7 @@ const handleCreateEscrow = async () => {
     // Generate seed using crypto random values (matching developer's implementation)
     // Create anchor.BN from random bytes
     const randomBytes = window.crypto.getRandomValues(new Uint8Array(8))
-    const seed = new BN(randomBytes)
+    const seed = toBN(randomBytes)
 
     // Calculate expiration timestamp (Unix timestamp in seconds, i64)
     let expireTimestamp = 0
@@ -389,8 +347,8 @@ const handleCreateEscrow = async () => {
 
     // Derive escrow address to navigate to details page
     const makerPubkey = publicKey.value
-    const seedBN = seed instanceof BN ? seed : new BN(seed.toString())
-    const programId = new PublicKey(ESCROW_PROGRAM_ID)
+    const seedBN = toBN(seed)
+    const programId = toPublicKey(ESCROW_PROGRAM_ID)
     const { escrow: escrowPubkey } = deriveEscrowAccounts(makerPubkey, seedBN, programId)
     
     // Reset form on success
@@ -403,7 +361,8 @@ const handleCreateEscrow = async () => {
     })
   } catch (err) {
     console.error('Failed to create escrow:', err)
-    escrowStore.setError('transaction', err.message || txError.value || 'Failed to create escrow. Please try again.')
+    const errorMessage = formatUserFriendlyError(err, 'create escrow') || txError.value || 'Failed to create escrow. Please try again.'
+    escrowStore.setError('transaction', errorMessage)
   } finally {
     loading.value = false
   }

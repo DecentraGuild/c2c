@@ -1,6 +1,9 @@
 <template>
   <div class="space-y-1.5">
-    <div class="section-banner">{{ type.toUpperCase() }}</div>
+    <div 
+      class="section-banner"
+      :style="type === 'offer' ? { background: 'linear-gradient(135deg, var(--theme-secondary) 0%, var(--theme-secondary-dark) 100%)' } : {}"
+    >{{ type.toUpperCase() }}</div>
     <div class="bg-secondary-bg/50 rounded-b-xl p-3">
       <div class="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
         <!-- Token Selector -->
@@ -101,6 +104,7 @@ import { useWalletBalances } from '../composables/useWalletBalances'
 import { usePercentageButtons } from '../composables/usePercentageButtons'
 import { useDecimalHandling } from '../composables/useDecimalHandling'
 import { formatBalance as formatBalanceUtil, truncateAddress, formatDecimals } from '../utils/formatters'
+import { processAmountInput, shouldPreventKeydown } from '../utils/inputHandling'
 
 const props = defineProps({
   type: {
@@ -186,55 +190,9 @@ const updateAmount = (event) => {
   // Convert to string and trim
   let amountValue = String(rawValue).trim()
   
-  // Only apply restrictions for 0-decimal tokens
-  if (props.token && props.token.decimals === 0) {
-    // Remove decimal point and everything after it
-    if (amountValue.includes('.')) {
-      amountValue = amountValue.split('.')[0]
-      // Update input field
-      if (inputElement) {
-        const cursorPos = inputElement.selectionStart
-        inputElement.value = amountValue
-        // Restore cursor position (adjust if needed)
-        const newPos = Math.min(cursorPos - 1, amountValue.length)
-        setTimeout(() => {
-          inputElement.setSelectionRange(newPos, newPos)
-        }, 0)
-      }
-    }
-    // Ensure it's a valid integer
-    const numValue = parseFloat(amountValue)
-    if (!isNaN(numValue)) {
-      const intValue = Math.floor(Math.abs(numValue)).toString()
-      if (intValue !== amountValue) {
-        amountValue = intValue
-        if (inputElement) {
-          inputElement.value = amountValue
-        }
-      }
-    }
-  } else {
-    // For tokens with decimals, validate the format
-    // Allow: numbers, single decimal point, digits
-    // Remove invalid characters but preserve valid decimal input
-    const validPattern = /^[0-9]*\.?[0-9]*$/
-    if (!validPattern.test(amountValue)) {
-      // Remove invalid characters
-      amountValue = amountValue.replace(/[^0-9.]/g, '')
-      // Ensure only one decimal point
-      const parts = amountValue.split('.')
-      if (parts.length > 2) {
-        amountValue = parts[0] + '.' + parts.slice(1).join('')
-      }
-      if (inputElement) {
-        const cursorPos = inputElement.selectionStart
-        inputElement.value = amountValue
-        setTimeout(() => {
-          inputElement.setSelectionRange(cursorPos, cursorPos)
-        }, 0)
-      }
-    }
-  }
+  // Process input based on token decimals
+  const decimals = props.token?.decimals ?? 9 // Default to 9 if no token
+  amountValue = processAmountInput(amountValue, decimals, inputElement)
   
   // Update values
   if (amountValue === '') {
@@ -262,23 +220,10 @@ const handleBlur = () => {
 }
 
 const handleKeydown = (event) => {
-  // For tokens with 0 decimals, prevent decimal point and invalid characters
-  if (props.token && props.token.decimals === 0) {
-    if (event.key === '.' || event.key === ',' || event.key === 'e' || event.key === 'E' || event.key === '+' || event.key === '-') {
-      event.preventDefault()
-      return false
-    }
-  } else {
-    // For tokens with decimals, allow decimal point but prevent multiple
-    if (event.key === '.' && event.target.value.includes('.')) {
-      event.preventDefault()
-      return false
-    }
-    // Prevent scientific notation and other invalid characters
-    if (event.key === 'e' || event.key === 'E' || event.key === '+' || event.key === '-') {
-      event.preventDefault()
-      return false
-    }
+  const decimals = props.token?.decimals ?? 9 // Default to 9 if no token
+  if (shouldPreventKeydown(event, decimals)) {
+    event.preventDefault()
+    return false
   }
 }
 

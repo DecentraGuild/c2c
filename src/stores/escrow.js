@@ -11,6 +11,8 @@ import { useSolanaConnection } from '../composables/useSolanaConnection'
 import { fromSmallestUnits } from '../utils/formatters'
 import { PublicKey } from '@solana/web3.js'
 import { useTokenStore } from './token'
+import { formatEscrowData, calculateEscrowStatus } from '../utils/escrowHelpers'
+import { toPublicKey } from '../utils/solanaUtils'
 
 export const useEscrowStore = defineStore('escrow', () => {
   // Create escrow form state
@@ -236,7 +238,7 @@ export const useEscrowStore = defineStore('escrow', () => {
       
       // Convert makerPublicKey to PublicKey if it's a string
       const makerFilter = makerPublicKey 
-        ? (makerPublicKey instanceof PublicKey ? makerPublicKey : new PublicKey(makerPublicKey))
+        ? toPublicKey(makerPublicKey)
         : null
       
       // Fetch escrows from blockchain
@@ -254,45 +256,17 @@ export const useEscrowStore = defineStore('escrow', () => {
             tokenStore.fetchTokenInfo(escrowAccount.requestToken.toString())
           ])
           
-          // Calculate remaining and initial amounts in human-readable format
-          const depositRemaining = fromSmallestUnits(
-            escrowAccount.tokensDepositRemaining.toString(),
-            depositTokenInfo.decimals
-          )
-          const depositInitial = fromSmallestUnits(
-            escrowAccount.tokensDepositInit.toString(),
-            depositTokenInfo.decimals
+          // Format escrow data using helper function
+          const formatted = formatEscrowData(
+            { account: escrowAccount, publicKey: escrowPubkey },
+            depositTokenInfo,
+            requestTokenInfo
           )
           
-          // Calculate request amount based on remaining deposit and price
-          const requestAmount = depositRemaining * escrowAccount.price
-          
-          // Determine status
-          const isFilled = escrowAccount.tokensDepositRemaining.toString() === '0'
-          const expireTimestampNum = escrowAccount.expireTimestamp.toNumber()
-          const isExpired = expireTimestampNum > 0 && 
-                           expireTimestampNum < Math.floor(Date.now() / 1000)
-          const status = isFilled ? 'filled' : (isExpired ? 'expired' : 'active')
-          
+          // Add createdAt timestamp (TODO: Get from transaction signature if available)
           return {
-            id: escrowPubkey.toString(),
-            publicKey: escrowPubkey,
-            maker: escrowAccount.maker.toString(),
-            depositToken: depositTokenInfo,
-            requestToken: requestTokenInfo,
-            depositAmount: depositInitial,
-            depositRemaining: depositRemaining,
-            requestAmount: requestAmount,
-            price: escrowAccount.price,
-            seed: escrowAccount.seed.toString(),
-            expireTimestamp: expireTimestampNum,
-            recipient: escrowAccount.recipient?.toString() || null,
-            onlyRecipient: escrowAccount.onlyRecipient,
-            onlyWhitelist: escrowAccount.onlyWhitelist,
-            allowPartialFill: escrowAccount.allowPartialFill,
-            whitelist: escrowAccount.whitelist?.toString() || null,
-            status,
-            createdAt: new Date().toISOString() // TODO: Get from transaction signature if available
+            ...formatted,
+            createdAt: new Date().toISOString()
           }
         })
       )

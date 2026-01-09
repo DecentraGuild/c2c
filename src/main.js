@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import './style.css'
+import { useThemeStore } from './stores/theme'
 
 // Buffer polyfill is handled by vite-plugin-node-polyfills in vite.config.js
 // No manual setup needed here
@@ -72,5 +73,9 @@ const pinia = createPinia()
 app.use(pinia)
 app.use(router)
 app.use(SolanaWallets, walletOptions)
+
+// Initialize theme store BEFORE mounting to ensure CSS variables are set
+const themeStore = useThemeStore()
+themeStore.initializeTheme()
 
 app.mount('#app')

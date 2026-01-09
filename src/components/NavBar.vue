@@ -5,7 +5,7 @@
       <div class="flex items-center justify-between h-14 sm:h-16 md:hidden">
         <!-- Logo and Name - Compact -->
         <router-link to="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity flex-shrink-0">
-          <img src="/dguild-logo.png" alt="DecentraGuild Logo" class="w-8 h-8 sm:w-10 sm:h-10" />
+          <img src="/dguild-logo-p2p.svg" alt="DecentraGuild Logo" class="w-8 h-8 sm:w-10 sm:h-10" />
           <div class="flex flex-col">
             <span class="text-sm sm:text-base font-bold text-gradient leading-tight">DecentraGuild</span>
             <span class="text-[10px] sm:text-xs text-text-muted leading-tight hidden sm:block">dGuild Escrow</span>
@@ -36,7 +36,7 @@
           <router-link
             to="/create"
             @click="mobileMenuOpen = false"
-            class="px-4 py-3 text-sm font-semibold rounded-lg transition-all"
+            class="px-4 py-3 text-sm font-semibold rounded-lg transition-all nav-link"
             :class="isActive('/create') 
               ? 'text-primary-color bg-primary-color/10' 
               : 'text-text-secondary hover:text-primary-color hover:bg-primary-color/5'"
@@ -46,7 +46,7 @@
           <router-link
             to="/manage"
             @click="mobileMenuOpen = false"
-            class="px-4 py-3 text-sm font-semibold rounded-lg transition-all"
+            class="px-4 py-3 text-sm font-semibold rounded-lg transition-all nav-link"
             :class="isActive('/manage') 
               ? 'text-primary-color bg-primary-color/10' 
               : 'text-text-secondary hover:text-primary-color hover:bg-primary-color/5'"
@@ -60,7 +60,7 @@
       <div class="hidden md:flex items-center h-16">
         <!-- Logo and Name -->
         <router-link to="/" class="flex items-center gap-3 hover:opacity-80 transition-opacity flex-shrink-0">
-          <img src="/dguild-logo.png" alt="DecentraGuild Logo" class="w-10 h-10" />
+          <img src="/dguild-logo-p2p.svg" alt="DecentraGuild Logo" class="w-10 h-10" />
           <div class="flex flex-col">
             <span class="text-lg font-bold text-gradient leading-tight">DecentraGuild</span>
             <span class="text-xs text-text-muted leading-tight">dGuild Escrow</span>
@@ -71,7 +71,7 @@
         <div class="flex items-center gap-4 flex-1 justify-center">
           <router-link
             to="/create"
-            class="px-4 py-2 text-sm font-semibold rounded-lg transition-all"
+            class="px-4 py-2 text-sm font-semibold rounded-lg transition-all nav-link"
             :class="isActive('/create') 
               ? 'text-primary-color' 
               : 'text-text-secondary hover:text-primary-color transition-all duration-300'"
@@ -80,7 +80,7 @@
           </router-link>
           <router-link
             to="/manage"
-            class="px-4 py-2 text-sm font-semibold rounded-lg transition-all"
+            class="px-4 py-2 text-sm font-semibold rounded-lg transition-all nav-link"
             :class="isActive('/manage') 
               ? 'text-primary-color' 
               : 'text-text-secondary hover:text-primary-color transition-all duration-300'"

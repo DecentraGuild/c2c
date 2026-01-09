@@ -40,7 +40,7 @@
     </div>
 
     <!-- Validation Error -->
-    <div v-if="validationError" class="text-xs text-red-400 mt-1">
+    <div v-if="validationError" class="text-xs text-status-error mt-1">
       <Icon icon="mdi:alert-circle" class="w-3 h-3 inline mr-1" />
       {{ validationError }}
     </div>

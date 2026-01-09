@@ -1,7 +1,7 @@
 <template>
   <BaseDropdown 
     :show="show" 
-    container-class="bg-[#252540] border border-border-color rounded-xl shadow-xl max-h-96 overflow-hidden flex flex-col"
+    container-class="bg-card-bg border border-border-color rounded-xl shadow-xl max-h-96 overflow-hidden flex flex-col"
     @close="$emit('close')"
   >
       <!-- Unified Search Input -->
@@ -18,7 +18,7 @@
             @focus="handleSearch"
           />
         </div>
-        <div v-if="searchError" class="mt-1.5 text-xs text-red-400">
+        <div v-if="searchError" class="mt-1.5 text-xs text-status-error">
           {{ searchError }}
         </div>
       </div>
@@ -33,8 +33,8 @@
 
         <!-- Error State (only when not searching) -->
         <div v-else-if="error && !searchQuery && walletBalancesLoading" class="p-4 text-center text-text-muted">
-          <Icon icon="mdi:alert-circle-outline" class="w-8 h-8 inline-block mb-2 text-red-400" />
-          <p class="text-sm text-red-400">{{ error }}</p>
+          <Icon icon="mdi:alert-circle-outline" class="w-8 h-8 inline-block mb-2 text-status-error" />
+          <p class="text-sm text-status-error">{{ error }}</p>
         </div>
 
         <!-- Wallet Balances (default view when no search) -->
