@@ -2,7 +2,9 @@
   <div class="space-y-1.5">
     <div 
       class="section-banner"
-      :style="type === 'offer' ? { background: 'linear-gradient(135deg, var(--theme-secondary) 0%, var(--theme-secondary-dark) 100%)' } : {}"
+      :style="type === 'offer' 
+        ? { background: 'linear-gradient(135deg, var(--theme-trade-sell) 0%, var(--theme-trade-sell-hover) 100%)' }
+        : { background: 'linear-gradient(135deg, var(--theme-trade-buy) 0%, var(--theme-trade-buy-hover) 100%)' }"
     >{{ type.toUpperCase() }}</div>
     <div class="bg-secondary-bg/50 rounded-b-xl p-3">
       <div class="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">

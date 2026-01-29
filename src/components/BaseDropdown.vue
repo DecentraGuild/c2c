@@ -1,5 +1,15 @@
 <template>
-  <div v-if="show" class="absolute top-full left-0 right-0 mt-1 z-50" ref="dropdownRef" @click.stop>
+  <!-- Full screen modal (when containerClass includes 'full-screen') -->
+  <Teleport to="body" v-if="show && isFullScreen">
+    <div class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" @click.self="$emit('close')">
+      <div :class="containerClass" ref="dropdownRef" @click.stop class="max-w-[95vw] max-h-[95vh]">
+        <slot />
+      </div>
+    </div>
+  </Teleport>
+  
+  <!-- Regular dropdown -->
+  <div v-if="show && !isFullScreen" class="absolute top-full left-0 right-0 mt-1 z-50" ref="dropdownRef" @click.stop>
     <div :class="containerClass">
       <slot />
     </div>
@@ -18,6 +28,11 @@ const props = defineProps({
     type: String,
     default: 'bg-card-bg border border-border-color rounded-xl shadow-xl max-h-64 overflow-y-auto'
   }
+})
+
+// Check if this is a full screen modal (only check for 'full-screen' class, not 'fixed inset-0')
+const isFullScreen = computed(() => {
+  return props.containerClass.includes('full-screen')
 })
 
 const emit = defineEmits(['close'])

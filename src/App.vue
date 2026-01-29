@@ -38,15 +38,8 @@ onMounted(() => {
   if (isMobileDevice()) {
     // Wait for Wallet Standard after a short delay to allow wallets to inject
     setTimeout(async () => {
-      const walletStandardAvailable = await waitForWalletStandard(2000)
-      if (walletStandardAvailable) {
-        console.log('[App] Wallet Standard detected after mount')
-        
-        // Check specifically for Backpack
-        if (isBackpackAvailable()) {
-          console.log('[App] Backpack wallet is available')
-        }
-      }
+      await waitForWalletStandard(2000)
+      // Wallet detection happens silently - no logging needed
     }, 500)
   }
 })

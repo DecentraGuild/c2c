@@ -11,6 +11,7 @@ import { useSolanaConnection } from './useSolanaConnection'
 import { metadataRateLimiter } from '../utils/rateLimiter'
 import { cleanTokenString } from '../utils/formatters'
 import { useTokenStore } from '../stores/token'
+import { logError, logDebug, logWarning } from '../utils/logger'
 
 export function useWalletBalances(options = {}) {
   const { autoFetch = true } = options
@@ -41,7 +42,7 @@ export function useWalletBalances(options = {}) {
         isNative: true
       }
     } catch (err) {
-      console.error('Error fetching SOL balance:', err)
+      logError('Error fetching SOL balance:', err)
       return null
     }
   }
@@ -60,14 +61,13 @@ export function useWalletBalances(options = {}) {
 
       // DEBUG: Only log if debug mode is enabled (via window.debugWalletBalances.debugMode = true)
       if (typeof window !== 'undefined' && window.debugWalletBalances?.debugMode) {
-        console.group('🔍 Raw Token Accounts Response')
-        console.log('Total token accounts:', tokenAccounts.value.length)
+        logDebug('🔍 Raw Token Accounts Response')
+        logDebug('Total token accounts:', tokenAccounts.value.length)
         if (tokenAccounts.value.length > 0) {
-          console.log('Sample account structure:', JSON.stringify(tokenAccounts.value[0], null, 2))
-          console.log('Available fields in parsedInfo:', Object.keys(tokenAccounts.value[0].account?.data?.parsed?.info || {}))
-          console.log('Note: Balance fetch only provides: mint, decimals, balance. No name/symbol/image.')
+          logDebug('Sample account structure:', JSON.stringify(tokenAccounts.value[0], null, 2))
+          logDebug('Available fields in parsedInfo:', Object.keys(tokenAccounts.value[0].account?.data?.parsed?.info || {}))
+          logDebug('Note: Balance fetch only provides: mint, decimals, balance. No name/symbol/image.')
         }
-        console.groupEnd()
       }
 
       const tokenBalances = []
@@ -93,7 +93,7 @@ export function useWalletBalances(options = {}) {
 
       return tokenBalances
     } catch (err) {
-      console.error('Error fetching SPL token balances:', err)
+      logError('Error fetching SPL token balances:', err)
       return []
     }
   }
@@ -242,7 +242,7 @@ export function useWalletBalances(options = {}) {
         })
       }
     } catch (err) {
-      console.error('Error fetching balances:', err)
+      logError('Error fetching balances:', err)
       // Provide more user-friendly error messages
       if (err.message && err.message.includes('403')) {
         error.value = 'RPC access forbidden. Please check your API key configuration.'
@@ -336,7 +336,7 @@ export function useWalletBalances(options = {}) {
 
       return balance
     } catch (err) {
-      console.error(`Error fetching balance for token ${mintAddress}:`, err)
+      logError(`Error fetching balance for token ${mintAddress}:`, err)
       return 0
     }
   }
@@ -365,7 +365,7 @@ export function useWalletBalances(options = {}) {
       // Get parsed account info for the mint
       const accountInfo = await connection.getParsedAccountInfo(mintPublicKey)
       
-      console.log('Account Info Structure:', {
+        logDebug('Account Info Structure:', {
         exists: !!accountInfo.value,
         owner: accountInfo.value?.owner?.toString(),
         executable: accountInfo.value?.executable,
@@ -375,11 +375,11 @@ export function useWalletBalances(options = {}) {
       })
       
       if (accountInfo.value?.data && 'parsed' in accountInfo.value.data) {
-        console.log('Parsed Data:', accountInfo.value.data.parsed)
-        console.log('Parsed Info Keys:', Object.keys(accountInfo.value.data.parsed.info || {}))
-        console.log('Full Parsed Info:', JSON.stringify(accountInfo.value.data.parsed.info, null, 2))
+          logDebug('Parsed Data:', accountInfo.value.data.parsed)
+          logDebug('Parsed Info Keys:', Object.keys(accountInfo.value.data.parsed.info || {}))
+          logDebug('Full Parsed Info:', JSON.stringify(accountInfo.value.data.parsed.info, null, 2))
       } else if (accountInfo.value?.data) {
-        console.log('Raw Data (not parsed):', accountInfo.value.data)
+          logDebug('Raw Data (not parsed):', accountInfo.value.data)
       }
       
       // Also check what getParsedTokenAccountsByOwner returns for this specific mint
@@ -389,9 +389,9 @@ export function useWalletBalances(options = {}) {
           { mint: mintPublicKey }
         )
         
-        console.log('Token Accounts for this mint:', tokenAccounts.value.length)
+        logDebug('Token Accounts for this mint:', tokenAccounts.value.length)
         if (tokenAccounts.value.length > 0) {
-          console.log('Token Account Structure:', JSON.stringify(tokenAccounts.value[0], null, 2))
+          logDebug('Token Account Structure:', JSON.stringify(tokenAccounts.value[0], null, 2))
         }
       }
       
@@ -399,8 +399,7 @@ export function useWalletBalances(options = {}) {
       
       return accountInfo
     } catch (err) {
-      console.error('Error inspecting mint account:', err)
-      console.groupEnd()
+      logError('Error inspecting mint account:', err)
       return null
     }
   }
@@ -412,19 +411,19 @@ export function useWalletBalances(options = {}) {
       inspectMintAccount,
       inspectRawResponse: async () => {
         if (connected.value && publicKey.value) {
-          console.log('Fetching raw token accounts response...')
+          logDebug('Fetching raw token accounts response...')
           await fetchBalances()
         } else {
-          console.warn('Wallet not connected')
+          logWarning('Wallet not connected')
         }
       },
       enableDebug: () => {
         window.debugWalletBalances.debugMode = true
-        console.log('✅ Debug mode enabled. Balance fetches will show detailed logs.')
+        logDebug('✅ Debug mode enabled. Balance fetches will show detailed logs.')
       },
       disableDebug: () => {
         window.debugWalletBalances.debugMode = false
-        console.log('❌ Debug mode disabled.')
+        logDebug('❌ Debug mode disabled.')
       }
     }
   }

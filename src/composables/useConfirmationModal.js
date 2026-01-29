@@ -3,7 +3,7 @@
  * Provides reusable confirmation modal state and logic
  */
 
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 export function useConfirmationModal() {
   const showConfirm = ref(false)
@@ -51,10 +51,15 @@ export function useConfirmationModal() {
   }
 
   return {
+    // State
+    // Note: showConfirm, confirmTitle, confirmMessage are refs (not computed) 
+    // because they may be used with v-model in some components
     showConfirm,
     confirmTitle,
     confirmMessage,
-    loading,
+    loading: computed(() => loading.value), // Read-only, use computed
+    
+    // Methods
     show,
     handleConfirm,
     close

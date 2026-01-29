@@ -39,12 +39,16 @@
           :escrow="escrow"
         />
 
+        <!-- Price Display Card -->
+        <EscrowPriceDisplay :escrow="escrow" />
+
         <!-- Exchange/Fill Section (only for active escrows) -->
         <EscrowFillSection
           :escrow="escrow"
           :request-token-balance="requestTokenBalance"
           :loading-request-token-balance="loadingRequestTokenBalance"
           :max-fill-amount="maxFillAmount"
+          :max-fill-percentage="maxFillPercentage"
           v-model:fill-amount-percent="fillAmountPercent"
           v-model:fill-amount="fillAmount"
           :expected-receive-amount="expectedReceiveAmount"
@@ -57,9 +61,6 @@
           @set-fill-percentage="setFillPercentage"
           @exchange="exchangeEscrow"
         />
-
-        <!-- Price Display Card -->
-        <EscrowPriceDisplay :escrow="escrow" />
 
         <!-- Cancel/Claim Button -->
         <div v-if="canCancel" class="flex flex-col sm:flex-row gap-3">
@@ -118,23 +119,17 @@
 import { onMounted, computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
-import { useEscrowStore } from '../stores/escrow'
 import { useWallet, useAnchorWallet } from 'solana-wallets-vue'
 import { useEscrowTransactions } from '../composables/useEscrowTransactions'
 import { useSolanaConnection } from '../composables/useSolanaConnection'
 import { useTokenRegistry } from '../composables/useTokenRegistry'
 import { useWalletBalances } from '../composables/useWalletBalances'
-import { formatBalance, truncateAddress, formatTimestamp, fromSmallestUnits, toSmallestUnits, formatDecimals } from '../utils/formatters'
+import { truncateAddress, formatDecimals } from '../utils/formatters'
 import { fetchEscrowByAddress } from '../utils/escrowTransactions'
 import { calculateExchangeCosts } from '../utils/transactionCosts'
 import { useTransactionCosts } from '../composables/useTransactionCosts'
-import { FUND_TAKER_COSTS, TRANSACTION_COSTS } from '../utils/constants/fees'
-import { PublicKey } from '@solana/web3.js'
 import ConfirmModal from '../components/ConfirmModal.vue'
 import BaseShareModal from '../components/BaseShareModal.vue'
-import BaseAddressDisplay from '../components/BaseAddressDisplay.vue'
-import BaseTokenImage from '../components/BaseTokenImage.vue'
-import TokenAmountDisplay from '../components/TokenAmountDisplay.vue'
 import BaseLoading from '../components/BaseLoading.vue'
 import EscrowPriceDisplay from '../components/EscrowPriceDisplay.vue'
 import EscrowFillSection from '../components/EscrowFillSection.vue'
@@ -145,24 +140,23 @@ import { useDecimalHandling } from '../composables/useDecimalHandling'
 import { useConfirmationModal } from '../composables/useConfirmationModal'
 import { useShareModal } from '../composables/useShareModal'
 import { canUserExchangeEscrow } from '../utils/escrowValidation'
-import { useDebounce, DEBOUNCE_DELAYS } from '../composables/useDebounce'
 import { processAmountInput, shouldPreventKeydown } from '../utils/inputHandling'
-import { validateRecipientAddress, canTakerExchange, isPublicRecipient } from '../utils/recipientValidation'
+import { canTakerExchange } from '../utils/recipientValidation'
 import { toPublicKey, toBN } from '../utils/solanaUtils'
-import { formatEscrowData, calculateEscrowStatus } from '../utils/escrowHelpers'
+import { formatEscrowData } from '../utils/escrowHelpers'
 import { calculateDepositAmountToExchange, prepareExchangeAmounts } from '../utils/exchangeHelpers'
 import { formatUserFriendlyError } from '../utils/errorMessages'
+import { logError } from '../utils/logger'
 
 const route = useRoute()
 const router = useRouter()
-const escrowStore = useEscrowStore()
 const walletAdapter = useWallet()
 const anchorWallet = useAnchorWallet()
 const { publicKey, connected } = walletAdapter
 const connection = useSolanaConnection()
 const tokenRegistry = useTokenRegistry()
-const { getTokenBalance, fetchSingleTokenBalance } = useWalletBalances({ autoFetch: false })
-const { cancelEscrow: cancelEscrowTx, exchangeEscrow: exchangeEscrowTx, loading: txLoading } = useEscrowTransactions()
+const { fetchSingleTokenBalance } = useWalletBalances({ autoFetch: false })
+const { cancelEscrow: cancelEscrowTx, exchangeEscrow: exchangeEscrowTx } = useEscrowTransactions()
 const { success, error: showError, warning } = useToast()
 
 // Use composables for modal management
@@ -206,19 +200,41 @@ const canExchange = computed(() => {
   return canUserExchangeEscrow(escrow.value, publicKey.value)
 })
 
-
 // Fill/Exchange computed properties
 const requestTokenBalance = ref(0)
 const loadingRequestTokenBalance = ref(false)
 
 const maxFillAmount = computed(() => {
   if (!escrow.value) return 0
+  
+  const depositDecimals = escrow.value.depositToken?.decimals || 0
+  const price = escrow.value.price || 0
+  
   // Maximum fill is limited by:
   // 1. Remaining deposit amount (converted to request token amount)
   // 2. User's wallet balance
-  const maxFromEscrow = escrow.value.depositRemaining * escrow.value.price
+  const maxFromEscrow = escrow.value.depositRemaining * price
   const maxFromBalance = requestTokenBalance.value
-  return Math.min(maxFromEscrow, maxFromBalance)
+  let maxAmount = Math.min(maxFromEscrow, maxFromBalance)
+  
+  // If deposit token has 0 decimals (can't be split), round down to whole units
+  if (depositDecimals === 0 && price > 0) {
+    // Calculate how many whole units can be filled
+    const wholeUnits = Math.floor(maxAmount / price)
+    // Return amount for whole units only
+    maxAmount = wholeUnits * price
+  }
+  
+  return maxAmount
+})
+
+// Maximum percentage based on escrow (not wallet balance)
+const maxFillPercentage = computed(() => {
+  if (!escrow.value || !escrow.value.allowPartialFill || escrow.value.requestAmount === 0) {
+    return 100
+  }
+  // Calculate what percentage of the escrow the user can fill
+  return Math.min(100, (maxFillAmount.value / escrow.value.requestAmount) * 100)
 })
 
 // Function to load request token balance
@@ -233,7 +249,7 @@ const loadRequestTokenBalance = async () => {
     const balance = await fetchSingleTokenBalance(escrow.value.requestToken.mint)
     requestTokenBalance.value = balance
   } catch (error) {
-    console.error('Failed to load request token balance:', error)
+    logError('Failed to load request token balance:', error)
     requestTokenBalance.value = 0
   } finally {
     loadingRequestTokenBalance.value = false
@@ -249,12 +265,27 @@ const currentFillAmount = computed(() => {
     return parseFloat(fillAmount.value)
   }
   
-  // Calculate from percentage
-  return (maxFillAmount.value * fillAmountPercent.value) / 100
+  // Calculate from percentage based on escrow.requestAmount
+  if (!escrow.value.requestAmount || escrow.value.requestAmount === 0) {
+    return 0
+  }
+  let amount = (escrow.value.requestAmount * fillAmountPercent.value) / 100
+  // Cap at maxFillAmount (limited by wallet balance and whole units)
+  amount = Math.min(amount, maxFillAmount.value)
+  
+  // If deposit token has 0 decimals, round to whole units
+  const depositDecimals = escrow.value.depositToken?.decimals || 0
+  const price = escrow.value.price || 0
+  if (depositDecimals === 0 && price > 0) {
+    const wholeUnits = Math.floor(amount / price)
+    amount = wholeUnits * price
+  }
+  
+  return amount
 })
 
 const expectedReceiveAmount = computed(() => {
-  if (!escrow.value) return 0
+  if (!escrow.value || escrow.value.price === 0) return 0
   // Calculate how much deposit token we'll receive based on fill amount
   return currentFillAmount.value / escrow.value.price
 })
@@ -268,14 +299,34 @@ const canFill = computed(() => {
 })
 
 // Helper functions for fill amount
-const { getStepForDecimals, getPlaceholderForDecimals } = useDecimalHandling()
+const { getPlaceholderForDecimals } = useDecimalHandling()
 
 const setFillPercentage = (percentage) => {
-  fillAmountPercent.value = percentage
-  const amount = (maxFillAmount.value * percentage) / 100
+  // Clamp percentage to maxFillPercentage
+  const clampedPercentage = Math.min(percentage, maxFillPercentage.value)
+  fillAmountPercent.value = clampedPercentage
   
-  // For tokens with 0 decimals, ensure we use whole numbers only
-  if (escrow.value && escrow.value.requestToken.decimals === 0) {
+  // Calculate amount based on escrow.requestAmount (not maxFillAmount)
+  if (!escrow.value || !escrow.value.requestAmount || escrow.value.requestAmount === 0) {
+    fillAmount.value = '0'
+    return
+  }
+  
+  const amountFromEscrow = (escrow.value.requestAmount * clampedPercentage) / 100
+  // Cap at maxFillAmount (limited by wallet balance and whole units)
+  let amount = Math.min(amountFromEscrow, maxFillAmount.value)
+  
+  // If deposit token has 0 decimals, round to whole units
+  const depositDecimals = escrow.value.depositToken?.decimals || 0
+  const price = escrow.value.price || 0
+  if (depositDecimals === 0 && price > 0) {
+    // Round down to nearest whole unit
+    const wholeUnits = Math.floor(amount / price)
+    amount = wholeUnits * price
+  }
+  
+  // Format based on request token decimals
+  if (escrow.value.requestToken.decimals === 0) {
     fillAmount.value = Math.floor(amount).toString()
   } else {
     fillAmount.value = formatDecimals(amount)
@@ -303,14 +354,29 @@ const updateFillAmountFromInput = (event) => {
   // Update fillAmount
   fillAmount.value = amountValue
   
-  // Calculate percentage
-  const amount = parseFloat(amountValue)
-  if (isNaN(amount) || maxFillAmount.value === 0) {
+  // Calculate percentage based on escrow.requestAmount (not maxFillAmount)
+  let amount = parseFloat(amountValue)
+  if (isNaN(amount) || !escrow.value || !escrow.value.requestAmount || escrow.value.requestAmount === 0) {
     fillAmountPercent.value = 0
     return
   }
   
-  fillAmountPercent.value = Math.min(100, Math.max(0, (amount / maxFillAmount.value) * 100))
+  // If deposit token has 0 decimals, round to whole units
+  const depositDecimals = escrow.value.depositToken?.decimals || 0
+  const price = escrow.value.price || 0
+  if (depositDecimals === 0 && price > 0) {
+    // Round down to nearest whole unit
+    const wholeUnits = Math.floor(amount / price)
+    amount = wholeUnits * price
+    // Update fillAmount with rounded value
+    fillAmount.value = escrow.value.requestToken.decimals === 0 
+      ? Math.floor(amount).toString()
+      : formatDecimals(amount)
+  }
+  
+  // Calculate percentage of escrow, but cap at maxFillPercentage
+  const escrowPercentage = (amount / escrow.value.requestAmount) * 100
+  fillAmountPercent.value = Math.min(maxFillPercentage.value, Math.max(0, escrowPercentage))
 }
 
 const handleFillAmountKeydown = (event) => {
@@ -324,9 +390,25 @@ const handleFillAmountKeydown = (event) => {
 // Watch fillAmountPercent to update fillAmount
 watch(fillAmountPercent, (newPercent) => {
   if (escrow.value && escrow.value.allowPartialFill) {
-    const amount = (maxFillAmount.value * newPercent) / 100
+    // Calculate amount based on escrow.requestAmount (not maxFillAmount)
+    if (!escrow.value.requestAmount || escrow.value.requestAmount === 0) {
+      fillAmount.value = '0'
+      return
+    }
     
-    // For tokens with 0 decimals, ensure we use whole numbers only
+    let amount = (escrow.value.requestAmount * newPercent) / 100
+    // Cap at maxFillAmount (limited by wallet balance and whole units)
+    amount = Math.min(amount, maxFillAmount.value)
+    
+    // If deposit token has 0 decimals, round to whole units
+    const depositDecimals = escrow.value.depositToken?.decimals || 0
+    const price = escrow.value.price || 0
+    if (depositDecimals === 0 && price > 0) {
+      const wholeUnits = Math.floor(amount / price)
+      amount = wholeUnits * price
+    }
+    
+    // Format based on request token decimals
     if (escrow.value.requestToken.decimals === 0) {
       fillAmount.value = Math.floor(amount).toString()
     } else {
@@ -336,7 +418,7 @@ watch(fillAmountPercent, (newPercent) => {
 })
 
 // Transaction costs composable for exchange
-const { costBreakdown: exchangeCosts, loadingCosts: loadingExchangeCosts, calculateCosts: debouncedLoadExchangeCosts } = useTransactionCosts({
+const { costBreakdown: exchangeCosts, calculateCosts: debouncedLoadExchangeCosts } = useTransactionCosts({
   costCalculator: calculateExchangeCosts,
   getParams: () => {
     if (!escrow.value || !connected.value || !publicKey.value) {
@@ -379,12 +461,24 @@ watch(() => escrow.value, (newEscrow) => {
 // Watch for balance changes to update fill amount
 watch(requestTokenBalance, (newBalance) => {
   if (escrow.value && escrow.value.allowPartialFill && newBalance > 0) {
-    // Update fill amount when balance loads
-    const amount = Math.min(maxFillAmount.value, newBalance)
-    fillAmount.value = formatDecimals(amount)
-    if (maxFillAmount.value > 0) {
-      fillAmountPercent.value = Math.min(100, (amount / maxFillAmount.value) * 100)
+    // Update fill amount when balance loads (maxFillAmount already handles whole units)
+    const amount = maxFillAmount.value
+    fillAmount.value = escrow.value.requestToken.decimals === 0
+      ? Math.floor(amount).toString()
+      : formatDecimals(amount)
+    
+    // Calculate percentage based on escrow.requestAmount (not maxFillAmount)
+    if (escrow.value.requestAmount && escrow.value.requestAmount > 0) {
+      const escrowPercentage = (amount / escrow.value.requestAmount) * 100
+      fillAmountPercent.value = Math.min(maxFillPercentage.value, escrowPercentage)
     }
+  }
+})
+
+// Watch maxFillPercentage to cap fillAmountPercent if it exceeds the max
+watch(maxFillPercentage, (newMax) => {
+  if (escrow.value && escrow.value.allowPartialFill && fillAmountPercent.value > newMax) {
+    fillAmountPercent.value = newMax
   }
 })
 
@@ -433,34 +527,6 @@ const loadEscrow = async () => {
       depositTokenInfo,
       requestTokenInfo
     )
-    
-    // Debug logging for decimal issues
-    console.debug('Escrow token info:', {
-      depositToken: {
-        mint: escrowAccount.depositToken.toString(),
-        decimals: depositTokenInfo.decimals,
-        symbol: depositTokenInfo.symbol,
-        rawAmount: escrowAccount.tokensDepositInit.toString()
-      },
-      requestToken: {
-        mint: escrowAccount.requestToken.toString(),
-        decimals: requestTokenInfo.decimals,
-        symbol: requestTokenInfo.symbol
-      },
-      amounts: {
-        depositInitial: escrow.value.depositAmount,
-        depositRemaining: escrow.value.depositRemaining
-      }
-    })
-    
-    // Log the actual escrow state for debugging
-    console.log('Loaded escrow recipient state:', {
-      recipient: escrow.value.recipient || 'null',
-      recipientIsSystemProgram: isPublicRecipient(escrow.value.recipientPubkey),
-      onlyRecipient: escrow.value.onlyRecipient,
-      isPublicRecipient: isPublicRecipient(escrow.value.recipientPubkey),
-      escrowId: escrow.value.id
-    })
 
     // Auto-open share modal if share query parameter is present
     if (route.query.share === 'true') {
@@ -472,7 +538,7 @@ const loadEscrow = async () => {
       }, 100)
     }
   } catch (err) {
-    console.error('Failed to load escrow:', err)
+    logError('Failed to load escrow:', err)
     error.value = formatUserFriendlyError(err, 'load escrow')
   } finally {
     loading.value = false
@@ -512,8 +578,8 @@ const executeCancel = async () => {
     success('Escrow cancelled successfully!')
     router.push('/manage')
   } catch (error) {
-    console.error('Failed to cancel escrow:', error)
-      showError(formatUserFriendlyError(error, 'cancel escrow'))
+    logError('Failed to cancel escrow:', error)
+    showError(formatUserFriendlyError(error, 'cancel escrow'))
   } finally {
     cancelling.value = false
   }
@@ -540,14 +606,6 @@ const exchangeEscrow = async () => {
     warning(validation.reason || 'You cannot fill this escrow')
     return
   }
-  
-  // Log recipient state for debugging
-  console.log('Recipient validation:', {
-    recipient: escrow.value.recipient || 'null',
-    isSystemProgram: isPublicRecipient(escrow.value.recipientPubkey),
-    onlyRecipient: escrow.value.onlyRecipient,
-    taker: publicKey.value.toString()
-  })
 
   exchanging.value = true
 
@@ -569,19 +627,7 @@ const exchangeEscrow = async () => {
       depositTokenDecimals: escrow.value.depositToken.decimals,
       requestTokenDecimals: escrow.value.requestToken.decimals
     })
-    
-    console.log('Exchange params:', {
-      maker: escrow.value.maker,
-      taker: publicKey.value.toString(),
-      recipient: escrow.value.recipient,
-      recipientPubkey: escrow.value.recipientPubkey?.toString(),
-      recipientEqualsSystemProgram: isPublicRecipient(escrow.value.recipientPubkey),
-      onlyRecipient: escrow.value.onlyRecipient,
-      amount: depositAmountBN.toString(),
-      requestAmount: requestAmountBN.toString(),
-      escrowId: escrow.value.id
-    })
-    
+
     await exchangeEscrowTx({
       maker: escrow.value.maker,
       depositTokenMint: escrow.value.depositToken.mint,
@@ -597,11 +643,7 @@ const exchangeEscrow = async () => {
     await loadRequestTokenBalance()
     await loadEscrow() // Reload to update status
   } catch (error) {
-    console.error('Failed to exchange escrow:', error)
-    console.error('Escrow recipient:', escrow.value.recipient)
-    console.error('Current user:', publicKey.value.toString())
-    console.error('Only recipient flag:', escrow.value.onlyRecipient)
-    
+    logError('Failed to exchange escrow:', error)
     // Use centralized error formatting
     showError(formatUserFriendlyError(error, 'exchange escrow'))
   } finally {

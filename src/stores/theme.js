@@ -6,6 +6,7 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
+import { logError, logWarning } from '../utils/logger'
 
 // Default theme configuration (green primary, red secondary theme)
 const defaultTheme = {
@@ -50,6 +51,22 @@ const defaultTheme = {
       error: '#cf0000',     // Red
       warning: '#ff6b35',   // Orange
       info: '#00d4ff',      // Cyan
+    },
+    trade: {
+      buy: '#00ff00',       // Green for buy orders
+      buyHover: '#00cc00',
+      buyLight: '#33ff33',
+      sell: '#ff0000',      // Red for sell orders
+      sellHover: '#cc0000',
+      sellLight: '#ff3333',
+      trade: '#ffaa00',     // Orange/amber for trade orders
+      tradeHover: '#cc8800',
+      tradeLight: '#ffbb33',
+    },
+    window: {
+      background: '#1a1a2e',  // Window/modal background
+      border: '#2a2a3e',       // Window border
+      header: '#141420',       // Window header background
     }
   },
   
@@ -166,6 +183,22 @@ export const useThemeStore = defineStore('theme', () => {
       '--theme-warning': theme.colors.status.warning,
       '--theme-info': theme.colors.status.info,
       
+      // Trade colors (buy/sell/trade)
+      '--theme-trade-buy': theme.colors.trade.buy,
+      '--theme-trade-buy-hover': theme.colors.trade.buyHover,
+      '--theme-trade-buy-light': theme.colors.trade.buyLight,
+      '--theme-trade-sell': theme.colors.trade.sell,
+      '--theme-trade-sell-hover': theme.colors.trade.sellHover,
+      '--theme-trade-sell-light': theme.colors.trade.sellLight,
+      '--theme-trade-trade': theme.colors.trade.trade,
+      '--theme-trade-trade-hover': theme.colors.trade.tradeHover,
+      '--theme-trade-trade-light': theme.colors.trade.tradeLight,
+      
+      // Window colors
+      '--theme-window-bg': theme.colors.window.background,
+      '--theme-window-border': theme.colors.window.border,
+      '--theme-window-header': theme.colors.window.header,
+      
       // Border radius
       '--theme-radius-sm': theme.borderRadius.sm,
       '--theme-radius-md': theme.borderRadius.md,
@@ -236,6 +269,14 @@ export const useThemeStore = defineStore('theme', () => {
             ...defaultTheme.colors.status,
             ...(themeData.colors?.status || {}),
           },
+          trade: {
+            ...defaultTheme.colors.trade,
+            ...(themeData.colors?.trade || {}),
+          },
+          window: {
+            ...defaultTheme.colors.window,
+            ...(themeData.colors?.window || {}),
+          },
         },
         borderRadius: {
           ...defaultTheme.borderRadius,
@@ -269,7 +310,7 @@ export const useThemeStore = defineStore('theme', () => {
       applyThemeToDocument()
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load theme'
-      console.error('Theme loading error:', err)
+      logError('Theme loading error:', err)
     } finally {
       isLoading.value = false
     }
@@ -298,7 +339,7 @@ export const useThemeStore = defineStore('theme', () => {
       await loadTheme(themeData)
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load theme from JSON'
-      console.error('Theme JSON loading error:', err)
+      logError('Theme JSON loading error:', err)
       throw err
     } finally {
       isLoading.value = false
@@ -330,7 +371,7 @@ export const useThemeStore = defineStore('theme', () => {
       await loadTheme(themeData)
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load theme from NFT'
-      console.error('Theme NFT loading error:', err)
+      logError('Theme NFT loading error:', err)
       throw err
     } finally {
       isLoading.value = false
@@ -359,7 +400,7 @@ export const useThemeStore = defineStore('theme', () => {
       localStorage.setItem(STORAGE_KEYS.THEME_DATA, JSON.stringify(theme))
       localStorage.setItem(STORAGE_KEYS.SELECTED_THEME, theme.id)
     } catch (err) {
-      console.warn('Failed to save theme to localStorage:', err)
+      logWarning('Failed to save theme to localStorage:', err)
     }
   }
   
@@ -371,7 +412,7 @@ export const useThemeStore = defineStore('theme', () => {
         return themeData
       }
     } catch (err) {
-      console.warn('Failed to load theme from localStorage:', err)
+      logWarning('Failed to load theme from localStorage:', err)
     }
     return null
   }
@@ -381,7 +422,7 @@ export const useThemeStore = defineStore('theme', () => {
       localStorage.removeItem(STORAGE_KEYS.THEME_DATA)
       localStorage.removeItem(STORAGE_KEYS.SELECTED_THEME)
     } catch (err) {
-      console.warn('Failed to clear theme from localStorage:', err)
+      logWarning('Failed to clear theme from localStorage:', err)
     }
   }
   

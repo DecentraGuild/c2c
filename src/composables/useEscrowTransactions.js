@@ -3,8 +3,9 @@
  * Provides easy-to-use functions for escrow operations
  */
 
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useWallet, useAnchorWallet } from 'solana-wallets-vue'
+import { useWalletValidation } from './useWalletValidation'
 import { 
   buildInitializeTransaction,
   buildExchangeTransaction,
@@ -13,7 +14,7 @@ import {
 import { useSolanaConnection } from './useSolanaConnection'
 import { useEscrowStore } from '../stores/escrow'
 import { PublicKey } from '@solana/web3.js'
-import { getUserFriendlyError, isRetryableError } from '../utils/errorParser'
+import { formatError } from '../utils/errorHandler'
 
 /**
  * Composable for escrow transaction operations
@@ -30,14 +31,16 @@ export function useEscrowTransactions() {
   // Use store for centralized error handling
   const escrowStore = useEscrowStore()
   
+  // Use centralized wallet validation
+  const { validateWallet: validateWalletReady } = useWalletValidation()
+  
+  /**
+   * Validate wallet is ready for transactions
+   * @returns {Object} Wallet object
+   * @throws {Error} If wallet is not ready
+   */
   const validateWallet = () => {
-    if (!connected.value || !publicKey.value) {
-      throw new Error('Wallet not connected')
-    }
-    const wallet = anchorWallet.value
-    if (!wallet) {
-      throw new Error('Anchor wallet is not available. Please wait for wallet to fully connect.')
-    }
+    const { anchorWallet: wallet } = validateWalletReady('perform this transaction')
     return wallet
   }
   
@@ -76,7 +79,7 @@ export function useEscrowTransactions() {
       })
       return await sendAndConfirm(transaction)
     } catch (err) {
-      const errorMsg = getUserFriendlyError(err, 'Failed to initialize escrow')
+      const errorMsg = formatError(err, 'initialize escrow', 'Failed to initialize escrow')
       error.value = errorMsg
       escrowStore.setError('transaction', errorMsg)
       throw err
@@ -101,7 +104,7 @@ export function useEscrowTransactions() {
       })
       return await sendAndConfirm(transaction)
     } catch (err) {
-      const errorMsg = getUserFriendlyError(err, 'Failed to exchange escrow')
+      const errorMsg = formatError(err, 'exchange escrow', 'Failed to exchange escrow')
       error.value = errorMsg
       escrowStore.setError('transaction', errorMsg)
       throw err
@@ -126,7 +129,7 @@ export function useEscrowTransactions() {
       })
       return await sendAndConfirm(transaction)
     } catch (err) {
-      const errorMsg = getUserFriendlyError(err, 'Failed to cancel escrow')
+      const errorMsg = formatError(err, 'cancel escrow', 'Failed to cancel escrow')
       error.value = errorMsg
       escrowStore.setError('transaction', errorMsg)
       throw err
@@ -136,8 +139,11 @@ export function useEscrowTransactions() {
   }
   
   return {
-    loading,
-    error,
+    // State (computed for reactivity)
+    loading: computed(() => loading.value),
+    error: computed(() => error.value),
+    
+    // Methods
     initializeEscrow,
     exchangeEscrow,
     cancelEscrow

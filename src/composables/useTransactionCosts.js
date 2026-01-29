@@ -3,11 +3,13 @@
  * Handles loading and displaying transaction costs for escrow operations
  */
 
-import { ref, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { useWallet } from 'solana-wallets-vue'
 import { useSolanaConnection } from './useSolanaConnection'
 import { calculateEscrowCreationCosts, calculateExchangeCosts, formatCostBreakdown } from '../utils/transactionCosts'
-import { useDebounce, DEBOUNCE_DELAYS } from './useDebounce'
+import { useDebounce } from './useDebounce'
+import { DEBOUNCE_DELAYS } from '../utils/constants/ui'
+import { logError } from '../utils/logger'
 
 /**
  * Composable for transaction cost calculations
@@ -55,7 +57,7 @@ export function useTransactionCosts({ costCalculator, getParams, debounceDelay =
         costBreakdown.value = formatCostBreakdown ? formatCostBreakdown(costs) : costs
       }
     } catch (err) {
-      console.error('Failed to calculate transaction costs:', err)
+      logError('Failed to calculate transaction costs:', err)
       costBreakdown.value = null
     } finally {
       loadingCosts.value = false
@@ -66,8 +68,11 @@ export function useTransactionCosts({ costCalculator, getParams, debounceDelay =
   const debouncedCalculateCosts = useDebounce(calculateCosts, debounceDelay)
 
   return {
-    costBreakdown,
-    loadingCosts,
+    // State (computed for reactivity)
+    costBreakdown: computed(() => costBreakdown.value),
+    loadingCosts: computed(() => loadingCosts.value),
+    
+    // Methods
     calculateCosts: debouncedCalculateCosts,
     calculateCostsImmediate: calculateCosts
   }

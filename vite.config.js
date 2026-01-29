@@ -76,6 +76,10 @@ export default defineConfig(({ mode }) => {
         // Increase file size limit for precaching (default is 2MB)
         // Large JS bundles (4.73MB) need higher limit
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
+        // Exclude RPC endpoints from precaching to avoid caching API keys or sensitive data
+        // API keys are embedded in JS bundle at build time (expected for client-side apps)
+        // but we don't want to cache RPC responses that might contain transaction data
+        navigateFallbackDenylist: [/^\/_/, /\/api\//, /helius-rpc\.com/, /\.solana\.com/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -104,19 +108,10 @@ export default defineConfig(({ mode }) => {
                 statuses: [0, 200]
               }
             }
-          },
-          {
-            urlPattern: /^https:\/\/.*\.solana\.com\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'solana-rpc-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 5 // 5 minutes
-              },
-              networkTimeoutSeconds: 10
-            }
           }
+          // Note: RPC endpoints (Helius, Solana) are explicitly NOT cached
+          // to prevent caching sensitive transaction data or API keys
+          // All RPC calls go directly to network without service worker caching
         ]
       },
       devOptions: {
@@ -158,8 +153,12 @@ export default defineConfig(({ mode }) => {
     // Optimize asset inlining (4KB threshold)
     assetsInlineLimit: 4096,
     // Minification (esbuild is default, fast and effective)
-    // To remove console.logs in production, we'll handle it via esbuild options
-    minify: 'esbuild'
+    // Remove console.logs in production builds
+    minify: 'esbuild',
+    // Remove console statements in production
+    esbuild: {
+      drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : []
+    }
   }
   }
 })

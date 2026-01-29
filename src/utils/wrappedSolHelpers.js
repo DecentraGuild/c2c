@@ -7,6 +7,7 @@ import { SystemProgram, PublicKey } from '@solana/web3.js'
 import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, createSyncNativeInstruction, NATIVE_MINT } from '@solana/spl-token'
 import { BN } from '@coral-xyz/anchor'
 import { toBN } from './solanaUtils'
+import { logWarning } from './logger'
 
 /**
  * Calculate SOL amount needed for wrapped SOL account
@@ -50,7 +51,7 @@ export async function calculateSolToTransfer({ wrappedSolAccount, requestAmountL
     }
   } catch (err) {
     // If we can't check, transfer the full amount (safer)
-    console.warn('Could not check wrapped SOL account balance, transferring full amount:', err)
+    logWarning('Could not check wrapped SOL account balance, transferring full amount:', err)
     return requestAmountLamports.add(rentExemptAmount)
   }
 }

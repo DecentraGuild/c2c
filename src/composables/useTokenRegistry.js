@@ -10,6 +10,8 @@ import { metadataRateLimiter } from '../utils/rateLimiter'
 import { loadTokenRegistryList, preloadTokenRegistry as preloadSharedRegistry } from '../utils/tokenRegistry'
 import { cleanTokenString } from '../utils/formatters'
 import { getMint } from '@solana/spl-token'
+import { logDebug, logError } from '../utils/logger'
+import { SEARCH_LIMITS } from '../utils/constants/ui'
 
 // Use shared connection
 const connection = useSolanaConnection()
@@ -31,7 +33,7 @@ async function fetchTokenDecimals(mintAddress) {
     
     return null
   } catch (err) {
-    console.debug(`Failed to fetch decimals for ${mintAddress}:`, err.message)
+    logDebug(`Failed to fetch decimals for ${mintAddress}:`, err.message)
     return null
   }
 }
@@ -94,7 +96,7 @@ async function fetchTokenInfo(mintAddress, getCachedTokenInfo = null) {
                        err?.code === 429
     
     if (!isRateLimit) {
-      console.debug(`Error fetching token info for ${mintAddress}:`, err.message)
+      logDebug(`Error fetching token info for ${mintAddress}:`, err.message)
     }
     
     // Return with null name to indicate failure (won't be cached, will retry)
@@ -168,11 +170,11 @@ export function useTokenRegistry() {
       // Extract tokens, prioritizing exact matches
       const results = scoredResults.map(({ token }) => token)
       
-      // Limit results to 100 to ensure we get exact matches even if there are many partial matches
-      // The component will further filter and limit to 50
-      searchResults.value = results.slice(0, 100)
+      // Limit results to configured max to ensure we get exact matches even if there are many partial matches
+      // The component will further filter and limit to display limit
+      searchResults.value = results.slice(0, SEARCH_LIMITS.TOKEN_SEARCH_RESULTS)
     } catch (err) {
-      console.error('Error searching tokens:', err)
+      logError('Error searching tokens:', err)
       error.value = err.message || 'Failed to search tokens'
       searchResults.value = []
     } finally {

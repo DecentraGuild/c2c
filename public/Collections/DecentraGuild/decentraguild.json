@@ -1,0 +1,77 @@
+{
+  "id": "decentraguild",
+  "name": "DecentraGuild",
+  "logo": "/Collections/DecentraGuild/dguild-logo.webp",
+  "collectionMints": [],
+  "baseCurrency": ["SOL"],
+  "customCurrencies": [],
+  "colors": {
+    "primary": {
+      "main": "#6366f1",
+      "hover": "#4f46e5",
+      "light": "#818cf8",
+      "dark": "#4f46e5"
+    },
+    "secondary": {
+      "main": "#8b5cf6",
+      "hover": "#7c3aed",
+      "light": "#a78bfa",
+      "dark": "#6d28d9"
+    },
+    "accent": {
+      "main": "#a78bfa",
+      "hover": "#8b5cf6"
+    },
+    "background": {
+      "primary": "#0f0a1a",
+      "secondary": "#1a0f2e",
+      "card": "#251a3e"
+    },
+    "text": {
+      "primary": "#ffffff",
+      "secondary": "#e0d5ff",
+      "muted": "#c4b5fd"
+    },
+    "border": {
+      "default": "#3a2a5e",
+      "light": "#4a3a6e"
+    },
+    "status": {
+      "success": "#10b981",
+      "error": "#ef4444",
+      "warning": "#f59e0b",
+      "info": "#06b6d4"
+    },
+    "trade": {
+      "buy": "#10b981",
+      "buyHover": "#059669",
+      "buyLight": "#34d399",
+      "sell": "#ef4444",
+      "sellHover": "#dc2626",
+      "sellLight": "#f87171",
+      "trade": "#8b5cf6",
+      "tradeHover": "#7c3aed",
+      "tradeLight": "#a78bfa"
+    },
+    "window": {
+      "background": "#251a3e",
+      "border": "#3a2a5e",
+      "header": "#1a0f2e"
+    }
+  },
+  "description": "DecentraGuild's official NFT collection and marketplace.",
+  "verification_status": "verified",
+  "subscriptionActive": true,
+  "subscriptionExpiresAt": null,
+  "tradeDiscount": {
+    "enabled": true,
+    "appliesTo": "all"
+  },
+  "shopFee": {
+    "wallet": "4CJYmVAcBrgYL6iX4gUKSMeJxTm4hK3eNAzuzaYBZMCv",
+    "makerFlatFee": 0,
+    "takerFlatFee": 0,
+    "makerPercentFee": 0,
+    "takerPercentFee": 0
+  }
+}

@@ -13,6 +13,7 @@ import { PublicKey } from '@solana/web3.js'
 import { useTokenStore } from './token'
 import { formatEscrowData, calculateEscrowStatus } from '../utils/escrowHelpers'
 import { toPublicKey } from '../utils/solanaUtils'
+import { logError } from '../utils/logger'
 
 export const useEscrowStore = defineStore('escrow', () => {
   // Create escrow form state
@@ -263,7 +264,10 @@ export const useEscrowStore = defineStore('escrow', () => {
             requestTokenInfo
           )
           
-          // Add createdAt timestamp (TODO: Get from transaction signature if available)
+          // Add createdAt timestamp
+          // Note: For accurate creation time, we would need to fetch the transaction signature
+          // and get blockTime from the transaction. This requires additional RPC calls.
+          // Using current time as fallback - can be enhanced later if needed.
           return {
             ...formatted,
             createdAt: new Date().toISOString()
@@ -273,7 +277,7 @@ export const useEscrowStore = defineStore('escrow', () => {
       
       escrows.value = formattedEscrows
     } catch (error) {
-      console.error('Failed to load escrows:', error)
+      logError('Failed to load escrows:', error)
       errors.value.escrows = error.message || 'Failed to load escrows'
     } finally {
       loadingEscrows.value = false

@@ -12,7 +12,7 @@ A decentralized peer-to-peer escrow service for SPL tokens on Solana. Create sec
 
 ### Transaction Fees
 - **Maker Fee:** 0.01 SOL per trade (non-recoverable)
-- **Taker Fee:** 0.0006 SOL per trade
+- **Taker Fee:** 0.0006 SOL per trade (non-recoverable)
 
 ### Solana Rent Accounts
 - **Rent per Account:** 0.00022 SOL per account (recoverable, minimal 2 per escrow)
@@ -20,7 +20,7 @@ A decentralized peer-to-peer escrow service for SPL tokens on Solana. Create sec
 ### Monthly Subscriptions (Coming Soon)
 - **$5/month:** 5 escrows free, 20% discount on rest
 - **$10/month:** 10 escrows free, 50% discount on rest
-- **$25/month:** Free unlimited escrows
+- **$25/month:** unlimited escrows free
 
 **Note:** Transaction costs may vary based on network conditions and account creation requirements.
 
@@ -31,33 +31,25 @@ A decentralized peer-to-peer escrow service for SPL tokens on Solana. Create sec
 - A Solana wallet (Phantom, Solflare, etc.)
 - Helius API key (for production)
 
-### Installation
+### Environment Variables
 
-```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-```
-
-### Environment Setup
-
-Create a `.env` file in the root directory:
+Create a `.env` file in the project root with the following variables:
 
 ```env
-VITE_HELIUS_API_KEY=your-helius-api-key-here
-VITE_NETWORK=mainnet
+# Helius API Key (required for production)
+# Get your API key from https://www.helius.dev/
+VITE_HELIUS_API_KEY=your_helius_api_key_here
+
+# Alternative: Full Helius RPC URL (optional, if not using VITE_HELIUS_API_KEY)
+# VITE_HELIUS_RPC=https://mainnet.helius-rpc.com/?api-key=your_api_key_here
+
+# Network (optional, defaults to mainnet)
+# Options: mainnet, devnet
+# VITE_NETWORK=mainnet
 ```
 
-**Getting a Helius API Key:**
-1. Visit [Helius.dev](https://www.helius.dev/)
-2. Sign up for a free account
-3. Create a new API key
-4. Add it to your `.env` file
+**Important:** Never commit your `.env` file to version control. The `.env` file should be in `.gitignore`.
+
 
 ## Features
 

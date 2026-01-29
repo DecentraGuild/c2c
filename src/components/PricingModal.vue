@@ -22,11 +22,11 @@
           <div class="space-y-2">
             <div class="flex items-center justify-between py-2 border-b border-border-color/50">
               <span class="text-sm text-text-secondary">Maker fee</span>
-              <span class="text-sm font-medium text-text-primary">0.01 SOL</span>
+              <span class="text-sm font-medium text-text-primary">{{ TRANSACTION_COSTS.PLATFORM_MAKER_FEE }} SOL</span>
             </div>
             <div class="flex items-center justify-between py-2 border-b border-border-color/50">
               <span class="text-sm text-text-secondary">Taker fee</span>
-              <span class="text-sm font-medium text-text-primary">0.0006 SOL</span>
+              <span class="text-sm font-medium text-text-primary">{{ TRANSACTION_COSTS.PLATFORM_TAKER_FEE }} SOL</span>
             </div>
           </div>
         </div>
@@ -79,6 +79,7 @@
 
 <script setup>
 import { Icon } from '@iconify/vue'
+import { TRANSACTION_COSTS } from '../utils/constants/fees'
 
 const props = defineProps({
   show: {

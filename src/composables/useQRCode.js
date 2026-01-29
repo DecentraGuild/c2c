@@ -2,7 +2,8 @@
  * Composable for QR code generation
  */
 
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { logWarning, logError } from '../utils/logger'
 
 export function useQRCode() {
   const isGenerating = ref(false)
@@ -33,7 +34,7 @@ export function useQRCode() {
 
   const generateQRCode = async (canvas, text, options = {}) => {
     if (!canvas || !text) {
-      console.warn('QR Code generation: Missing canvas or text', { canvas: !!canvas, text: !!text })
+      logWarning('QR Code generation: Missing canvas or text', { canvas: !!canvas, text: !!text })
       return false
     }
 
@@ -104,7 +105,7 @@ export function useQRCode() {
               logoSize
             )
           } catch (logoError) {
-            console.warn('Failed to add logo to QR code:', logoError)
+            logWarning('Failed to add logo to QR code:', logoError)
             // Continue without logo if it fails
           }
         }
@@ -112,12 +113,12 @@ export function useQRCode() {
 
       return true
     } catch (importError) {
-      console.error('Failed to import qrcode library:', importError)
+      logError('Failed to import qrcode library:', importError)
       // Fallback to simple placeholder if library not available
       try {
         const ctx = canvas.getContext('2d')
         if (!ctx) {
-          console.error('Failed to get canvas context')
+          logError('Failed to get canvas context')
           return false
         }
         ctx.fillStyle = options.lightColor || '#ffffff'
@@ -130,7 +131,7 @@ export function useQRCode() {
         ctx.fillText('(Library not available)', canvas.width / 2, canvas.height / 2 + 10)
         return false
       } catch (error) {
-        console.error('Failed to generate QR code fallback:', error)
+        logError('Failed to generate QR code fallback:', error)
         return false
       }
     } finally {
@@ -139,7 +140,10 @@ export function useQRCode() {
   }
 
   return {
-    isGenerating,
+    // State (computed for reactivity)
+    isGenerating: computed(() => isGenerating.value),
+    
+    // Methods
     generateQRCode
   }
 }

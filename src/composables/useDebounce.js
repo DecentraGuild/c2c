@@ -1,42 +1,45 @@
 /**
- * Debounce composable with consistent defaults
- * Provides debounced functions with common delay values
+ * Debounce Composable
+ * Provides Vue-compatible debounced functions with reactive cleanup
+ * 
+ * For simple debouncing, use the utility directly: `import { debounce } from '@/utils/debounce'`
+ * Use this composable when you need Vue lifecycle-aware debouncing with automatic cleanup
+ * 
+ * @module composables/useDebounce
  */
 
-import { ref } from 'vue'
-import { debounce as debounceUtil } from '../utils/debounce'
+import { onUnmounted } from 'vue'
+import { debounce, DEBOUNCE_DELAYS } from '../utils/debounce'
 
 /**
- * Common debounce delays (in milliseconds)
- */
-export const DEBOUNCE_DELAYS = {
-  SHORT: 150,
-  MEDIUM: 300,
-  LONG: 500,
-  DEFAULT: 300
-}
-
-/**
- * Create a debounced function with default delay
+ * Create a debounced function that is automatically cancelled on component unmount
+ * 
  * @param {Function} fn - Function to debounce
  * @param {number} delay - Delay in milliseconds (default: 300ms)
- * @returns {Function} Debounced function
+ * @returns {Function} Debounced function with cancel capability
+ * 
+ * @example
+ * ```js
+ * const debouncedSearch = useDebounce((query) => {
+ *   searchTokens(query)
+ * }, DEBOUNCE_DELAYS.MEDIUM)
+ * 
+ * // Use in template or script
+ * debouncedSearch('solana')
+ * ```
  */
 export function useDebounce(fn, delay = DEBOUNCE_DELAYS.DEFAULT) {
-  return debounceUtil(fn, delay)
+  const debouncedFn = debounce(fn, delay)
+  
+  // Automatically cancel on unmount to prevent memory leaks
+  onUnmounted(() => {
+    if (debouncedFn.cancel) {
+      debouncedFn.cancel()
+    }
+  })
+  
+  return debouncedFn
 }
 
-/**
- * Composable for debounced operations
- * @param {Function} fn - Function to debounce
- * @param {number} delay - Delay in milliseconds (default: 300ms)
- * @returns {Object} Debounced function and control methods
- */
-export function useDebouncedFunction(fn, delay = DEBOUNCE_DELAYS.DEFAULT) {
-  const debouncedFn = debounceUtil(fn, delay)
-  
-  return {
-    debouncedFn,
-    delay
-  }
-}
+// Re-export constants for convenience
+export { DEBOUNCE_DELAYS }

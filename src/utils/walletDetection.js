@@ -3,6 +3,8 @@
  * Ensures Wallet Standard wallets (like Backpack) are properly detected on mobile
  */
 
+import { logDebug, logWarning } from './logger'
+
 /**
  * Check if we're on a mobile device
  */
@@ -124,7 +126,7 @@ export function ensureMainnetForWalletStandard() {
             // Some Wallet Standard implementations support network property
             // We'll log this for debugging
             if (wallet.name?.toLowerCase().includes('backpack')) {
-              console.log('[Wallet Detection] Backpack wallet found, ensuring mainnet configuration')
+              logDebug('[Wallet Detection] Backpack wallet found, ensuring mainnet configuration')
             }
           }
         })
@@ -135,11 +137,11 @@ export function ensureMainnetForWalletStandard() {
     if (window.solana) {
       // Some wallets support network property
       if (window.solana.isBackpack) {
-        console.log('[Wallet Detection] Legacy Backpack detected, ensuring mainnet')
+        logDebug('[Wallet Detection] Legacy Backpack detected, ensuring mainnet')
       }
     }
   } catch (err) {
-    console.warn('[Wallet Detection] Error ensuring mainnet for Wallet Standard:', err)
+    logWarning('[Wallet Detection] Error ensuring mainnet for Wallet Standard:', err)
   }
 }
 
@@ -152,42 +154,42 @@ export async function initializeWalletDetection() {
     return // Desktop doesn't need special handling
   }
 
-  console.log('[Wallet Detection] Initializing mobile wallet detection...')
-  console.log('[Wallet Detection] User Agent:', navigator.userAgent)
-  console.log('[Wallet Detection] Is In-App Browser:', isInAppBrowser())
+  logDebug('[Wallet Detection] Initializing mobile wallet detection...')
+  logDebug('[Wallet Detection] User Agent:', navigator.userAgent)
+  logDebug('[Wallet Detection] Is In-App Browser:', isInAppBrowser())
 
   // On mobile, wait for Wallet Standard to be available
   const walletStandardAvailable = await waitForWalletStandard(5000)
   
   if (walletStandardAvailable) {
-    console.log('[Wallet Detection] Wallet Standard detected on mobile')
+    logDebug('[Wallet Detection] Wallet Standard detected on mobile')
     
     // Log available wallets for debugging
     if (typeof window !== 'undefined' && window.navigator?.wallets) {
       const wallets = window.navigator.wallets
-      console.log('[Wallet Detection] Available Wallet Standard wallets:', 
+      logDebug('[Wallet Detection] Available Wallet Standard wallets:', 
         Array.isArray(wallets) ? wallets.map(w => w.name || w.id) : 'Not an array')
       
       // Ensure mainnet is configured for all Wallet Standard wallets
       ensureMainnetForWalletStandard()
     }
   } else {
-    console.warn('[Wallet Detection] Wallet Standard not detected on mobile - wallets may not be available')
-    console.warn('[Wallet Detection] window.navigator.wallets:', typeof window !== 'undefined' ? window.navigator?.wallets : 'N/A')
-    console.warn('[Wallet Detection] window.solana:', typeof window !== 'undefined' ? !!window.solana : 'N/A')
+    logWarning('[Wallet Detection] Wallet Standard not detected on mobile - wallets may not be available')
+    logWarning('[Wallet Detection] window.navigator.wallets:', typeof window !== 'undefined' ? window.navigator?.wallets : 'N/A')
+    logWarning('[Wallet Detection] window.solana:', typeof window !== 'undefined' ? !!window.solana : 'N/A')
   }
 
   // Specifically check for Backpack
   if (isInAppBrowser()) {
-    console.log('[Wallet Detection] Detected in-app browser, checking for Backpack...')
+    logDebug('[Wallet Detection] Detected in-app browser, checking for Backpack...')
     const backpackAvailable = await waitForBackpack(3000)
     if (backpackAvailable) {
-      console.log('[Wallet Detection] Backpack detected in in-app browser')
+      logDebug('[Wallet Detection] Backpack detected in in-app browser')
       // Ensure mainnet is set for Backpack
       ensureMainnetForWalletStandard()
     } else {
-      console.warn('[Wallet Detection] Backpack not detected in in-app browser')
-      console.warn('[Wallet Detection] This may indicate a Wallet Standard detection issue')
+      logWarning('[Wallet Detection] Backpack not detected in in-app browser')
+      logWarning('[Wallet Detection] This may indicate a Wallet Standard detection issue')
     }
   }
 
@@ -199,11 +201,11 @@ export async function initializeWalletDetection() {
       if (window.navigator?.wallets) {
         const wallets = window.navigator.wallets
         if (Array.isArray(wallets)) {
-          console.log('[Wallet Detection] Found', wallets.length, 'Wallet Standard wallet(s)')
+          logDebug('[Wallet Detection] Found', wallets.length, 'Wallet Standard wallet(s)')
         }
       }
     } catch (err) {
-      console.warn('[Wallet Detection] Error accessing Wallet Standard API:', err)
+      logWarning('[Wallet Detection] Error accessing Wallet Standard API:', err)
     }
   }
 }

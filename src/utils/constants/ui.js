@@ -5,9 +5,16 @@
 // UI timing constants
 export const UI_CONSTANTS = {
   TOAST_DURATION: 5000, // 5 seconds
-  DEBOUNCE_DELAY: 500, // 500ms
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000 // 1 second
+}
+
+// Debounce delay constants (in milliseconds)
+export const DEBOUNCE_DELAYS = {
+  SHORT: 150,
+  MEDIUM: 300,
+  LONG: 500,
+  DEFAULT: 300
 }
 
 // Decimal formatting constants
@@ -47,7 +54,23 @@ export const STORAGE_KEYS = {
   CONNECTED_WALLET: 'connectedWallet',
   THEME_PREFERENCE: 'themePreference',
   RECENT_TOKENS: 'recentTokens',
-  ESCROW_DRAFTS: 'escrowDrafts'
+  ESCROW_DRAFTS: 'escrowDrafts',
+  TOKEN_METADATA: 'token_metadata_cache',
+  CACHE_TIMESTAMP: 'token_cache_timestamp'
+}
+
+// Cache configuration
+export const CACHE_CONFIG = {
+  METADATA_TTL: 30 * 24 * 60 * 60 * 1000, // 30 days (1 month)
+  REGISTRY_TTL: 24 * 60 * 60 * 1000, // 24 hours
+  MAX_METADATA_ENTRIES: 1000 // Maximum cached token metadata entries
+}
+
+// Search and pagination limits
+export const SEARCH_LIMITS = {
+  TOKEN_SEARCH_RESULTS: 100, // Maximum token search results to return
+  TOKEN_SEARCH_DISPLAY: 50, // Maximum tokens to display in UI
+  NFT_FETCH_LIMIT: 10000 // Safety limit for NFT fetching
 }
 
 // Error messages

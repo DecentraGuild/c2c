@@ -17,3 +17,6 @@ export * from './fees.js'
 
 // UI constants
 export * from './ui.js'
+
+// Base currencies
+export * from './baseCurrencies.js'

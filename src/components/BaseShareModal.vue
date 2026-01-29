@@ -52,6 +52,7 @@ import { Icon } from '@iconify/vue'
 import { useClipboard } from '../composables/useClipboard'
 import { useQRCode } from '../composables/useQRCode'
 import { useToast } from '../composables/useToast'
+import { logWarning } from '../utils/logger'
 
 const props = defineProps({
   show: {
@@ -143,10 +144,10 @@ watch(() => props.show, async (isShowing) => {
         logoCornerRadius: Math.floor(qrSize * 0.04) // Rounded corners for logo background
       })
       if (!success) {
-        console.warn('QR code generation failed')
+        logWarning('QR code generation failed')
       }
     } else {
-      console.warn('QR canvas ref is not available')
+      logWarning('QR canvas ref is not available')
     }
   }
 }, { immediate: true })

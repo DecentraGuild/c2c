@@ -1,0 +1,149 @@
+<template>
+  <div class="min-h-screen bg-primary-bg py-3 sm:py-4 px-3 sm:px-4">
+    <div class="max-w-7xl mx-auto">
+      <!-- Hero Section -->
+      <div class="text-center mb-8 sm:mb-12">
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-text-primary mb-4 sm:mb-6 leading-tight">
+          Explore Marketplaces Across the Solana Ecosystem
+        </h1>
+        <p class="max-w-2xl mx-auto text-lg sm:text-xl text-text-secondary mb-8 leading-relaxed">
+          Buy, sell, and trade across official and community-run storefronts, each with their own branding, collections, currencies, and pricing.
+        </p>
+      </div>
+
+      <!-- Marketplaces Section -->
+      <div class="mb-6">
+        <!-- Title, Search Bar, and View Toggle - All on One Row, Same Width as Marketplaces -->
+        <div class="flex items-center gap-4 mb-4 sm:mb-6">
+          <!-- Title - Left -->
+          <h2 class="text-xl sm:text-2xl font-bold text-text-primary flex-shrink-0">Marketplaces</h2>
+          
+          <!-- Search Bar - Center (flexible, takes remaining space) -->
+          <BaseSearchInput
+            v-model="searchQuery"
+            placeholder="Search marketplaces..."
+            container-class="flex-1"
+          />
+          
+          <!-- View Mode Toggle - Right -->
+          <BaseViewModeToggle
+            v-model="viewMode"
+            :modes="viewModes"
+          />
+          
+          <!-- Create Marketplace Button -->
+          <router-link
+            to="/onboard"
+            class="flex-shrink-0 px-4 py-2 bg-primary-color text-white rounded-lg hover:bg-primary-color/90 transition-colors text-sm font-semibold flex items-center gap-2"
+          >
+            <Icon icon="mdi:plus-circle" class="w-5 h-5" />
+            <span class="hidden sm:inline">Create Marketplace</span>
+            <span class="sm:hidden">Create</span>
+          </router-link>
+        </div>
+
+        <!-- Loading State -->
+        <BaseLoading v-if="collectionStore.loadingCollections" message="Loading marketplaces..." />
+
+        <!-- Error State -->
+        <BaseEmptyState
+          v-else-if="collectionStore.error"
+          icon="mdi:alert-circle"
+          :title="collectionStore.error"
+          title-class="text-status-error"
+        />
+
+        <!-- Marketplaces Grid/List -->
+        <div v-else-if="filteredCollections.length > 0">
+          <!-- Tile View -->
+          <div v-if="viewMode === 'tile'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <CollectionCard
+              v-for="collection in filteredCollections"
+              :key="collection.id"
+              :collection="collection"
+              :open-trades="collectionStore.getOpenTradesCount(collection.id)"
+            />
+          </div>
+
+          <!-- List View -->
+          <div v-else class="space-y-3">
+            <CollectionListItem
+              v-for="collection in filteredCollections"
+              :key="collection.id"
+              :collection="collection"
+              :open-trades="collectionStore.getOpenTradesCount(collection.id)"
+            />
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <BaseEmptyState
+          v-else
+          :title="searchQuery ? 'No marketplaces found matching your search' : 'No marketplaces available'"
+          :message="searchQuery ? 'Try a different search term' : 'Marketplaces will appear here once they register'"
+        />
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, watch } from 'vue'
+import { Icon } from '@iconify/vue'
+import BaseLoading from '../components/BaseLoading.vue'
+import BaseSearchInput from '../components/BaseSearchInput.vue'
+import BaseViewModeToggle from '../components/BaseViewModeToggle.vue'
+import BaseEmptyState from '../components/BaseEmptyState.vue'
+import CollectionCard from '../components/CollectionCard.vue'
+import CollectionListItem from '../components/CollectionListItem.vue'
+import { useCollectionStore } from '../stores/collection'
+import { useViewMode } from '../composables/useViewMode'
+import { simpleDebounce } from '../utils/debounce'
+
+const collectionStore = useCollectionStore()
+const { viewMode } = useViewMode('dashboard-view-mode', 'tile')
+const searchQuery = ref('')
+const debouncedSearchQuery = ref('')
+
+const viewModes = [
+  { value: 'tile', label: 'Tile view', icon: 'mdi:view-grid' },
+  { value: 'list', label: 'List view', icon: 'mdi:view-list' }
+]
+
+// Debounce search query updates
+const updateDebouncedSearch = simpleDebounce((value) => {
+  debouncedSearchQuery.value = value
+}, 300)
+
+watch(searchQuery, (newValue) => {
+  updateDebouncedSearch(newValue)
+}, { immediate: true })
+
+// Filter collections based on debounced search query
+const filteredCollections = computed(() => {
+  const collections = collectionStore.collections || []
+  
+  if (!debouncedSearchQuery.value.trim()) {
+    return collections
+  }
+  
+  const query = debouncedSearchQuery.value.toLowerCase().trim()
+  return collections.filter(collection => {
+    const nameMatch = collection.name?.toLowerCase().includes(query)
+    const descriptionMatch = collection.description?.toLowerCase().includes(query)
+    const idMatch = collection.id?.toLowerCase().includes(query)
+    
+    return nameMatch || descriptionMatch || idMatch
+  })
+})
+
+onMounted(async () => {
+  // Load collections if not already loaded
+  if (collectionStore.collections.length === 0) {
+    await collectionStore.loadCollections()
+  }
+  
+  // Refresh open trades counts
+  await collectionStore.refreshOpenTradesCounts()
+})
+</script>

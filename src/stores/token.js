@@ -8,57 +8,18 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useWalletBalances } from '../composables/useWalletBalances'
 import { useTokenRegistry } from '../composables/useTokenRegistry'
+import { logDebug } from '../utils/logger'
+import { STORAGE_KEYS, CACHE_CONFIG } from '../utils/constants/ui'
+import { 
+  getCachedData, 
+  setCachedData, 
+  isCacheValid, 
+  limitCacheEntries 
+} from '../utils/cacheManager'
 
-// LocalStorage keys
-const STORAGE_KEYS = {
-  TOKEN_METADATA: 'token_metadata_cache',
-  CACHE_TIMESTAMP: 'token_cache_timestamp'
-}
-
-// Cache TTL: 1 month for metadata (token data doesn't change often)
+// Use constants for cache TTL
 const CACHE_TTL = {
-  METADATA: 30 * 24 * 60 * 60 * 1000 // 30 days (1 month)
-}
-
-/**
- * Get cached data from localStorage
- */
-function getCachedData(key) {
-  try {
-    const data = localStorage.getItem(key)
-    if (data) {
-      return JSON.parse(data)
-    }
-  } catch (err) {
-    console.debug('Failed to read cache:', err)
-  }
-  return null
-}
-
-/**
- * Set data in localStorage cache
- */
-function setCachedData(key, data) {
-  try {
-    localStorage.setItem(key, JSON.stringify(data))
-  } catch (err) {
-    console.debug('Failed to write cache:', err)
-    // If storage is full, clear old cache
-    try {
-      localStorage.removeItem(STORAGE_KEYS.TOKEN_METADATA)
-      localStorage.setItem(key, JSON.stringify(data))
-    } catch (clearErr) {
-      console.debug('Failed to clear and write cache:', clearErr)
-    }
-  }
-}
-
-/**
- * Check if cache is still valid
- */
-function isCacheValid(timestamp, ttl) {
-  if (!timestamp) return false
-  return Date.now() - timestamp < ttl
+  METADATA: CACHE_CONFIG.METADATA_TTL
 }
 
 export const useTokenStore = defineStore('token', () => {
@@ -95,16 +56,16 @@ export const useTokenStore = defineStore('token', () => {
       if (cached && Array.isArray(cached) && timestamp && isCacheValid(timestamp, CACHE_TTL.METADATA)) {
         // Convert array of [key, value] pairs back to Map
         tokenMetadataCache.value = new Map(cached)
-        console.debug(`Loaded ${cached.length} cached token metadata entries from localStorage`)
+        logDebug(`Loaded ${cached.length} cached token metadata entries from localStorage`)
         return true
       } else if (cached && Array.isArray(cached)) {
         // Cache expired, clear it
-        console.debug('Token metadata cache expired, clearing...')
+        logDebug('Token metadata cache expired, clearing...')
         localStorage.removeItem(STORAGE_KEYS.TOKEN_METADATA)
         localStorage.removeItem(STORAGE_KEYS.CACHE_TIMESTAMP)
       }
     } catch (err) {
-      console.debug('Failed to load cached metadata:', err)
+      logDebug('Failed to load cached metadata:', err)
       // Clear corrupted cache
       try {
         localStorage.removeItem(STORAGE_KEYS.TOKEN_METADATA)
@@ -123,14 +84,14 @@ export const useTokenStore = defineStore('token', () => {
       cachedAt: Date.now()
     })
     
-    // Save to localStorage (limit to last 1000 tokens to avoid storage issues)
+    // Save to localStorage (limit to configured max entries to avoid storage issues)
     try {
       const cacheArray = Array.from(tokenMetadataCache.value.entries())
-      const limitedCache = cacheArray.slice(-1000)
+      const limitedCache = limitCacheEntries(cacheArray, CACHE_CONFIG.MAX_METADATA_ENTRIES)
       setCachedData(STORAGE_KEYS.TOKEN_METADATA, limitedCache)
       setCachedData(STORAGE_KEYS.CACHE_TIMESTAMP, Date.now())
     } catch (err) {
-      console.debug('Failed to save metadata cache:', err)
+      logDebug('Failed to save metadata cache:', err)
     }
   }
   
@@ -156,14 +117,14 @@ export const useTokenStore = defineStore('token', () => {
         }
       } else {
         // Cache has no name = failed fetch, remove it to force retry
-        console.debug(`Cache entry for ${mint} has no name, removing to force retry`)
+        logDebug(`Cache entry for ${mint} has no name, removing to force retry`)
         tokenMetadataCache.value.delete(mint)
         // Also remove from localStorage
         try {
           const cacheArray = Array.from(tokenMetadataCache.value.entries())
           setCachedData(STORAGE_KEYS.TOKEN_METADATA, cacheArray)
         } catch (err) {
-          console.debug('Failed to update cache after removing invalid entry:', err)
+          logDebug('Failed to update cache after removing invalid entry:', err)
         }
       }
     }
@@ -206,7 +167,7 @@ export const useTokenStore = defineStore('token', () => {
       })
     } else {
       // Failed fetch (no name) - don't cache, will retry on next refresh
-      console.debug(`Token ${mint} fetch failed (no name), not caching to allow retry`)
+      logDebug(`Token ${mint} fetch failed (no name), not caching to allow retry`)
     }
     
     return tokenInfo

@@ -15,6 +15,11 @@ export const ESCROW_DEFAULTS = {
   MIN_EXPIRATION_MINUTES: 5
 }
 
+// Slippage conversion constant
+// Slippage is stored as milli-percent (1 = 0.001%)
+// Divide by this to convert to decimal (0.001% = 0.00001)
+export const SLIPPAGE_DIVISOR = 100000
+
 // Validation limits
 export const VALIDATION_LIMITS = {
   MAX_WHITELIST_ADDRESSES: 100,

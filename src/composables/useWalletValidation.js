@@ -45,10 +45,13 @@ export function useWalletValidation() {
   }
   
   return {
-    connected,
-    publicKey,
-    anchorWallet,
+    // State (computed for reactivity)
+    connected: computed(() => connected.value),
+    publicKey: computed(() => publicKey.value),
+    anchorWallet: computed(() => anchorWallet.value),
     isWalletReady,
+    
+    // Methods
     validateWallet
   }
 }

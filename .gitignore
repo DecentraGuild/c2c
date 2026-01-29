@@ -28,5 +28,6 @@ dist-ssr
 .env.local
 .env.*.local
 
-# Example/dev reference files
+# Example/dev reference files (old Skull & Bones implementation)
 example/
+Example/

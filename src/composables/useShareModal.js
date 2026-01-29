@@ -3,7 +3,7 @@
  * Provides reusable share modal state and logic
  */
 
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 export function useShareModal() {
   const showShare = ref(false)
@@ -26,8 +26,13 @@ export function useShareModal() {
   }
 
   return {
+    // State
+    // Note: showShare and shareUrl are refs (not computed) 
+    // because they may be used with v-model in some components
     showShare,
     shareUrl,
+    
+    // Methods
     open,
     close
   }

@@ -6,7 +6,14 @@
  * 
  * Example: User types in search box -> debounce waits 300ms after they stop typing
  * before executing the search, instead of searching on every keystroke.
+ * 
+ * @module utils/debounce
  */
+
+import { DEBOUNCE_DELAYS } from './constants/ui.js'
+
+// Re-export constants for convenience
+export { DEBOUNCE_DELAYS }
 
 /**
  * Creates a debounced function that delays invoking func until after wait milliseconds
@@ -19,7 +26,7 @@
  * @param {boolean} options.trailing - Invoke on the trailing edge of the timeout (default: true)
  * @returns {Function} The debounced function
  */
-export function debounce(func, wait = 300, options = {}) {
+export function debounce(func, wait = DEBOUNCE_DELAYS.DEFAULT, options = {}) {
   let timeoutId = null
   let lastCallTime = null
   let lastInvokeTime = 0
@@ -134,7 +141,7 @@ export function debounce(func, wait = 300, options = {}) {
  * @param {number} wait - Milliseconds to wait
  * @returns {Function} Debounced function
  */
-export function simpleDebounce(func, wait = 300) {
+export function simpleDebounce(func, wait = DEBOUNCE_DELAYS.DEFAULT) {
   let timeoutId = null
 
   function debounced(...args) {

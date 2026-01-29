@@ -28,8 +28,10 @@ import { toPublicKey, toBN } from './solanaUtils'
 import { Program, AnchorProvider, BN } from '@coral-xyz/anchor'
 import { ESCROW_PROGRAM_ID, CONTRACT_FEE_ACCOUNT, WHITELIST_PROGRAM_ID } from './constants'
 import { FEE_CONFIG, FUND_TAKER_COSTS, TRANSACTION_COSTS } from './constants/fees'
+import { addMakerFeeInstructions, calculateTakerFee } from './marketplaceFees'
 import { checkAtaExists, makeAtaInstruction } from './ataUtils'
 import idl from '../idl/escrow_service.json'
+import { logDebug, logError } from './logger'
 
 /**
  * Validate and return Anchor-compatible wallet
@@ -170,6 +172,8 @@ export async function buildInitializeTransaction({
   whitelist = null,
   entry = null,
   contractFeeAccount = CONTRACT_FEE_ACCOUNT,
+  shopFee = null, // Shop fee configuration: { wallet, makerFlatFee, takerFlatFee, makerPercentFee, takerPercentFee }
+  tradeValue = 0, // Trade value in SOL (for percentage fees, optional)
   connection,
   wallet
 }) {
@@ -209,16 +213,13 @@ export async function buildInitializeTransaction({
     transaction.add(makeAtaInstruction(requestTokenPubkey, makerPubkey, makerPubkey))
   }
   
-  // Add platform fee transfer instruction (0.009 SOL to platform wallet)
-  // This fee is sent immediately on escrow creation and is non-refundable
-  // It represents a platform fee per smart contract trigger, regardless of fill/cancel outcome
-  const platformFeeWallet = new PublicKey(FEE_CONFIG.WALLET)
-  const platformFeeTransfer = SystemProgram.transfer({
-    fromPubkey: makerPubkey,
-    toPubkey: platformFeeWallet,
-    lamports: FEE_CONFIG.AMOUNT_LAMPORTS
+  // Handle fees using centralized shop fee service
+  addMakerFeeInstructions({
+    maker: makerPubkey,
+    shopFee,
+    transaction,
+    tradeValue
   })
-  transaction.add(platformFeeTransfer)
   
   const program = getEscrowProgram(connection, wallet)
   
@@ -264,11 +265,6 @@ export async function buildInitializeTransaction({
     entry: entry ? toPublicKey(entry) : null
   }
   
-  console.log('Initialize escrow accounts:', {
-    recipient: recipientPubkey?.toString() || 'null (public)',
-    recipientIsSystemProgram: recipientPubkey?.equals(SystemProgram.programId) || false,
-    maker: makerPubkey.toString()
-  })
   
   const initializeIx = await program.methods
     .initialize(seedBN, depositAmountBN, requestAmountBN, expireTimestampBN, allowPartialFill, onlyWhitelist, slippage)
@@ -387,27 +383,9 @@ export async function buildExchangeTransaction({
   // Add transaction fee estimate
   totalCostToFund += TRANSACTION_COSTS.TRANSACTION_FEE
   
-  // If FUND_TAKER_COSTS is enabled, transfer SOL from platform wallet to taker to cover costs
-  // Note: This requires the platform wallet to also sign, which would need server-side support
-  // For now, we'll add the transfer instruction but it will need platform wallet signature
-  if (FUND_TAKER_COSTS && totalCostToFund > 0) {
-    const platformFeeWallet = new PublicKey(FEE_CONFIG.WALLET)
-    // Convert SOL to lamports (1 SOL = 1,000,000,000 lamports)
-    const lamportsToTransfer = Math.ceil(totalCostToFund * 1_000_000_000)
-    
-    // Add transfer from platform wallet to taker
-    // NOTE: This requires platform wallet to sign the transaction
-    // In a production setup, this would need to be handled server-side
-    const costCoverageTransfer = SystemProgram.transfer({
-      fromPubkey: platformFeeWallet,
-      toPubkey: takerPubkey,
-      lamports: lamportsToTransfer
-    })
-    // Add this instruction first (before exchange)
-    // Note: This will fail unless platform wallet signs, so we'll make it optional
-    // For now, we'll comment it out and just show the cost to users
-    // transaction.add(costCoverageTransfer)
-  }
+  // Note: Funding taker costs from platform wallet would require platform wallet signature
+  // This feature is not currently implemented as it requires server-side support
+  // Takers are responsible for covering their own transaction costs
   
   const program = getEscrowProgram(connection, wallet)
   const amountBN = toBN(amount)
@@ -587,7 +565,7 @@ export async function fetchAllEscrows(connection, makerFilter = null) {
     
     return escrows
   } catch (error) {
-    console.error('Failed to fetch escrows:', error)
+    logError('Failed to fetch escrows:', error)
     throw error
   }
 }
@@ -613,7 +591,7 @@ export async function fetchEscrowByAddress(connection, escrowAddress) {
     if (error.message && error.message.includes('Account does not exist')) {
       return null
     }
-    console.error('Failed to fetch escrow:', error)
+    logError('Failed to fetch escrow:', error)
     throw error
   }
 }

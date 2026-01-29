@@ -42,6 +42,22 @@ export default {
         'status-error': 'var(--theme-error, #cf0000)',
         'status-warning': 'var(--theme-warning, #ff6b35)',
         'status-info': 'var(--theme-info, #00d4ff)',
+        
+        // Trade colors
+        'trade-buy': 'var(--theme-trade-buy, #00ff00)',
+        'trade-buy-hover': 'var(--theme-trade-buy-hover, #00cc00)',
+        'trade-buy-light': 'var(--theme-trade-buy-light, #33ff33)',
+        'trade-sell': 'var(--theme-trade-sell, #ff0000)',
+        'trade-sell-hover': 'var(--theme-trade-sell-hover, #cc0000)',
+        'trade-sell-light': 'var(--theme-trade-sell-light, #ff3333)',
+        'trade-trade': 'var(--theme-trade-trade, #ffaa00)',
+        'trade-trade-hover': 'var(--theme-trade-trade-hover, #cc8800)',
+        'trade-trade-light': 'var(--theme-trade-trade-light, #ffbb33)',
+        
+        // Window colors
+        'window-bg': 'var(--theme-window-bg, #1a1a2e)',
+        'window-border': 'var(--theme-window-border, #2a2a3e)',
+        'window-header': 'var(--theme-window-header, #141420)',
       },
       fontFamily: {
         'primary': ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],

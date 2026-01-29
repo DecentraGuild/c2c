@@ -35,6 +35,20 @@
     --theme-warning: #ff6b35;
     --theme-info: #00d4ff;
     
+    --theme-trade-buy: #00ff00;
+    --theme-trade-buy-hover: #00cc00;
+    --theme-trade-buy-light: #33ff33;
+    --theme-trade-sell: #ff0000;
+    --theme-trade-sell-hover: #cc0000;
+    --theme-trade-sell-light: #ff3333;
+    --theme-trade-trade: #ffaa00;
+    --theme-trade-trade-hover: #cc8800;
+    --theme-trade-trade-light: #ffbb33;
+    
+    --theme-window-bg: #1a1a2e;
+    --theme-window-border: #2a2a3e;
+    --theme-window-header: #141420;
+    
     --theme-radius-sm: 0.5rem;
     --theme-radius-md: 0.75rem;
     --theme-radius-lg: 1rem;
@@ -302,6 +316,48 @@
   
   .card {
     @apply bg-card-bg border border-border-color rounded-[20px] p-4 shadow-card;
+  }
+
+  /* Shared collection scrollbar styles */
+  .collection-scroll-container {
+    direction: rtl;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(42, 42, 62, 0.5) transparent;
+  }
+  
+  .collection-scroll-content {
+    direction: ltr;
+  }
+  
+  /* Custom scrollbar styling for Webkit browsers */
+  .collection-scroll-container::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .collection-scroll-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .collection-scroll-container::-webkit-scrollbar-thumb {
+    background: rgba(42, 42, 62, 0.5);
+    border-radius: 3px;
+  }
+  
+  .collection-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(42, 42, 62, 0.8);
+  }
+  
+  /* Use theme color if available, fallback to rgba */
+  @supports (background: var(--theme-border)) {
+    .collection-scroll-container::-webkit-scrollbar-thumb {
+      background: var(--theme-border);
+      opacity: 0.5;
+    }
+    
+    .collection-scroll-container::-webkit-scrollbar-thumb:hover {
+      background: var(--theme-border);
+      opacity: 0.8;
+    }
   }
   
   .section-banner {

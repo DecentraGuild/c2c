@@ -3,17 +3,23 @@
   "version": "1.0.0",
   "description": "Multi-tenant escrow service for SPL tokens on Solana",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DecentraGuild/c2c.git"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build && npm run postbuild",
     "postbuild": "node scripts/copy-404.js",
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit",
-    "generate-icons": "node scripts/generate-icons.js"
+    "generate-icons": "node scripts/generate-icons.js",
+    "convert-logos": "node scripts/convert-images-to-webp.js"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.28.0",
     "@iconify/vue": "^4.1.2",
+    "@metaplex-foundation/mpl-token-metadata": "^3.4.0",
     "@solana/spl-token": "^0.4.14",
     "@solana/spl-token-registry": "^0.2.4574",
     "@solana/wallet-adapter-base": "^0.9.23",

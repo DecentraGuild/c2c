@@ -11,6 +11,7 @@
 
 import { Connection } from '@solana/web3.js'
 import { RPC_ENDPOINTS, NETWORKS } from '../utils/constants'
+import { logWarning, logDebug } from '../utils/logger'
 
 // Singleton connection instance with network tracking
 let connectionInstance = null
@@ -44,10 +45,10 @@ export function useSolanaConnection(network = NETWORKS.MAINNET, commitment = 'co
   
   // Validate RPC URL matches expected network
   if (network === NETWORKS.MAINNET && !rpcUrl.includes('mainnet')) {
-    console.warn('[Connection] Warning: Mainnet network specified but RPC URL does not contain "mainnet"')
+    logWarning('[Connection] Warning: Mainnet network specified but RPC URL does not contain "mainnet"')
   }
   if (network === NETWORKS.DEVNET && !rpcUrl.includes('devnet')) {
-    console.warn('[Connection] Warning: Devnet network specified but RPC URL does not contain "devnet"')
+    logWarning('[Connection] Warning: Devnet network specified but RPC URL does not contain "devnet"')
   }
 
   // Create new connection instance
@@ -59,7 +60,7 @@ export function useSolanaConnection(network = NETWORKS.MAINNET, commitment = 'co
   })
   currentNetwork = network
 
-  console.log(`[Connection] Created new Solana connection for ${network} cluster (${rpcUrl})`)
+  logDebug(`[Connection] Created new Solana connection for ${network} cluster (${rpcUrl})`)
 
   return connectionInstance
 }

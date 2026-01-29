@@ -2,7 +2,8 @@
  * Composable for clipboard operations
  */
 
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { logError } from '../utils/logger'
 
 export function useClipboard() {
   const isCopying = ref(false)
@@ -15,7 +16,7 @@ export function useClipboard() {
       await navigator.clipboard.writeText(text)
       return true
     } catch (error) {
-      console.error('Failed to copy to clipboard:', error)
+      logError('Failed to copy to clipboard:', error)
       // Fallback for older browsers
       try {
         const textArea = document.createElement('textarea')
@@ -28,7 +29,7 @@ export function useClipboard() {
         document.body.removeChild(textArea)
         return true
       } catch (fallbackError) {
-        console.error('Fallback copy failed:', fallbackError)
+        logError('Fallback copy failed:', fallbackError)
         return false
       }
     } finally {
@@ -37,7 +38,10 @@ export function useClipboard() {
   }
 
   return {
-    isCopying,
+    // State (computed for reactivity)
+    isCopying: computed(() => isCopying.value),
+    
+    // Methods
     copyToClipboard
   }
 }

@@ -8,29 +8,59 @@
       </div>
 
       <!-- Error Message -->
-      <div v-if="escrowErrors" class="mb-4 p-3 bg-status-error/10 border border-status-error/20 rounded-lg text-sm text-status-error">
-        {{ escrowErrors }}
+      <div v-if="displayError" class="mb-4 p-3 bg-status-error/10 border border-status-error/20 rounded-lg text-sm text-status-error">
+        {{ displayError }}
       </div>
 
-      <!-- Escrows List -->
-      <div class="card">
-        <BaseLoading v-if="loadingEscrows" message="Loading escrows..." />
-        <div v-else-if="activeEscrows.length === 0" class="text-center py-12">
+      <!-- Loading State -->
+      <div v-if="loadingEscrows || loadingCollections" class="card">
+        <BaseLoading :message="loadingEscrows ? 'Loading escrows...' : 'Loading collections...'" />
+      </div>
+
+      <!-- Empty State -->
+      <div v-else-if="escrowGroups.length === 0" class="card">
+        <div class="text-center py-12">
           <Icon icon="mdi:inbox-outline" class="w-16 h-16 text-text-muted/30 mx-auto mb-4" />
           <p class="text-text-secondary">No active escrows</p>
           <p class="text-sm text-text-muted mt-2">Create your first escrow to get started</p>
         </div>
+      </div>
 
-        <div v-else class="space-y-4">
-          <EscrowCard
-            v-for="escrow in activeEscrows"
-            :key="escrow.id"
-            :escrow="escrow"
-            :loading="cancellingEscrow === escrow.id"
-            @share="showShareModal"
-            @cancel="cancelEscrow"
-            @claim="claimEscrow"
-          />
+      <!-- Grouped Escrows -->
+      <div v-else class="space-y-6">
+        <div v-for="group in escrowGroups" :key="group.id" class="card">
+          <!-- Group Header -->
+          <div class="flex items-center gap-3 mb-4 pb-4 border-b border-border-color/50">
+            <div v-if="group.collection && group.collection.logo" class="flex-shrink-0">
+              <img 
+                :src="group.collection.logo" 
+                :alt="group.collection.name"
+                class="w-8 h-8 object-contain"
+              />
+            </div>
+            <div v-else class="flex-shrink-0">
+              <Icon icon="mdi:swap-horizontal" class="w-8 h-8 text-text-muted" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <h2 class="text-lg font-semibold text-text-primary">{{ group.label }}</h2>
+              <p class="text-xs text-text-muted">
+                {{ group.escrows.length }} {{ group.escrows.length === 1 ? 'order' : 'orders' }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Escrows in Group -->
+          <div class="space-y-4">
+            <EscrowCard
+              v-for="escrow in group.escrows"
+              :key="escrow.id"
+              :escrow="escrow"
+              :loading="cancellingEscrow === escrow.id"
+              @share="showShareModal"
+              @cancel="cancelEscrow"
+              @claim="claimEscrow"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -59,27 +89,28 @@
 <script setup>
 import { onMounted, computed, ref, watch } from 'vue'
 import { Icon } from '@iconify/vue'
-import BaseLoading from '../components/BaseLoading.vue'
-import { useEscrowStore } from '../stores/escrow'
-import { useWallet, useAnchorWallet } from 'solana-wallets-vue'
-import { useEscrowTransactions } from '../composables/useEscrowTransactions'
-import { useSolanaConnection } from '../composables/useSolanaConnection'
-import { formatBalance, truncateAddress } from '../utils/formatters'
 import { BN } from '@coral-xyz/anchor'
+import BaseLoading from '../components/BaseLoading.vue'
 import ConfirmModal from '../components/ConfirmModal.vue'
 import BaseShareModal from '../components/BaseShareModal.vue'
 import EscrowCard from '../components/EscrowCard.vue'
-import { useExplorer } from '../composables/useExplorer'
-import { useToast } from '../composables/useToast'
+import { useEscrowStore } from '../stores/escrow'
+import { useCollectionStore } from '../stores/collection'
+import { useEscrowTransactions } from '../composables/useEscrowTransactions'
+import { useErrorDisplay } from '../composables/useErrorDisplay'
+import { useWalletValidation } from '../composables/useWalletValidation'
 import { useConfirmationModal } from '../composables/useConfirmationModal'
 import { useShareModal } from '../composables/useShareModal'
+import { useToast } from '../composables/useToast'
+import { formatUserFriendlyError } from '../utils/errorMessages'
+import { logError } from '../utils/logger'
+import { groupEscrowsByCollection } from '../utils/marketplaceHelpers'
 
 const escrowStore = useEscrowStore()
-const walletAdapter = useWallet()
-const anchorWallet = useAnchorWallet()
-const { publicKey, connected } = walletAdapter
-const connection = useSolanaConnection()
-const { cancelEscrow: cancelEscrowTx, loading: txLoading } = useEscrowTransactions()
+const collectionStore = useCollectionStore()
+const { cancelEscrow: cancelEscrowTx, loading: txLoading, error: txError } = useEscrowTransactions()
+const { validateWallet: validateWalletReady, publicKey, connected } = useWalletValidation()
+const { displayError } = useErrorDisplay({ txError, errorTypes: ['transaction', 'escrows'] })
 const { success, error: showError, warning } = useToast()
 
 // Use composables for modal management
@@ -99,7 +130,6 @@ const {
 } = useShareModal()
 
 // State
-const selectedEscrow = ref(null)
 const cancellingEscrow = ref(null)
 
 // Use store computed properties
@@ -108,10 +138,23 @@ const activeEscrows = computed(() => {
   return escrowStore.activeEscrows.filter(e => e.maker === publicKey.value.toString())
 })
 const loadingEscrows = escrowStore.loadingEscrows
-const escrowErrors = computed(() => escrowStore.errors.escrows)
+const loadingCollections = collectionStore.loadingCollections
+const collections = collectionStore.collections
 
-// Load escrows when component mounts or wallet connects
-onMounted(() => {
+// Group escrows by collection
+const escrowGroups = computed(() => {
+  if (activeEscrows.value.length === 0) return []
+  return groupEscrowsByCollection(activeEscrows.value, collections.value)
+})
+
+// Load collections and escrows when component mounts
+onMounted(async () => {
+  // Load collections first
+  if (collections.value.length === 0) {
+    await collectionStore.loadCollections()
+  }
+  
+  // Then load escrows if wallet is connected
   if (connected.value && publicKey.value) {
     escrowStore.loadEscrows(publicKey.value)
   }
@@ -123,14 +166,21 @@ watch([connected, publicKey], ([newConnected, newPublicKey]) => {
   }
 })
 
+/**
+ * Show share modal for escrow
+ */
 const showShareModal = (escrow) => {
-  selectedEscrow.value = escrow
   openShareModal(`${window.location.origin}/escrow/${escrow.id}`)
 }
 
+/**
+ * Show cancel confirmation modal
+ */
 const showCancelConfirm = (escrow) => {
-  if (!connected.value || !publicKey.value || !anchorWallet.value) {
-    warning('Please connect your wallet first')
+  try {
+    validateWalletReady('cancel escrow')
+  } catch (err) {
+    warning(err.message)
     return
   }
 
@@ -146,9 +196,14 @@ const showCancelConfirm = (escrow) => {
   )
 }
 
+/**
+ * Show claim confirmation modal
+ */
 const showClaimConfirm = (escrow) => {
-  if (!connected.value || !publicKey.value || !anchorWallet.value) {
-    warning('Please connect your wallet first')
+  try {
+    validateWalletReady('complete escrow')
+  } catch (err) {
+    warning(err.message)
     return
   }
 
@@ -164,13 +219,16 @@ const showClaimConfirm = (escrow) => {
   )
 }
 
+/**
+ * Execute cancel/claim transaction
+ */
 const executeCancel = async (escrow) => {
   cancellingEscrow.value = escrow.id
+  escrowStore.clearErrors()
 
   try {
     const seedBN = new BN(escrow.seed)
     
-    // The composable already provides maker, connection, and wallet
     await cancelEscrowTx({
       depositTokenMint: escrow.depositToken.mint,
       requestTokenMint: escrow.requestToken.mint,
@@ -181,19 +239,25 @@ const executeCancel = async (escrow) => {
     await escrowStore.loadEscrows(publicKey.value)
     success('Escrow cancelled successfully!')
   } catch (error) {
-    console.error('Failed to cancel escrow:', error)
-    showError(error.message || 'Failed to cancel escrow')
+    logError('Failed to cancel escrow:', error)
+    const errorMessage = formatUserFriendlyError(error, 'cancel escrow') || 'Failed to cancel escrow. Please try again.'
+    showError(errorMessage)
   } finally {
     cancellingEscrow.value = null
   }
 }
 
+/**
+ * Handle cancel escrow action
+ */
 const cancelEscrow = (escrow) => {
   showCancelConfirm(escrow)
 }
 
+/**
+ * Handle claim escrow action (uses same cancel transaction)
+ */
 const claimEscrow = (escrow) => {
-  // Claim uses the same cancel transaction (as mentioned by user)
   showClaimConfirm(escrow)
 }
 </script>

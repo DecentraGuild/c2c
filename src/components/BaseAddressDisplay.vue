@@ -6,12 +6,18 @@
     <button
       v-if="showCopy"
       @click="handleCopy"
-      class="p-1.5 hover:bg-secondary-bg rounded transition-colors"
+      :class="[
+        'hover:bg-secondary-bg rounded transition-colors',
+        compact ? 'p-0.5' : 'p-1.5'
+      ]"
       :title="copyTitle"
     >
       <Icon 
         :icon="isCopying ? 'svg-spinners:ring-resize' : 'mdi:content-copy'" 
-        :class="['w-4 h-4', isCopying ? 'text-primary-color' : 'text-text-muted hover:text-text-primary']" 
+        :class="[
+          compact ? 'w-3 h-3' : 'w-4 h-4',
+          isCopying ? 'text-primary-color' : 'text-text-muted hover:text-text-primary'
+        ]" 
       />
     </button>
     <a
@@ -19,10 +25,19 @@
       :href="explorerUrl"
       target="_blank"
       rel="noopener noreferrer"
-      class="p-1.5 hover:bg-secondary-bg rounded transition-colors"
+      :class="[
+        'hover:bg-secondary-bg rounded transition-colors',
+        compact ? 'p-0.5' : 'p-1.5'
+      ]"
       :title="explorerTitle"
     >
-      <Icon icon="mdi:open-in-new" class="w-4 h-4 text-text-muted hover:text-text-primary" />
+      <Icon 
+        icon="mdi:open-in-new" 
+        :class="[
+          'text-text-muted hover:text-text-primary',
+          compact ? 'w-3 h-3' : 'w-4 h-4'
+        ]" 
+      />
     </a>
   </div>
 </template>
@@ -75,6 +90,10 @@ const props = defineProps({
   explorerType: {
     type: String,
     default: 'account'
+  },
+  compact: {
+    type: Boolean,
+    default: false
   }
 })
 

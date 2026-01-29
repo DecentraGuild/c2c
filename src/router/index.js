@@ -2,9 +2,12 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 // Lazy load routes for better initial bundle size
 // These will be loaded on-demand when user navigates to them
+const Dashboard = () => import('../views/Dashboard.vue')
+const Marketplace = () => import('../views/Marketplace.vue')
 const CreateEscrow = () => import('../views/CreateEscrow.vue')
 const ManageEscrows = () => import('../views/ManageEscrows.vue')
 const EscrowDetail = () => import('../views/EscrowDetail.vue')
+const OnboardCollection = () => import('../views/OnboardCollection.vue')
 
 // GitHub Pages SPA redirect handler
 // GitHub Pages redirects 404s to 404.html with the path as ?/path
@@ -28,7 +31,13 @@ if (typeof window !== 'undefined') {
 const routes = [
   {
     path: '/',
-    redirect: '/create'
+    name: 'Dashboard',
+    component: Dashboard
+  },
+  {
+    path: '/marketplace',
+    name: 'Marketplace',
+    component: Marketplace
   },
   {
     path: '/create',
@@ -45,6 +54,11 @@ const routes = [
     name: 'EscrowDetail',
     component: EscrowDetail,
     props: true
+  },
+  {
+    path: '/onboard',
+    name: 'OnboardCollection',
+    component: OnboardCollection
   }
 ]
 

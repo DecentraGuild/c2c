@@ -8,6 +8,7 @@
  */
 
 import { cleanTokenString } from './formatters'
+import { logDebug, logWarning } from './logger'
 
 // Lazy load TokenListProvider - only import when needed
 // This prevents the entire registry from being bundled in initial load
@@ -20,12 +21,14 @@ async function getTokenListProvider() {
   return TokenListProvider
 }
 
+import { CACHE_CONFIG } from './constants/ui'
+
 // Shared registry cache (module-level singleton)
 let tokenRegistryList = null
 let tokenRegistryMap = null
 let registryLoadTime = null
 let registryLoadPromise = null
-const REGISTRY_CACHE_TTL = 24 * 60 * 60 * 1000 // 24 hours
+const REGISTRY_CACHE_TTL = CACHE_CONFIG.REGISTRY_TTL
 
 /**
  * Load token registry and return as array for searching
@@ -80,7 +83,7 @@ export async function loadTokenRegistryList() {
       
       return tokenRegistryList
     } catch (err) {
-      console.warn('Failed to load token registry:', err)
+      logWarning('Failed to load token registry:', err)
       // Return empty array on error
       tokenRegistryList = []
       tokenRegistryMap = new Map()
@@ -123,10 +126,10 @@ export async function preloadTokenRegistry() {
   try {
     // Load in background - don't block if it fails
     loadTokenRegistryList().catch(err => {
-      console.debug('Failed to preload token registry:', err.message)
+      logDebug('Failed to preload token registry:', err.message)
     })
   } catch (err) {
     // Silently fail - will fall back to on-chain metadata
-    console.debug('Failed to preload token registry:', err.message)
+    logDebug('Failed to preload token registry:', err.message)
   }
 }

@@ -20,35 +20,23 @@
 
     <!-- Partial Fill Input/Slider -->
     <div v-if="escrow.allowPartialFill" class="space-y-3">
-      <div class="flex items-center justify-between">
+      <div>
         <label class="text-sm font-semibold text-text-primary">Amount to Fill</label>
-        <div class="text-xs text-text-muted">
-          Max: 
-          <TokenAmountDisplay
-            :token="escrow.requestToken"
-            :amount="maxFillAmount"
-            :decimals="escrow.requestToken.decimals"
-            icon-size="xs"
-            container-class="inline-flex"
-            amount-class="text-text-muted text-xs"
-            ticker-class="text-text-muted text-xs"
-          />
-        </div>
       </div>
       
       <!-- Slider -->
       <div class="space-y-2">
         <div class="relative">
           <input
-            :value="fillAmountPercent"
-            @input="$emit('update:fillAmountPercent', Number($event.target.value))"
+            :value="Math.min(fillAmountPercent, maxFillPercentage)"
+            @input="handleSliderInput($event)"
             type="range"
             min="0"
             max="100"
-            step="1"
+            :step="sliderStep"
             class="w-full h-2 bg-secondary-bg rounded-lg appearance-none cursor-pointer slider-filled"
             style="accent-color: var(--theme-secondary);"
-            :style="{ '--fill-percent': fillAmountPercent + '%' }"
+            :style="{ '--fill-percent': Math.min(fillAmountPercent, maxFillPercentage) + '%' }"
           />
         </div>
         <div class="flex justify-between text-xs text-text-muted">
@@ -65,24 +53,30 @@
         <label class="text-sm text-text-muted mb-1 block">Fill Amount</label>
         <div class="relative">
           <input
-            :model-value="fillAmount"
-            @update:model-value="$emit('update:fillAmount', $event)"
+            :model-value="displayFillAmount"
+            @update:model-value="handleFillAmountUpdate($event)"
             type="text"
             inputmode="decimal"
-            :placeholder="getPlaceholderForDecimals(escrow.requestToken.decimals)"
+            :placeholder="getPlaceholderForDecimals(inputSide === 'request' ? escrow.requestToken.decimals : escrow.depositToken.decimals)"
             class="input-field w-full pr-20"
-            @input="$emit('updateFillAmountFromInput', $event)"
-            @keydown="$emit('handleFillAmountKeydown', $event)"
+            @input="handleFillAmountInput($event)"
+            @keydown="handleFillAmountKeydown($event)"
           />
-          <div class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">
-            {{ escrow.requestToken.symbol || 'Token' }}
-          </div>
+          <button
+            @click="toggleInputSide"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-text-muted hover:text-primary-color transition-colors cursor-pointer flex items-center gap-1"
+            type="button"
+            title="Click to switch between {{ escrow.requestToken.symbol }} and {{ escrow.depositToken.symbol }}"
+          >
+            <span>{{ inputSide === 'request' ? (escrow.requestToken.symbol || 'Token') : (escrow.depositToken.symbol || 'Token') }}</span>
+            <Icon icon="mdi:swap-horizontal" class="w-4 h-4 opacity-60" />
+          </button>
         </div>
         <div class="flex gap-2 mt-2">
           <button
             v-for="percentage in [25, 50, 75, 100]"
             :key="percentage"
-            @click="handlePercentageClick(percentage)"
+            @click="handleWalletBalancePercentageClick(percentage)"
             class="px-3 py-1 text-xs font-medium rounded bg-secondary-bg/50 text-text-secondary hover:bg-secondary-bg transition-colors"
           >
             {{ percentage === 100 ? 'MAX' : `${percentage}%` }}
@@ -172,11 +166,12 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Icon } from '@iconify/vue'
 import TokenAmountDisplay from './TokenAmountDisplay.vue'
 import { useDecimalHandling } from '../composables/useDecimalHandling'
 import { formatBalance, formatDecimals } from '../utils/formatters'
+import { processAmountInput, shouldPreventKeydown } from '../utils/inputHandling'
 
 const props = defineProps({
   escrow: {
@@ -194,6 +189,10 @@ const props = defineProps({
   maxFillAmount: {
     type: Number,
     required: true
+  },
+  maxFillPercentage: {
+    type: Number,
+    default: 100
   },
   fillAmountPercent: {
     type: Number,
@@ -234,7 +233,27 @@ const emit = defineEmits([
   'exchange'
 ])
 
-const { getStepForDecimals, getPlaceholderForDecimals } = useDecimalHandling()
+const { getPlaceholderForDecimals } = useDecimalHandling()
+
+// Track which side is being used for input (request or deposit)
+const inputSide = ref('request')
+
+// Calculate slider step based on deposit token decimals
+const sliderStep = computed(() => {
+  const depositDecimals = props.escrow?.depositToken?.decimals || 0
+  const price = props.escrow?.price || 0
+  const requestAmount = props.escrow?.requestAmount || 0
+  
+  // If deposit token has 0 decimals, step should be per unit
+  if (depositDecimals === 0 && price > 0 && requestAmount > 0) {
+    // Calculate percentage step for 1 unit
+    const oneUnitAmount = price
+    const oneUnitPercentage = (oneUnitAmount / requestAmount) * 100
+    return Math.max(0.1, oneUnitPercentage) // Minimum step of 0.1%
+  }
+  
+  return 0.1 // Default step
+})
 
 // Compute current fill amount for display
 const currentFillAmount = computed(() => {
@@ -250,8 +269,175 @@ const currentFillAmount = computed(() => {
   return (props.maxFillAmount * props.fillAmountPercent) / 100
 })
 
+// Display fill amount based on input side
+const displayFillAmount = computed(() => {
+  if (!props.fillAmount || props.fillAmount === '') {
+    return ''
+  }
+  
+  const requestAmount = parseFloat(props.fillAmount)
+  if (isNaN(requestAmount)) {
+    return ''
+  }
+  
+  // If showing request token side, return as is
+  if (inputSide.value === 'request') {
+    return props.fillAmount
+  }
+  
+  // If showing deposit token side, convert from request amount
+  if (!props.escrow || !props.escrow.price || props.escrow.price === 0) {
+    return ''
+  }
+  
+  const depositAmount = requestAmount / props.escrow.price
+  const depositDecimals = props.escrow.depositToken?.decimals || 0
+  
+  // If deposit token has 0 decimals, show whole units only
+  if (depositDecimals === 0) {
+    return Math.floor(depositAmount).toString()
+  }
+  
+  return formatDecimals(depositAmount)
+})
+
+// Toggle input side
+const toggleInputSide = () => {
+  inputSide.value = inputSide.value === 'request' ? 'deposit' : 'request'
+  
+  // Update display when toggling
+  if (props.fillAmount && !isNaN(parseFloat(props.fillAmount))) {
+    // The displayFillAmount computed will handle the conversion
+  }
+}
+
+// Handle fill amount input update
+const handleFillAmountUpdate = (value) => {
+  emit('update:fillAmount', value)
+}
+
+// Handle fill amount input (convert from input side to request token amount)
+const handleFillAmountInput = (event) => {
+  const inputElement = event?.target
+  let rawValue = inputElement?.value || ''
+  
+  // Handle empty input
+  if (rawValue === '' || rawValue === null || rawValue === undefined) {
+    emit('updateFillAmountFromInput', { ...event, convertedValue: '' })
+    return
+  }
+  
+  // Convert to string and trim
+  let amountValue = String(rawValue).trim()
+  
+  // Get decimals based on input side
+  const decimals = inputSide.value === 'request' 
+    ? (props.escrow?.requestToken?.decimals ?? 9)
+    : (props.escrow?.depositToken?.decimals ?? 9)
+  
+  // Process input based on token decimals
+  amountValue = processAmountInput(amountValue, decimals, inputElement)
+  
+  // Convert to request token amount if input is in deposit token
+  let requestTokenAmount = amountValue
+  if (inputSide.value === 'deposit' && props.escrow && props.escrow.price && props.escrow.price > 0) {
+    const depositAmount = parseFloat(amountValue)
+    if (!isNaN(depositAmount)) {
+      // If deposit token has 0 decimals, round to whole units
+      const depositDecimals = props.escrow.depositToken?.decimals || 0
+      const roundedDeposit = depositDecimals === 0 ? Math.floor(depositAmount) : depositAmount
+      requestTokenAmount = (roundedDeposit * props.escrow.price).toString()
+    }
+  }
+  
+  // If deposit token has 0 decimals, round request token amount to whole units
+  const depositDecimals = props.escrow?.depositToken?.decimals || 0
+  const price = props.escrow?.price || 0
+  if (depositDecimals === 0 && price > 0) {
+    const requestAmount = parseFloat(requestTokenAmount)
+    if (!isNaN(requestAmount)) {
+      const wholeUnits = Math.floor(requestAmount / price)
+      requestTokenAmount = (wholeUnits * price).toString()
+    }
+  }
+  
+  // Emit with converted value
+  const syntheticEvent = {
+    ...event,
+    target: {
+      ...event.target,
+      value: requestTokenAmount
+    }
+  }
+  
+  emit('updateFillAmountFromInput', syntheticEvent)
+}
+
+// Handle keydown with correct decimals
+const handleFillAmountKeydown = (event) => {
+  const decimals = inputSide.value === 'request' 
+    ? (props.escrow?.requestToken?.decimals ?? 9)
+    : (props.escrow?.depositToken?.decimals ?? 9)
+  
+  if (shouldPreventKeydown(event, decimals)) {
+    event.preventDefault()
+    return false
+  }
+  
+  // Also emit to parent for any additional handling
+  emit('handleFillAmountKeydown', event)
+}
+
+// Watch fillAmount to update inputSide display when it changes externally
+watch(() => props.fillAmount, () => {
+  // Keep inputSide as is, displayFillAmount will handle conversion
+})
+
 const handlePercentageClick = (percentage) => {
   emit('setFillPercentage', percentage)
+}
+
+// Handle wallet balance percentage clicks (25%, 50%, 75%, MAX of wallet balance)
+const handleWalletBalancePercentageClick = (percentage) => {
+  if (!props.maxFillAmount || props.maxFillAmount === 0) return
+  
+  // Calculate amount based on wallet balance percentage
+  let walletBalanceAmount = (props.maxFillAmount * percentage) / 100
+  
+  // If deposit token has 0 decimals, round to whole units
+  const depositDecimals = props.escrow?.depositToken?.decimals || 0
+  const price = props.escrow?.price || 0
+  if (depositDecimals === 0 && price > 0) {
+    const wholeUnits = Math.floor(walletBalanceAmount / price)
+    walletBalanceAmount = wholeUnits * price
+  }
+  
+  // Convert to escrow percentage
+  if (!props.escrow || !props.escrow.requestAmount || props.escrow.requestAmount === 0) return
+  
+  const escrowPercentage = (walletBalanceAmount / props.escrow.requestAmount) * 100
+  emit('setFillPercentage', Math.min(escrowPercentage, props.maxFillPercentage))
+}
+
+const handleSliderInput = (event) => {
+  let value = Number(event.target.value)
+  
+  // If deposit token has 0 decimals, snap to whole unit increments
+  const depositDecimals = props.escrow?.depositToken?.decimals || 0
+  const price = props.escrow?.price || 0
+  const requestAmount = props.escrow?.requestAmount || 0
+  
+  if (depositDecimals === 0 && price > 0 && requestAmount > 0) {
+    // Calculate percentage step for 1 unit
+    const oneUnitAmount = price
+    const oneUnitPercentage = (oneUnitAmount / requestAmount) * 100
+    // Round to nearest whole unit step
+    value = Math.round(value / oneUnitPercentage) * oneUnitPercentage
+  }
+  
+  // Clamp the value to maxFillPercentage
+  const clampedValue = Math.min(value, props.maxFillPercentage)
+  emit('update:fillAmountPercent', clampedValue)
 }
 </script>
 

@@ -4,6 +4,7 @@ import App from './App.vue'
 import router from './router'
 import './style.css'
 import { useThemeStore } from './stores/theme'
+import { logError, logWarning } from './utils/logger'
 
 // Buffer polyfill is handled by vite-plugin-node-polyfills in vite.config.js
 // No manual setup needed here
@@ -14,10 +15,9 @@ if (import.meta.env.PROD) {
   const missingVars = requiredEnvVars.filter(key => !import.meta.env[key])
   
   if (missingVars.length > 0) {
-    console.error('Missing required environment variables:', missingVars.join(', '))
-    console.error('Please set these variables before building for production.')
-    // In production, we'll still allow the app to run but log the error
-    // The network.js file will handle the actual validation
+    logError('Missing required environment variables:', missingVars.join(', '))
+    logError('Please set these variables before building for production.')
+    // The network.js file will handle the actual validation and throw
   }
 }
 
@@ -87,7 +87,8 @@ const walletOptions = {
 // even in in-app browsers where detection might be delayed
 if (typeof window !== 'undefined') {
   initializeWalletDetection().catch(err => {
-    console.warn('[Wallet Detection] Failed to initialize wallet detection:', err)
+    // Silently fail - wallet detection is optional
+    logWarning('[Wallet] Wallet detection initialization failed:', err)
   })
 }
 
@@ -96,7 +97,14 @@ const pinia = createPinia()
 
 app.use(pinia)
 app.use(router)
-app.use(SolanaWallets, walletOptions)
+
+// Initialize Solana Wallets with error handling
+try {
+  app.use(SolanaWallets, walletOptions)
+} catch (err) {
+  logError('[Wallet] Failed to initialize Solana Wallets:', err)
+  // Don't throw - let the app continue, wallet connection will just fail gracefully
+}
 
 // Initialize theme store BEFORE mounting to ensure CSS variables are set
 const themeStore = useThemeStore()

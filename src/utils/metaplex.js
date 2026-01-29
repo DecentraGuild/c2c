@@ -5,7 +5,8 @@
 
 import { PublicKey, Connection } from '@solana/web3.js'
 import { cleanTokenString } from './formatters'
-import { loadTokenRegistryMap, preloadTokenRegistry as preloadSharedRegistry } from './tokenRegistry'
+import { loadTokenRegistryMap } from './tokenRegistry'
+import { logDebug } from './logger'
 
 // Metaplex Token Metadata Program ID
 const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s')
@@ -42,7 +43,7 @@ async function getTokenFromRegistry(mintAddress) {
         return tokenData
       }
     } catch (err) {
-      console.debug(`Registry lookup failed for ${mintAddress}:`, err.message)
+      logDebug(`Registry lookup failed for ${mintAddress}:`, err.message)
     }
     
     // Fallback for SOL if registry doesn't have it or fails
@@ -54,18 +55,9 @@ async function getTokenFromRegistry(mintAddress) {
     const registry = await loadTokenRegistryMap()
     return registry.get(mintAddress) || null
   } catch (err) {
-    console.debug(`Registry lookup failed for ${mintAddress}:`, err.message)
+    logDebug(`Registry lookup failed for ${mintAddress}:`, err.message)
     return null
   }
-}
-
-/**
- * Preload token registry (call this early for better UX)
- * @deprecated Use preloadTokenRegistry from tokenRegistry.js or token store instead
- * @returns {Promise<void>}
- */
-export async function preloadTokenRegistry() {
-  return preloadSharedRegistry()
 }
 
 /**
@@ -176,7 +168,7 @@ async function retryWithBackoff(fn, maxRetries = 1) {
       if (isRateLimit && attempt < maxRetries) {
         // Exponential backoff: 500ms, 1000ms
         const delay = 500 * Math.pow(2, attempt)
-        console.debug(`Server responded with 429. Retrying after ${delay}ms delay...`)
+        logDebug(`Server responded with 429. Retrying after ${delay}ms delay...`)
         await new Promise(resolve => setTimeout(resolve, delay))
         continue
       }
@@ -292,14 +284,14 @@ async function fetchTokenMetadataFromChain(connection, mintAddress) {
               }
             } else {
               // Not JSON, likely HTML error page - silently skip
-              console.debug(`Metadata URI returned non-JSON content: ${metadataUrl}`)
+              logDebug(`Metadata URI returned non-JSON content: ${metadataUrl}`)
             }
           } else {
             // Response not OK (403, 404, 500, etc.) - silently skip for client errors
             // 403/404 are common for tokens without public metadata, no need to warn
             if (response.status >= 500) {
               // Only log server errors (500+)
-              console.debug(`Metadata URI returned status ${response.status}: ${metadataUrl}`)
+              logDebug(`Metadata URI returned status ${response.status}: ${metadataUrl}`)
             }
           }
         } catch (fetchErr) {
@@ -309,12 +301,12 @@ async function fetchTokenMetadataFromChain(connection, mintAddress) {
           if (fetchErr.name !== 'AbortError' && 
               !fetchErr.message?.includes('Failed to fetch') &&
               !fetchErr.message?.includes('404')) {
-            console.debug(`Failed to fetch metadata JSON from ${metadataUrl}:`, fetchErr.message)
+            logDebug(`Failed to fetch metadata JSON from ${metadataUrl}:`, fetchErr.message)
           }
         }
       } catch (err) {
         // Silently handle errors - not all tokens have valid metadata URIs
-        console.debug(`Error processing metadata URI for ${mintAddress}:`, err.message)
+        logDebug(`Error processing metadata URI for ${mintAddress}:`, err.message)
       }
     }
     
@@ -331,7 +323,7 @@ async function fetchTokenMetadataFromChain(connection, mintAddress) {
                        err?.code === 429
     
     if (!isRateLimit) {
-      console.debug(`Error fetching metadata for ${mintAddress}:`, err.message)
+      logDebug(`Error fetching metadata for ${mintAddress}:`, err.message)
     }
     return null
   }

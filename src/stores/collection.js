@@ -1,0 +1,478 @@
+/**
+ * Collection Store
+ * Manages registered NFT collections and their marketplace settings
+ */
+
+import { defineStore } from 'pinia'
+import { ref, computed, watch } from 'vue'
+import { logError, logDebug } from '../utils/logger'
+import { useThemeStore } from './theme'
+import { fetchAllEscrows } from '../utils/escrowTransactions'
+import { filterEscrowsByCollection, filterActiveEscrows } from '../utils/marketplaceHelpers'
+import { useSolanaConnection } from '../composables/useSolanaConnection'
+import { calculateEscrowStatus } from '../utils/escrowHelpers'
+
+export const useCollectionStore = defineStore('collection', () => {
+  // Registered collections (would come from backend API in production)
+  const collections = ref([])
+  const loadingCollections = ref(false)
+  const error = ref(null)
+
+  // Currently selected collection (for marketplace filtering)
+  const selectedCollectionId = ref(null)
+
+  /**
+   * Collection structure:
+   * {
+   *   id: string, // Collection mint address or unique ID
+   *   name: string,
+   *   symbol: string,
+   *   description: string,
+   *   image: string, // Collection image/logo
+   *   collectionMint: string, // Metaplex collection mint address
+   *   verification_status: 'community' | 'verified', // 'community' = default, 'verified' = official store
+   *   verified: boolean, // DEPRECATED: Use verification_status instead
+   *   subscriptionActive: boolean, // Whether $50/month subscription is active
+   *   subscriptionExpiresAt: string, // ISO date string
+   *   shopFee: {
+   *     wallet: string, // Shop wallet address to receive fees
+   *     makerFlatFee: number, // Maker flat fee in SOL (optional)
+   *     takerFlatFee: number, // Taker flat fee in SOL (optional)
+   *     makerPercentFee: number, // Maker percentage fee 0-100 (optional)
+   *     takerPercentFee: number, // Taker percentage fee 0-100 (optional)
+   *   },
+   *   tradeDiscount: {
+   *     enabled: boolean, // 90% discount (0.001 SOL per trade)
+   *     appliesTo: 'all' // 'all' trades with their NFTs
+   *   },
+   *   createdAt: string, // ISO date string
+   *   updatedAt: string // ISO date string
+   * }
+   */
+
+  // Computed
+  const activeCollections = computed(() => {
+    return collections.value.filter(c => c.subscriptionActive)
+  })
+
+  const selectedCollection = computed(() => {
+    if (!selectedCollectionId.value) return null
+    return collections.value.find(c => c.id === selectedCollectionId.value)
+  })
+
+  // Actions
+  const setCollections = (newCollections) => {
+    collections.value = newCollections
+  }
+
+  const addCollection = (collection) => {
+    const exists = collections.value.find(c => c.id === collection.id)
+    if (exists) {
+      // Update existing
+      const index = collections.value.findIndex(c => c.id === collection.id)
+      collections.value[index] = { ...collections.value[index], ...collection }
+    } else {
+      collections.value.push(collection)
+    }
+  }
+
+  const removeCollection = (collectionId) => {
+    collections.value = collections.value.filter(c => c.id !== collectionId)
+  }
+
+  const setSelectedCollection = (collectionId) => {
+    selectedCollectionId.value = collectionId
+    
+    // Load theme from collection if available
+    const collection = collections.value.find(c => c.id === collectionId)
+    if (collection && collection.colors) {
+      loadCollectionTheme(collection)
+    } else {
+      // Reset to default theme if no collection selected or no colors
+      const themeStore = useThemeStore()
+      themeStore.resetToDefault()
+    }
+  }
+  
+  /**
+   * Load theme from collection colors
+   */
+  const loadCollectionTheme = (collection) => {
+    try {
+      const themeStore = useThemeStore()
+      
+      // Build theme object from collection
+      const themeData = {
+        id: collection.id,
+        name: collection.name,
+        description: collection.description || `Theme for ${collection.name}`,
+        colors: collection.colors,
+        branding: {
+          logo: collection.logo || '/dguild-logo-p2p.svg',
+          name: collection.name,
+          shortName: collection.name,
+        },
+        metadata: {
+          source: 'collection',
+          collectionId: collection.id,
+          loadedAt: new Date().toISOString(),
+        }
+      }
+      
+      themeStore.loadTheme(themeData)
+      logDebug(`Loaded theme for collection: ${collection.name}`)
+    } catch (err) {
+      logError('Failed to load collection theme:', err)
+    }
+  }
+
+  const clearSelectedCollection = () => {
+    selectedCollectionId.value = null
+  }
+
+  /**
+   * Load collections from JSON files
+   * In production, this could be replaced with an API call: GET /api/collections
+   */
+  const loadCollections = async () => {
+    loadingCollections.value = true
+    error.value = null
+
+    try {
+      // Load collections from JSON files
+      const collectionFiles = [
+        '/Collections/DecentraGuild/decentraguild.json',
+        '/Collections/Star Atlas/star-atlas.json',
+        '/Collections/Skull & Bones/skull-bones.json',
+        '/Collections/Race Protocol/race-protocol.json'
+      ]
+
+      const loadedCollections = await Promise.all(
+        collectionFiles.map(async (file) => {
+          try {
+            const response = await fetch(file)
+            if (!response.ok) {
+              throw new Error(`Failed to load ${file}`)
+            }
+            return await response.json()
+          } catch (err) {
+            logError(`Failed to load collection file ${file}:`, err)
+            return null
+          }
+        })
+      )
+
+      // Filter out null values (failed loads)
+      collections.value = loadedCollections.filter(c => c !== null)
+      
+      logDebug(`Loaded ${collections.value.length} collections`)
+    } catch (err) {
+      logError('Failed to load collections:', err)
+      error.value = err.message || 'Failed to load collections'
+    } finally {
+      loadingCollections.value = false
+    }
+  }
+
+  /**
+   * Register a new collection (would call backend API)
+   * POST /api/collections
+   * @param {Object} collectionData - Collection data
+   * @param {Array} collectionData.collectionMints - Array of collection mint addresses
+   * @param {Array} collectionData.allowedCurrencies - Array of allowed currency mint addresses
+   * @param {string} collectionData.verification_status - 'community' or 'verified' (defaults to 'community')
+   */
+  const registerCollection = async (collectionData) => {
+    loadingCollections.value = true
+    error.value = null
+
+    try {
+      // TODO: Replace with actual API call
+      // const response = await fetch('/api/collections', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(collectionData)
+      // })
+      // const newCollection = await response.json()
+      // addCollection(newCollection)
+
+      // For now, just add locally for testing
+      addCollection({
+        ...collectionData,
+        id: collectionData.collectionMint || `collection-${Date.now()}`,
+        verification_status: collectionData.verification_status || 'community', // Default to community
+        subscriptionActive: true, // Assume active for testing
+        tradeDiscount: {
+          enabled: true, // Community stores get discount by default
+          appliesTo: 'all'
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      })
+
+      logDebug('Collection registered (local only - awaiting backend)')
+    } catch (err) {
+      logError('Failed to register collection:', err)
+      error.value = err.message || 'Failed to register collection'
+      throw err
+    } finally {
+      loadingCollections.value = false
+    }
+  }
+
+  /**
+   * Upgrade collection to verified status
+   * Requires signature from collection update authority
+   * POST /api/collections/:id/verify
+   * @param {string} collectionId - Collection ID
+   * @param {string} signature - Signature from collection update authority
+   */
+  const upgradeToVerified = async (collectionId, signature) => {
+    loadingCollections.value = true
+    error.value = null
+
+    try {
+      // TODO: Replace with actual API call
+      // const response = await fetch(`/api/collections/${collectionId}/verify`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ signature })
+      // })
+      // const updatedCollection = await response.json()
+      // const index = collections.value.findIndex(c => c.id === collectionId)
+      // if (index !== -1) {
+      //   collections.value[index] = updatedCollection
+      // }
+
+      // For now, just update locally
+      const collection = collections.value.find(c => c.id === collectionId)
+      if (collection) {
+        collection.verification_status = 'verified'
+        collection.updatedAt = new Date().toISOString()
+        logDebug(`Collection ${collectionId} upgraded to verified`)
+      }
+
+      logDebug('Collection upgraded to verified (local only - awaiting backend)')
+    } catch (err) {
+      logError('Failed to upgrade collection:', err)
+      error.value = err.message || 'Failed to upgrade collection'
+      throw err
+    } finally {
+      loadingCollections.value = false
+    }
+  }
+
+  /**
+   * Check if collection is verified (official store)
+   * @param {string|Object} collectionIdOrCollection - Collection ID or collection object
+   * @returns {boolean} True if verified
+   */
+  const isVerified = (collectionIdOrCollection) => {
+    const collection = typeof collectionIdOrCollection === 'string'
+      ? collections.value.find(c => c.id === collectionIdOrCollection)
+      : collectionIdOrCollection
+    
+    if (!collection) return false
+    
+    // Support both new verification_status and legacy verified field
+    return collection.verification_status === 'verified' || collection.verified === true
+  }
+
+  /**
+   * Check if collection is community store
+   * @param {string|Object} collectionIdOrCollection - Collection ID or collection object
+   * @returns {boolean} True if community store
+   */
+  const isCommunityStore = (collectionIdOrCollection) => {
+    const collection = typeof collectionIdOrCollection === 'string'
+      ? collections.value.find(c => c.id === collectionIdOrCollection)
+      : collectionIdOrCollection
+    
+    if (!collection) return false
+    
+    // Default to community if not verified
+    return collection.verification_status === 'community' || 
+           (collection.verification_status !== 'verified' && !collection.verified)
+  }
+
+  /**
+   * Check if a collection has active subscription
+   */
+  const isCollectionActive = (collectionId) => {
+    const collection = collections.value.find(c => c.id === collectionId)
+    if (!collection) return false
+    
+    if (!collection.subscriptionActive) return false
+    
+    // Check if subscription hasn't expired
+    if (collection.subscriptionExpiresAt) {
+      const expiresAt = new Date(collection.subscriptionExpiresAt)
+      return expiresAt > new Date()
+    }
+    
+    return true
+  }
+
+  /**
+   * Get collection by mint address
+   */
+  const getCollectionByMint = (mintAddress) => {
+    return collections.value.find(c => 
+      c.collectionMint === mintAddress || 
+      c.id === mintAddress
+    )
+  }
+
+  /**
+   * Check if a token/NFT belongs to a registered collection
+   */
+  const belongsToCollection = (tokenMint, collectionId) => {
+    const collection = collections.value.find(c => c.id === collectionId)
+    if (!collection) return false
+    
+    // This would need to check on-chain if the NFT's collection field matches
+    // For now, this is a placeholder
+    // In production, we'd check the NFT's Metaplex metadata collection field
+    return false
+  }
+
+  /**
+   * Fetch and update open trades counts for all collections
+   * This fetches escrows from blockchain and counts them per collection
+   */
+  const refreshOpenTradesCounts = async () => {
+    try {
+      const connection = useSolanaConnection()
+      
+      // Fetch all escrows from blockchain
+      const rawEscrows = await fetchAllEscrows(connection, null)
+      
+      if (!rawEscrows || rawEscrows.length === 0) {
+        // Reset all counts to 0
+        collections.value.forEach(collection => {
+          collection.openTradesCount = 0
+        })
+        return
+      }
+      
+      // Format escrows (simplified - just get token mints, don't fetch full metadata)
+      const escrowsByCollection = new Map()
+      
+      // Process escrows in batches
+      const batchSize = 50
+      for (let i = 0; i < rawEscrows.length; i += batchSize) {
+        const batch = rawEscrows.slice(i, i + batchSize)
+        await Promise.all(
+          batch.map(async (escrowData) => {
+            try {
+              const escrowAccount = escrowData.account
+              
+              // Quick format without full token metadata fetch
+              const depositMint = escrowAccount.depositToken.toString()
+              const requestMint = escrowAccount.requestToken.toString()
+              
+              // Check which collections this escrow belongs to
+              collections.value.forEach(collection => {
+                const matchedEscrows = filterEscrowsByCollection([{
+                  depositToken: { mint: depositMint },
+                  requestToken: { mint: requestMint },
+                  status: calculateEscrowStatus(escrowAccount)
+                }], collection)
+                
+                if (matchedEscrows.length > 0) {
+                  const activeEscrows = filterActiveEscrows(matchedEscrows)
+                  if (activeEscrows.length > 0) {
+                    const currentCount = escrowsByCollection.get(collection.id) || 0
+                    escrowsByCollection.set(collection.id, currentCount + 1)
+                  }
+                }
+              })
+            } catch (err) {
+              logError('Failed to process escrow for count:', err)
+            }
+          })
+        )
+      }
+      
+      // Update counts for all collections
+      collections.value.forEach(collection => {
+        collection.openTradesCount = escrowsByCollection.get(collection.id) || 0
+      })
+      
+      logDebug(`Updated open trades counts for ${collections.value.length} collections`)
+    } catch (err) {
+      logError('Failed to refresh open trades counts:', err)
+      // On error, set all to 0
+      collections.value.forEach(collection => {
+        collection.openTradesCount = 0
+      })
+    }
+  }
+  
+
+  /**
+   * Get open trades count for a collection
+   * @param {string} collectionId - Collection ID
+   * @returns {number} Number of open trades
+   */
+  const getOpenTradesCount = (collectionId) => {
+    const collection = collections.value.find(c => c.id === collectionId)
+    if (!collection) return 0
+    
+    return collection.openTradesCount || 0
+  }
+
+  /**
+   * Update open trades count for a collection
+   * @param {string} collectionId - Collection ID
+   * @param {number} count - Number of open trades
+   */
+  const setOpenTradesCount = (collectionId, count) => {
+    const collection = collections.value.find(c => c.id === collectionId)
+    if (collection) {
+      collection.openTradesCount = count
+    }
+  }
+
+  // Watch for collection changes and load theme
+  watch(selectedCollection, (newCollection) => {
+    if (newCollection && newCollection.colors) {
+      loadCollectionTheme(newCollection)
+    } else if (!newCollection) {
+      // Reset to default theme when no collection selected
+      const themeStore = useThemeStore()
+      themeStore.resetToDefault()
+    }
+  })
+
+  return {
+    // State
+    collections: computed(() => collections.value),
+    loadingCollections: computed(() => loadingCollections.value),
+    error: computed(() => error.value),
+    selectedCollectionId: computed(() => selectedCollectionId.value),
+    
+    // Computed
+    activeCollections,
+    selectedCollection,
+    
+    // Actions
+    setCollections,
+    addCollection,
+    removeCollection,
+    setSelectedCollection,
+    clearSelectedCollection,
+    loadCollections,
+    registerCollection,
+    upgradeToVerified,
+    isCollectionActive,
+    getCollectionByMint,
+    belongsToCollection,
+    loadCollectionTheme,
+    getOpenTradesCount,
+    setOpenTradesCount,
+    refreshOpenTradesCounts,
+    isVerified,
+    isCommunityStore
+  }
+})
