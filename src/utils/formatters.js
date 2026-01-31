@@ -63,17 +63,14 @@ export function formatDecimals(value) {
   // Format the number
   let formatted = absValue.toFixed(decimals)
   
-  // If decimals > 0, check if there are only trailing zeros after decimal point
-  // If so, reduce to 1 decimal place (but only if value >= 0.01 to preserve small number precision)
-  if (decimals > 0 && absValue >= 0.01) {
-    const parts = formatted.split('.')
-    if (parts.length === 2) {
-      const decimalPart = parts[1]
-      // Check if all digits in decimal part are zeros
-      if (/^0+$/.test(decimalPart)) {
-        // Only trailing zeros, use 1 decimal place instead
-        formatted = absValue.toFixed(1)
-      }
+  // Remove all unnecessary trailing zeros and decimal point if not needed
+  if (decimals > 0) {
+    // Remove trailing zeros after decimal point
+    formatted = formatted.replace(/\.?0+$/, '')
+    
+    // If we removed everything after decimal, ensure we have at least integer part
+    if (formatted === '' || formatted === '.') {
+      formatted = '0'
     }
   }
   

@@ -84,7 +84,7 @@ export async function discoverCollectionMint(nftMintAddress) {
 }
 
 /**
- * Discover collection mint from Helius API (faster alternative)
+ * Discover collection mint from Helius DAS API (faster and more reliable)
  * @param {string} nftMintAddress - Individual NFT mint address
  * @returns {Promise<string|null>} Collection mint address or null if not found
  */
@@ -92,50 +92,64 @@ export async function discoverCollectionMintFromHelius(nftMintAddress) {
   try {
     const apiKey = import.meta.env.VITE_HELIUS_API_KEY
     if (!apiKey) {
+      logDebug('Helius API key not configured, skipping Helius discovery')
       return null
     }
 
     const rpcUrl = import.meta.env.VITE_HELIUS_RPC || ''
     const isDevnet = rpcUrl.includes('devnet')
-    const apiUrl = isDevnet 
-      ? `https://api-devnet.helius.xyz/v0`
-      : `https://api.helius.xyz/v0`
+    const heliusRpcUrl = isDevnet 
+      ? `https://devnet.helius-rpc.com/?api-key=${apiKey}`
+      : `https://mainnet.helius-rpc.com/?api-key=${apiKey}`
 
-    const url = `${apiUrl}/nfts/${nftMintAddress}?api-key=${apiKey}`
+    logDebug(`Fetching NFT metadata from Helius DAS to discover collection: ${nftMintAddress}`)
     
-    logDebug(`Fetching NFT metadata from Helius to discover collection: ${nftMintAddress}`)
-    
-    const response = await fetch(url)
+    // Use DAS API getAsset method
+    const rpcRequest = {
+      jsonrpc: '2.0',
+      id: 'helius-das-asset',
+      method: 'getAsset',
+      params: {
+        id: nftMintAddress
+      }
+    }
+
+    const response = await fetch(heliusRpcUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(rpcRequest)
+    })
+
     if (!response.ok) {
+      logDebug(`Helius DAS API request failed: ${response.status}`)
       return null
     }
 
     const data = await response.json()
     
+    if (data.error || !data.result) {
+      logDebug(`Helius DAS API error: ${data.error?.message || 'No result'}`)
+      return null
+    }
+
+    const asset = data.result
+    
     // Check grouping field for collection
-    const grouping = data.grouping || data.groupings || []
+    const grouping = asset.grouping || []
     if (Array.isArray(grouping)) {
-      const collectionGroup = grouping.find(g => 
-        g.group_key === 'collection' || g.groupKey === 'collection'
-      )
-      if (collectionGroup) {
-        const collectionMint = collectionGroup.group_value || collectionGroup.groupValue
-        if (collectionMint) {
-          logDebug(`✓ Discovered collection mint from Helius: ${collectionMint}`)
-          return collectionMint
-        }
+      const collectionGroup = grouping.find(g => g.group_key === 'collection')
+      if (collectionGroup && collectionGroup.group_value) {
+        logDebug(`✓ Discovered collection mint from Helius DAS: ${collectionGroup.group_value}`)
+        return collectionGroup.group_value
       }
     }
     
-    // Also check direct collection field
-    if (data.collection) {
-      logDebug(`✓ Discovered collection mint from Helius (direct field): ${data.collection}`)
-      return data.collection
-    }
-    
+    logDebug(`NFT ${nftMintAddress} has no collection in grouping`)
     return null
   } catch (err) {
-    logDebug(`Helius discovery failed for ${nftMintAddress}:`, err.message)
+    logDebug(`Helius DAS discovery failed for ${nftMintAddress}:`, err.message)
     return null
   }
 }

@@ -4,12 +4,13 @@
  */
 
 import { ref } from 'vue'
+import { UI_CONSTANTS } from '../utils/constants'
 
 const toasts = ref([])
 let toastId = 0
 
 export function useToast() {
-  const showToast = (message, type = 'info', duration = 4000) => {
+  const showToast = (message, type = 'info', duration = UI_CONSTANTS.TOAST_DURATION) => {
     const id = toastId++
     const toast = {
       id,

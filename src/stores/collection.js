@@ -7,10 +7,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { logError, logDebug } from '../utils/logger'
 import { useThemeStore } from './theme'
-import { fetchAllEscrows } from '../utils/escrowTransactions'
 import { filterEscrowsByCollection, filterActiveEscrows } from '../utils/marketplaceHelpers'
-import { useSolanaConnection } from '../composables/useSolanaConnection'
-import { calculateEscrowStatus } from '../utils/escrowHelpers'
 
 export const useCollectionStore = defineStore('collection', () => {
   // Registered collections (would come from backend API in production)
@@ -337,17 +334,14 @@ export const useCollectionStore = defineStore('collection', () => {
   }
 
   /**
-   * Fetch and update open trades counts for all collections
-   * This fetches escrows from blockchain and counts them per collection
+   * Calculate and update open trades counts for all collections
+   * @param {Array} allEscrows - Array of escrows to count (required)
    */
-  const refreshOpenTradesCounts = async () => {
+  const refreshOpenTradesCounts = (allEscrows) => {
     try {
-      const connection = useSolanaConnection()
-      
-      // Fetch all escrows from blockchain
-      const rawEscrows = await fetchAllEscrows(connection, null)
-      
-      if (!rawEscrows || rawEscrows.length === 0) {
+      // Validate input
+      if (!allEscrows) {
+        logError('refreshOpenTradesCounts called without escrows parameter')
         // Reset all counts to 0
         collections.value.forEach(collection => {
           collection.openTradesCount = 0
@@ -355,44 +349,22 @@ export const useCollectionStore = defineStore('collection', () => {
         return
       }
       
-      // Format escrows (simplified - just get token mints, don't fetch full metadata)
+      if (allEscrows.length === 0) {
+        // Reset all counts to 0 (no escrows available)
+        collections.value.forEach(collection => {
+          collection.openTradesCount = 0
+        })
+        return
+      }
+      
+      // Count escrows per collection
       const escrowsByCollection = new Map()
       
-      // Process escrows in batches
-      const batchSize = 50
-      for (let i = 0; i < rawEscrows.length; i += batchSize) {
-        const batch = rawEscrows.slice(i, i + batchSize)
-        await Promise.all(
-          batch.map(async (escrowData) => {
-            try {
-              const escrowAccount = escrowData.account
-              
-              // Quick format without full token metadata fetch
-              const depositMint = escrowAccount.depositToken.toString()
-              const requestMint = escrowAccount.requestToken.toString()
-              
-              // Check which collections this escrow belongs to
-              collections.value.forEach(collection => {
-                const matchedEscrows = filterEscrowsByCollection([{
-                  depositToken: { mint: depositMint },
-                  requestToken: { mint: requestMint },
-                  status: calculateEscrowStatus(escrowAccount)
-                }], collection)
-                
-                if (matchedEscrows.length > 0) {
-                  const activeEscrows = filterActiveEscrows(matchedEscrows)
-                  if (activeEscrows.length > 0) {
-                    const currentCount = escrowsByCollection.get(collection.id) || 0
-                    escrowsByCollection.set(collection.id, currentCount + 1)
-                  }
-                }
-              })
-            } catch (err) {
-              logError('Failed to process escrow for count:', err)
-            }
-          })
-        )
-      }
+      collections.value.forEach(collection => {
+        const matchedEscrows = filterEscrowsByCollection(allEscrows, collection)
+        const activeEscrows = filterActiveEscrows(matchedEscrows)
+        escrowsByCollection.set(collection.id, activeEscrows.length)
+      })
       
       // Update counts for all collections
       collections.value.forEach(collection => {
@@ -447,10 +419,10 @@ export const useCollectionStore = defineStore('collection', () => {
 
   return {
     // State
-    collections: computed(() => collections.value),
-    loadingCollections: computed(() => loadingCollections.value),
-    error: computed(() => error.value),
-    selectedCollectionId: computed(() => selectedCollectionId.value),
+    collections,
+    loadingCollections,
+    error,
+    selectedCollectionId,
     
     // Computed
     activeCollections,

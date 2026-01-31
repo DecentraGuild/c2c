@@ -7,7 +7,7 @@
 import { computed } from 'vue'
 import { useCollectionMetadata } from './useCollectionMetadata'
 import { getCollectionCurrencies } from '../utils/constants/baseCurrencies'
-import { FEE_CONFIG, TRANSACTION_COSTS } from '../utils/constants/fees'
+import { getTotalMakerFee, getTotalTakerFee, formatShopFeeDisplay } from '../utils/marketplaceFees'
 
 /**
  * Composable for collection display logic
@@ -20,59 +20,34 @@ export function useCollectionDisplay(collection) {
 
   /**
    * Calculate maker fee (platform + shop fee if applicable)
+   * Uses centralized fee calculation utility
    * @returns {string} Formatted fee amount in SOL
    */
-  const getMakerFee = () => {
-    // Base platform fee from constants
-    const platformFee = TRANSACTION_COSTS.PLATFORM_MAKER_FEE
-    
-    // If shop fee is configured, add it
-    if (collection.value?.shopFee?.wallet) {
-      const shopFee = collection.value.shopFee.makerFlatFee || 0
-      const totalFee = platformFee + shopFee
-      return totalFee.toFixed(4).replace(/\.?0+$/, '') // Remove trailing zeros
-    }
-    
-    // No shop fee: base platform fee only
-    return platformFee.toFixed(4).replace(/\.?0+$/, '')
+  const makerFee = () => {
+    const shopFee = collection.value?.shopFee
+    const totalFee = getTotalMakerFee(shopFee, 0)
+    return totalFee.toFixed(4).replace(/\.?0+$/, '') // Remove trailing zeros
   }
 
   /**
    * Calculate taker fee (platform + shop fee if applicable)
+   * Uses centralized fee calculation utility
    * @returns {string} Formatted fee amount in SOL
    */
-  const getTakerFee = () => {
-    // Base platform fee from constants
-    const platformFee = TRANSACTION_COSTS.PLATFORM_TAKER_FEE
-    
-    // If shop fee is configured, add it
-    if (collection.value?.shopFee?.wallet) {
-      const shopFee = collection.value.shopFee.takerFlatFee || 0
-      const totalFee = platformFee + shopFee
-      return totalFee.toFixed(6).replace(/\.?0+$/, '')
-    }
-    
-    // No shop fee: base platform fee only
-    return platformFee.toFixed(6).replace(/\.?0+$/, '')
+  const takerFee = () => {
+    const shopFee = collection.value?.shopFee
+    const totalFee = getTotalTakerFee(shopFee, 0)
+    return totalFee.toFixed(6).replace(/\.?0+$/, '')
   }
 
   /**
    * Get shop fee display string
+   * Uses centralized formatting utility
    * @returns {string} Formatted shop fee display
    */
-  const getShopFeeDisplay = () => {
+  const shopFeeDisplay = () => {
     const shopFee = collection.value?.shopFee
-    if (!shopFee) return 'None'
-    
-    const parts = []
-    if (shopFee.makerFlatFee > 0 || shopFee.takerFlatFee > 0) {
-      parts.push(`${shopFee.makerFlatFee || 0}/${shopFee.takerFlatFee || 0} SOL`)
-    }
-    if (shopFee.makerPercentFee > 0 || shopFee.takerPercentFee > 0) {
-      parts.push(`${shopFee.makerPercentFee || 0}/${shopFee.takerPercentFee || 0}%`)
-    }
-    
-    return parts.length > 0 ? parts.join(' + ') : 'None'
+    return formatShopFeeDisplay(shopFee)
   }
 
   /**
@@ -151,9 +126,9 @@ export function useCollectionDisplay(collection) {
 
   return {
     // Fee calculation functions
-    getMakerFee,
-    getTakerFee,
-    getShopFeeDisplay,
+    makerFee,
+    takerFee,
+    shopFeeDisplay,
     
     // Collection data computed properties
     collectionMintsList,

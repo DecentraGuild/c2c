@@ -21,7 +21,7 @@
       <!-- Loading State -->
       <div v-if="loading" class="p-4 text-center text-text-muted">
         <Icon icon="svg-spinners:ring-resize" class="w-8 h-8 inline-block mb-2" />
-        <p class="text-sm">Loading NFTs...</p>
+        <p class="text-sm">{{ discovering ? 'Discovering collection...' : 'Loading NFTs...' }}</p>
       </div>
 
       <!-- Error State -->
@@ -35,8 +35,8 @@
         <Icon icon="mdi:image-outline" class="w-8 h-8 inline-block mb-2" />
         <p class="text-sm">No NFTs found</p>
         <p class="text-xs mt-1">{{ source === 'wallet' ? 'No NFTs from this collection in your wallet' : 'No NFTs found in this collection' }}</p>
-        <p v-if="source === 'collection'" class="text-xs mt-2 text-text-muted">
-          Tip: Add a 'collectionMint' field to your collection JSON with the Metaplex collection mint address to fetch all NFTs from the collection.
+        <p v-if="source === 'collection' && !discoveredCollectionMint && !selectedCollection?.collectionMint" class="text-xs mt-2 text-text-muted">
+          Could not discover collection mint. The NFT may not belong to a Metaplex collection.
         </p>
       </div>
 
@@ -103,14 +103,19 @@ const emit = defineEmits(['select', 'close'])
 const collectionStore = useCollectionStore()
 const selectedCollection = computed(() => collectionStore.selectedCollection)
 
+// State for collection mint discovery
+const discovering = ref(false)
+const discoveredCollectionMint = ref(null)
+
 // Create a mock collection object for fetching NFTs
 // When clicking a collection item, we need to discover its collection mint and fetch all NFTs from that collection
 const mockCollection = computed(() => {
   const baseCollection = selectedCollection.value || {}
   
-  // Use parentCollectionMint if provided (from RequestTokenSelector), otherwise use collection's collectionMint
-  // If neither exists, we'll discover it from the collection item's metadata
-  const collectionMintToUse = props.collectionItem?.parentCollectionMint || baseCollection.collectionMint
+  // Use parentCollectionMint if provided (from RequestTokenSelector)
+  // Otherwise use the discovered collection mint from the NFT item
+  const collectionMintToUse = props.collectionItem?.parentCollectionMint || 
+                               discoveredCollectionMint.value
   
   return {
     ...baseCollection,
@@ -131,7 +136,7 @@ const nfts = computed(() => {
 })
 
 const loading = computed(() => {
-  return props.source === 'wallet' ? loadingWalletNFTs.value : loadingCollectionNFTs.value
+  return discovering.value || (props.source === 'wallet' ? loadingWalletNFTs.value : loadingCollectionNFTs.value)
 })
 
 const error = computed(() => {
@@ -148,23 +153,23 @@ const error = computed(() => {
 // Watch for show prop to fetch NFTs
 watch([() => props.show, () => props.collectionItem], async ([isShowing, item]) => {
   if (isShowing && item && item.fetchingType === 'NFT') {
+    // Reset discovered collection mint when showing new item
+    if (isShowing) {
+      discoveredCollectionMint.value = null
+    }
+    
     if (props.source === 'wallet') {
       await fetchWalletNFTs()
     } else {
-      // For collection source, discover collection mint if not available
+      // For collection source, assume the item mint IS the collection mint
+      // The user provides the collection mint in the collectionMints array
       const collection = mockCollection.value
-      if (!collection.collectionMint && collection._collectionItemMint) {
-        // Try to discover the collection mint from the collection item
-        try {
-          const discoveredMint = await discoverCollectionMint(collection._collectionItemMint)
-          if (discoveredMint) {
-            // Update mock collection with discovered mint
-            collection.collectionMint = discoveredMint
-          }
-        } catch (err) {
-          // Discovery failed, will try creator fallback
-        }
+      
+      if (collection._collectionItemMint) {
+        // Directly use the item mint as the collection mint
+        discoveredCollectionMint.value = collection._collectionItemMint
       }
+      
       await fetchCollectionNFTs()
     }
   }

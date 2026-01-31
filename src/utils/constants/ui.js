@@ -4,9 +4,11 @@
 
 // UI timing constants
 export const UI_CONSTANTS = {
-  TOAST_DURATION: 5000, // 5 seconds
+  TOAST_DURATION: 4000, // 4 seconds (default toast display)
+  TOAST_DURATION_LONG: 5000, // 5 seconds (important messages)
   RETRY_ATTEMPTS: 3,
-  RETRY_DELAY: 1000 // 1 second
+  RETRY_DELAY: 1000, // 1 second
+  METADATA_LOADING_DELAY: 100 // Small delay for initial metadata fetches to start
 }
 
 // Debounce delay constants (in milliseconds)
@@ -64,6 +66,13 @@ export const CACHE_CONFIG = {
   METADATA_TTL: 30 * 24 * 60 * 60 * 1000, // 30 days (1 month)
   REGISTRY_TTL: 24 * 60 * 60 * 1000, // 24 hours
   MAX_METADATA_ENTRIES: 1000 // Maximum cached token metadata entries
+}
+
+// Batch processing sizes
+export const BATCH_SIZES = {
+  ESCROW_PROCESSING: 20, // Process escrows in batches of 20 to avoid UI blocking
+  NFT_METADATA_FETCH: 50, // Fetch NFT metadata in batches of 50
+  METADATA_FETCH: 10 // General metadata fetching batch size
 }
 
 // Search and pagination limits

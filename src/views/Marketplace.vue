@@ -1,27 +1,27 @@
 <template>
-  <div class="min-h-screen bg-primary-bg py-3 sm:py-4 px-3 sm:px-4">
-    <div class="max-w-7xl mx-auto">
+  <div class="min-h-screen bg-primary-bg py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-full mx-auto">
       <!-- Header -->
-      <div class="mb-4 sm:mb-6">
-        <div class="flex items-center gap-3 mb-2">
-          <h1 class="text-xl sm:text-2xl font-bold text-text-primary">Marketplace</h1>
+      <div class="mb-3 sm:mb-4">
+        <div class="flex items-center gap-2 mb-1">
+          <h1 class="text-base sm:text-lg font-bold text-text-primary">Marketplace</h1>
           <CollectionBadge
             v-if="selectedCollection"
             :verification-status="selectedCollection.verification_status || (selectedCollection.verified ? 'verified' : 'community')"
           />
         </div>
-        <p v-if="selectedCollection" class="text-sm text-text-secondary mt-1">
+        <p v-if="selectedCollection" class="text-xs sm:text-sm text-text-secondary mt-0.5">
           Viewing trades for <span class="font-semibold">{{ selectedCollection.name }}</span>
         </p>
-        <p v-else class="text-sm text-text-muted mt-1">
+        <p v-else class="text-xs sm:text-sm text-text-muted mt-0.5">
           Select a collection from the navbar to view marketplace trades
         </p>
       </div>
 
       <!-- Main Content with Sidebar -->
-      <div v-if="selectedCollection" class="flex gap-4 sm:gap-6">
+      <div v-if="selectedCollection" class="flex gap-4">
         <!-- Sidebar -->
-        <aside class="hidden lg:block w-64 flex-shrink-0 space-y-4">
+        <aside class="hidden lg:block w-56 flex-shrink-0 space-y-3">
           <!-- Search Bar -->
           <div class="card p-3">
             <BaseSearchInput
@@ -41,9 +41,9 @@
         <!-- Main Content -->
         <div class="flex-1 min-w-0">
           <!-- Trade Type Filters and View Toggle -->
-          <div class="mb-4">
-            <div class="card p-3">
-              <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="mb-3">
+            <div class="card p-2.5">
+              <div class="flex flex-wrap items-center justify-between gap-2">
                 <!-- Trade Type Filters -->
                 <div class="flex flex-wrap items-center gap-2">
                   <button
@@ -51,7 +51,7 @@
                     :key="type.value"
                     @click="selectedTradeType = type.value"
                     :class="[
-                      'px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200',
+                      'px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200',
                       selectedTradeType === type.value
                         ? 'bg-primary-color text-white shadow-sm'
                         : 'bg-secondary-bg text-text-secondary hover:bg-secondary-bg/80 hover:text-text-primary'
@@ -81,7 +81,7 @@
             title-class="text-status-error"
           >
             <button
-              @click="loadEscrows"
+              @click="escrowStore.loadAllEscrows"
               class="mt-4 px-4 py-2 bg-primary-color text-white rounded-lg hover:bg-primary-color/90 transition-colors text-sm font-semibold"
             >
               Retry
@@ -91,63 +91,25 @@
           <!-- Escrows List/Cards -->
           <div v-else-if="filteredEscrows.length > 0">
             <!-- User's Fillable Trades First -->
-            <div v-if="userFillableEscrows.length > 0" class="mb-6">
-              <h2 class="text-lg font-semibold text-text-primary mb-3 flex items-center gap-2">
-                <Icon icon="mdi:star" class="w-5 h-5 text-primary-color" />
-                <span>You Can Fill ({{ userFillableEscrows.length }})</span>
-              </h2>
-              <!-- Card View -->
-              <div v-if="viewMode === 'card'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                <MarketplaceEscrowCard
-                  v-for="escrow in userFillableEscrows"
-                  :key="escrow.id"
-                  :escrow="escrow"
-                  :collection="selectedCollection"
-                  :user-balances="userBalances"
-                  :view-mode="viewMode"
-                />
-              </div>
-              <!-- List View -->
-              <div v-else class="space-y-3">
-                <MarketplaceEscrowCard
-                  v-for="escrow in userFillableEscrows"
-                  :key="escrow.id"
-                  :escrow="escrow"
-                  :collection="selectedCollection"
-                  :user-balances="userBalances"
-                  :view-mode="viewMode"
-                />
-              </div>
-            </div>
+            <MarketplaceEscrowSection
+              :escrows="userFillableEscrows"
+              title="You Can Fill"
+              icon="mdi:star"
+              icon-class="text-primary-color"
+              :view-mode="viewMode"
+              :collection="selectedCollection"
+              :user-balances="userBalances"
+              section-class="mb-4"
+            />
 
             <!-- Other Open Trades -->
-            <div v-if="otherEscrows.length > 0">
-              <h2 v-if="userFillableEscrows.length > 0" class="text-lg font-semibold text-text-primary mb-3">
-                All Open Trades ({{ otherEscrows.length }})
-              </h2>
-              <!-- Card View -->
-              <div v-if="viewMode === 'card'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                <MarketplaceEscrowCard
-                  v-for="escrow in otherEscrows"
-                  :key="escrow.id"
-                  :escrow="escrow"
-                  :collection="selectedCollection"
-                  :user-balances="userBalances"
-                  :view-mode="viewMode"
-                />
-              </div>
-              <!-- List View -->
-              <div v-else class="space-y-3">
-                <MarketplaceEscrowCard
-                  v-for="escrow in otherEscrows"
-                  :key="escrow.id"
-                  :escrow="escrow"
-                  :collection="selectedCollection"
-                  :user-balances="userBalances"
-                  :view-mode="viewMode"
-                />
-              </div>
-            </div>
+            <MarketplaceEscrowSection
+              :escrows="otherEscrows"
+              :title="userFillableEscrows.length > 0 ? 'All Open Trades' : null"
+              :view-mode="viewMode"
+              :collection="selectedCollection"
+              :user-balances="userBalances"
+            />
           </div>
 
           <!-- Empty State -->
@@ -181,34 +143,32 @@ import BaseSearchInput from '../components/BaseSearchInput.vue'
 import BaseViewModeToggle from '../components/BaseViewModeToggle.vue'
 import BaseEmptyState from '../components/BaseEmptyState.vue'
 import MarketplaceEscrowCard from '../components/MarketplaceEscrowCard.vue'
+import MarketplaceEscrowSection from '../components/MarketplaceEscrowSection.vue'
 import MarketplaceFilters from '../components/MarketplaceFilters.vue'
 import CollectionBadge from '../components/CollectionBadge.vue'
 import { useCollectionStore } from '../stores/collection'
+import { useEscrowStore } from '../stores/escrow'
 import { useWalletBalances } from '../composables/useWalletBalances'
 import { useViewMode } from '../composables/useViewMode'
 import { useMarketplaceFilters } from '../composables/useMarketplaceFilters'
-import { fetchAllEscrows } from '../utils/escrowTransactions'
-import { useSolanaConnection } from '../composables/useSolanaConnection'
-import { useTokenStore } from '../stores/token'
-import { formatEscrowData } from '../utils/escrowHelpers'
-import { logError, logDebug } from '../utils/logger'
+import { logDebug } from '../utils/logger'
 
 const route = useRoute()
 const router = useRouter()
 const collectionStore = useCollectionStore()
-const connection = useSolanaConnection()
-const tokenStore = useTokenStore()
+const escrowStore = useEscrowStore()
 const { balances, fetchBalances } = useWalletBalances({ autoFetch: true })
 const { viewMode } = useViewMode('marketplace-view-mode', 'list')
 
 // State
 const selectedTradeType = ref('all')
-const loadingEscrows = ref(false)
-const escrowsError = ref(null)
-// Use shallowRef for large arrays to improve performance
-const allEscrows = shallowRef([])
 const activeFilters = ref(new Set()) // Set of "itemType:class" strings
 const searchQuery = ref('')
+
+// Use escrows from the store
+const allEscrows = computed(() => escrowStore.escrows || [])
+const loadingEscrows = computed(() => escrowStore.loadingEscrows)
+const escrowsError = computed(() => escrowStore.errors.escrows)
 
 const viewModes = [
   { value: 'list', label: 'List view', icon: 'mdi:view-list' },
@@ -269,92 +229,16 @@ const clearFilters = () => {
 
 const loadEscrows = async () => {
   if (!selectedCollection.value) {
-    allEscrows.value = []
-    loadingEscrows.value = false
     return
   }
 
-  // Validate connection before proceeding
-  if (!connection) {
-    logError('Solana connection not available')
-    escrowsError.value = 'Solana connection not available'
-    loadingEscrows.value = false
-    return
-  }
-
-  loadingEscrows.value = true
-  escrowsError.value = null
-
-  try {
-    // Fetch all escrows from blockchain
-    const rawEscrows = await fetchAllEscrows(connection, null)
-    
-    // Safety check: ensure rawEscrows is an array
-    if (!rawEscrows || !Array.isArray(rawEscrows)) {
-      logError('fetchAllEscrows returned invalid data:', rawEscrows)
-      allEscrows.value = []
-      escrowsError.value = 'Invalid data received from blockchain'
-      return
-    }
-    
-    // Format escrows with token information
-    // Process in batches to avoid blocking the UI for too long
-    const batchSize = 20
-    const formattedEscrows = []
-    
-    for (let i = 0; i < rawEscrows.length; i += batchSize) {
-      const batch = rawEscrows.slice(i, i + batchSize)
-      const batchResults = await Promise.all(
-        batch.map(async (escrowData) => {
-          try {
-            if (!escrowData || !escrowData.account || !escrowData.publicKey) {
-              logError('Invalid escrow data:', escrowData)
-              return null
-            }
-            
-            const escrowAccount = escrowData.account
-            const escrowPubkey = escrowData.publicKey
-            
-            // Fetch token info for deposit and request tokens
-            const [depositTokenInfo, requestTokenInfo] = await Promise.all([
-              tokenStore.fetchTokenInfo(escrowAccount.depositToken.toString()),
-              tokenStore.fetchTokenInfo(escrowAccount.requestToken.toString())
-            ])
-            
-            // Format escrow data using helper function
-            return formatEscrowData(
-              { account: escrowAccount, publicKey: escrowPubkey },
-              depositTokenInfo,
-              requestTokenInfo
-            )
-          } catch (err) {
-            logError('Failed to format escrow:', err)
-            return null
-          }
-        })
-      )
-      
-      // Filter out null values and add to results
-      const validResults = batchResults.filter(e => e !== null)
-      formattedEscrows.push(...validResults)
-      
-      // Update UI incrementally for better UX
-      if (i === 0 || i % (batchSize * 3) === 0) {
-        allEscrows.value = [...formattedEscrows]
-      }
-    }
-    
-    // Final update with all escrows
-    allEscrows.value = formattedEscrows
-    
-    logDebug(`Loaded ${formattedEscrows.length} escrows for marketplace`)
-  } catch (err) {
-    logError('Failed to load escrows:', err)
-    escrowsError.value = err.message || 'Failed to load marketplace trades'
-    allEscrows.value = []
-  } finally {
-    loadingEscrows.value = false
-  }
+  // Load all escrows from blockchain via escrow store
+  await escrowStore.loadAllEscrows()
+  
+  // Update collection counts after loading (pass escrows directly)
+  collectionStore.refreshOpenTradesCounts(escrowStore.escrows)
+  
+  logDebug(`Loaded ${escrowStore.escrows.length} escrows for marketplace`)
 }
 
 // Watch for collection changes from store

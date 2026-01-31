@@ -2,9 +2,9 @@
   <div
     class="card hover:border-primary-color/50 transition-all duration-200 hover:shadow-lg group"
   >
-    <div class="flex flex-col sm:flex-row gap-4">
+    <div class="flex flex-col sm:flex-row gap-3">
       <!-- Badge at Top (Mobile) / Left Side (Desktop) -->
-      <div class="flex justify-center sm:justify-start sm:w-32 flex-shrink-0">
+      <div class="flex justify-center sm:justify-start sm:w-28 flex-shrink-0">
         <CollectionBadge
           :verification-status="collection.verification_status || (collection.verified ? 'verified' : 'community')"
           size="sm"
@@ -13,23 +13,23 @@
 
       <!-- Main Content Area -->
       <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-4 sm:gap-6">
+        <div class="flex items-center gap-3">
           <!-- Collection Image -->
           <router-link
             :to="`/marketplace?collection=${collection.id}`"
-            class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden bg-secondary-bg flex items-center justify-center flex-shrink-0 cursor-pointer"
+            class="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-secondary-bg flex items-center justify-center flex-shrink-0 cursor-pointer"
           >
             <img
               v-if="collection.logo && !imageError"
               :src="collection.logo"
               :alt="collection.name"
-              class="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-200"
+              class="w-full h-full object-contain p-1.5 group-hover:scale-105 transition-transform duration-200"
               @error="handleImageError"
             />
             <Icon
               v-else
               icon="mdi:image-off"
-              class="w-10 h-10 text-text-muted/30"
+              class="w-8 h-8 text-text-muted/30"
             />
           </router-link>
 
@@ -38,21 +38,21 @@
             <!-- Title and Description -->
             <router-link
               :to="`/marketplace?collection=${collection.id}`"
-              class="cursor-pointer block mb-3"
+              class="cursor-pointer block mb-2"
             >
-              <h3 class="text-lg sm:text-xl font-bold text-text-primary group-hover:text-primary-color transition-colors mb-1">
+              <h3 class="text-sm sm:text-base font-bold text-text-primary group-hover:text-primary-color transition-colors mb-0.5">
                 {{ collection.name }}
               </h3>
-              <p v-if="collection.description" class="text-sm text-text-secondary line-clamp-2">
+              <p v-if="collection.description" class="text-xs text-text-secondary line-clamp-2">
                 {{ collection.description }}
               </p>
             </router-link>
 
             <!-- Stats Row -->
-            <div class="flex flex-wrap items-center gap-x-6 gap-y-2 mb-2">
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-1.5">
               <!-- Open Trades - Always Visible -->
-              <div class="flex items-center gap-2 text-sm text-text-secondary">
-                <Icon icon="mdi:swap-horizontal" class="w-4 h-4" />
+              <div class="flex items-center gap-1.5 text-xs text-text-secondary">
+                <Icon icon="mdi:swap-horizontal" class="w-3.5 h-3.5" />
                 <span class="font-semibold">{{ openTrades }}</span>
                 <span>{{ openTrades === 1 ? 'trade' : 'trades' }}</span>
               </div>

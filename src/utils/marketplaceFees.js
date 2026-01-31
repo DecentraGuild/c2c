@@ -154,3 +154,62 @@ export function calculateTakerFee(shopFee, tradeValue = 0) {
     totalFee: basePlatformFee + transactionFee + shopTakerFee
   }
 }
+
+/**
+ * Calculate total maker fee (platform + shop) for display
+ * @param {ShopFee|null} shopFee - Shop fee configuration  
+ * @param {number} tradeValue - Trade value in SOL (for percentage fees, optional)
+ * @returns {number} Total maker fee in SOL
+ */
+export function getTotalMakerFee(shopFee, tradeValue = 0) {
+  const platformFee = TRANSACTION_COSTS.PLATFORM_MAKER_FEE
+  
+  if (shopFee && shopFee.wallet) {
+    const shopFeeBreakdown = calculateShopFees(shopFee, true, tradeValue)
+    return platformFee + shopFeeBreakdown.shopFee
+  }
+  
+  return platformFee
+}
+
+/**
+ * Calculate total taker fee (platform + shop) for display
+ * @param {ShopFee|null} shopFee - Shop fee configuration
+ * @param {number} tradeValue - Trade value in SOL (for percentage fees, optional)
+ * @returns {number} Total taker fee in SOL
+ */
+export function getTotalTakerFee(shopFee, tradeValue = 0) {
+  const platformFee = TRANSACTION_COSTS.PLATFORM_TAKER_FEE
+  
+  if (shopFee && shopFee.wallet) {
+    const shopFeeBreakdown = calculateShopFees(shopFee, false, tradeValue)
+    return platformFee + shopFeeBreakdown.shopFee
+  }
+  
+  return platformFee
+}
+
+/**
+ * Format shop fee for display
+ * @param {ShopFee|null} shopFee - Shop fee configuration
+ * @returns {string} Formatted shop fee display string
+ */
+export function formatShopFeeDisplay(shopFee) {
+  if (!shopFee || !shopFee.wallet) {
+    return 'None'
+  }
+  
+  const parts = []
+  
+  if ((shopFee.makerFlatFee && shopFee.makerFlatFee > 0) || 
+      (shopFee.takerFlatFee && shopFee.takerFlatFee > 0)) {
+    parts.push(`${shopFee.makerFlatFee || 0}/${shopFee.takerFlatFee || 0} SOL`)
+  }
+  
+  if ((shopFee.makerPercentFee && shopFee.makerPercentFee > 0) || 
+      (shopFee.takerPercentFee && shopFee.takerPercentFee > 0)) {
+    parts.push(`${shopFee.makerPercentFee || 0}/${shopFee.takerPercentFee || 0}%`)
+  }
+  
+  return parts.length > 0 ? parts.join(' + ') : 'None'
+}

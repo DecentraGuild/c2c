@@ -1,14 +1,14 @@
 <template>
-  <div class="min-h-screen bg-primary-bg py-3 sm:py-4 px-3 sm:px-4">
-    <div class="max-w-4xl mx-auto">
+  <div class="min-h-screen bg-primary-bg py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl mx-auto">
       <!-- Header -->
-      <div class="mb-3 sm:mb-4">
-        <h1 class="text-xl sm:text-2xl font-bold text-text-primary mb-1">Manage Escrows</h1>
-        <p class="text-xs sm:text-sm text-text-secondary">View and manage your escrow transactions</p>
+      <div class="mb-4">
+        <h1 class="text-base sm:text-lg font-bold text-text-primary mb-1">Manage Escrows</h1>
+        <p class="text-xs text-text-secondary">View and manage your escrow transactions</p>
       </div>
 
       <!-- Error Message -->
-      <div v-if="displayError" class="mb-4 p-3 bg-status-error/10 border border-status-error/20 rounded-lg text-sm text-status-error">
+      <div v-if="displayError" class="mb-3 p-2.5 bg-status-error/10 border border-status-error/20 rounded-lg text-xs sm:text-sm text-status-error">
         {{ displayError }}
       </div>
 
@@ -27,10 +27,10 @@
       </div>
 
       <!-- Grouped Escrows -->
-      <div v-else class="space-y-6">
+      <div v-else class="space-y-4">
         <div v-for="group in escrowGroups" :key="group.id" class="card">
           <!-- Group Header -->
-          <div class="flex items-center gap-3 mb-4 pb-4 border-b border-border-color/50">
+          <div class="flex items-center gap-2.5 mb-3 pb-3 border-b border-border-color/50">
             <div v-if="group.collection && group.collection.logo" class="flex-shrink-0">
               <img 
                 :src="group.collection.logo" 
@@ -42,7 +42,7 @@
               <Icon icon="mdi:swap-horizontal" class="w-8 h-8 text-text-muted" />
             </div>
             <div class="flex-1 min-w-0">
-              <h2 class="text-lg font-semibold text-text-primary">{{ group.label }}</h2>
+              <h2 class="text-base font-semibold text-text-primary">{{ group.label }}</h2>
               <p class="text-xs text-text-muted">
                 {{ group.escrows.length }} {{ group.escrows.length === 1 ? 'order' : 'orders' }}
               </p>
@@ -50,7 +50,7 @@
           </div>
 
           <!-- Escrows in Group -->
-          <div class="space-y-4">
+          <div class="space-y-3">
             <EscrowCard
               v-for="escrow in group.escrows"
               :key="escrow.id"
@@ -137,9 +137,9 @@ const activeEscrows = computed(() => {
   if (!connected.value || !publicKey.value) return []
   return escrowStore.activeEscrows.filter(e => e.maker === publicKey.value.toString())
 })
-const loadingEscrows = escrowStore.loadingEscrows
-const loadingCollections = collectionStore.loadingCollections
-const collections = collectionStore.collections
+const loadingEscrows = computed(() => escrowStore.loadingEscrows)
+const loadingCollections = computed(() => collectionStore.loadingCollections)
+const collections = computed(() => collectionStore.collections)
 
 // Group escrows by collection
 const escrowGroups = computed(() => {

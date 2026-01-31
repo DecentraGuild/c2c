@@ -1,46 +1,26 @@
 /**
  * Escrow Store
- * Manages escrow creation and management state
+ * Manages escrow data from blockchain (CRUD operations)
+ * Form state has been moved to escrowForm.js for better separation of concerns
  */
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { validateSolanaAddress, validateExpirationDate, validateSlippage, validateAmount } from '../utils/validators'
 import { fetchAllEscrows } from '../utils/escrowTransactions'
 import { useSolanaConnection } from '../composables/useSolanaConnection'
-import { fromSmallestUnits } from '../utils/formatters'
-import { PublicKey } from '@solana/web3.js'
 import { useTokenStore } from './token'
-import { formatEscrowData, calculateEscrowStatus } from '../utils/escrowHelpers'
+import { formatEscrowData } from '../utils/escrowHelpers'
 import { toPublicKey } from '../utils/solanaUtils'
 import { logError } from '../utils/logger'
+import { BATCH_SIZES } from '../utils/constants'
 
 export const useEscrowStore = defineStore('escrow', () => {
-  // Create escrow form state
-  const offerToken = ref(null)
-  const offerAmount = ref('0.00')
-  const requestToken = ref(null)
-  const requestAmount = ref('0.00')
-  
-  // Settings
-  const settings = ref({
-    direct: false,
-    directAddress: '',
-    whitelist: false,
-    whitelistAddresses: [],
-    expire: false,
-    expireDate: null,
-    partialFill: false,
-    slippage: 1
-  })
-  
   // Escrows list (from blockchain)
   const escrows = ref([])
   const loadingEscrows = ref(false)
   
-  // Centralized error handling
+  // Error handling for data operations
   const errors = ref({
-    form: {},
     transaction: null,
     network: null,
     escrows: null
@@ -51,169 +31,7 @@ export const useEscrowStore = defineStore('escrow', () => {
     return escrows.value.filter(e => e.status !== 'closed')
   })
   
-  const hasValidOffer = computed(() => {
-    return offerToken.value !== null && 
-           parseFloat(offerAmount.value) > 0
-  })
-  
-  const hasValidRequest = computed(() => {
-    return requestToken.value !== null && 
-           parseFloat(requestAmount.value) > 0
-  })
-  
-  const canCreateEscrow = computed(() => {
-    return hasValidOffer.value && hasValidRequest.value
-  })
-  
-  const exchangeRate = computed(() => {
-    if (!hasValidOffer.value || !hasValidRequest.value) return null
-    
-    const offer = parseFloat(offerAmount.value)
-    const request = parseFloat(requestAmount.value)
-    
-    if (offer === 0 || request === 0) return null
-    
-    return {
-      offerToRequest: request / offer,
-      requestToOffer: offer / request
-    }
-  })
-  
-  // Get token store for balance checks
-  const tokenStore = useTokenStore()
-  
-  // Validation computed properties
-  const isValidOfferAmount = computed(() => {
-    if (!offerToken.value) return false
-    const validation = validateAmount(offerAmount.value, {
-      min: 0.000001,
-      decimals: offerToken.value.decimals,
-      balance: tokenStore.getTokenBalance(offerToken.value.mint)
-    })
-    return validation.valid
-  })
-  
-  const isValidRequestAmount = computed(() => {
-    if (!requestToken.value) return false
-    const validation = validateAmount(requestAmount.value, {
-      min: 0.000001,
-      decimals: requestToken.value.decimals
-    })
-    return validation.valid
-  })
-  
-  const isValidDirectAddress = computed(() => {
-    if (!settings.value.direct || !settings.value.directAddress) return true // Optional if not enabled
-    const validation = validateSolanaAddress(settings.value.directAddress)
-    return validation.valid
-  })
-  
-  const isValidExpireDate = computed(() => {
-    if (!settings.value.expire || !settings.value.expireDate) return true // Optional if not enabled
-    const validation = validateExpirationDate(settings.value.expireDate)
-    return validation.valid
-  })
-  
-  const isValidSlippage = computed(() => {
-    if (!settings.value.partialFill) return true // Only validate if partial fill is enabled
-    const validation = validateSlippage(settings.value.slippage)
-    return validation.valid
-  })
-  
-  const isFormValid = computed(() => {
-    return hasValidOffer.value && 
-           hasValidRequest.value && 
-           isValidDirectAddress.value &&
-           isValidExpireDate.value &&
-           isValidSlippage.value &&
-           // Check that offer and request tokens are different
-           (offerToken.value?.mint !== requestToken.value?.mint)
-  })
-  
-  const formValidationErrors = computed(() => {
-    const errors = {}
-    
-    if (!offerToken.value) {
-      errors.offerToken = 'Please select a token to offer'
-    } else if (!isValidOfferAmount.value) {
-      const validation = validateAmount(offerAmount.value, {
-        min: 0.000001,
-        decimals: offerToken.value.decimals,
-        balance: tokenStore.getTokenBalance(offerToken.value.mint)
-      })
-      errors.offerAmount = validation.error || 'Please enter a valid offer amount'
-    }
-    
-    if (!requestToken.value) {
-      errors.requestToken = 'Please select a token to request'
-    } else if (!isValidRequestAmount.value) {
-      const validation = validateAmount(requestAmount.value, {
-        min: 0.000001,
-        decimals: requestToken.value.decimals
-      })
-      errors.requestAmount = validation.error || 'Please enter a valid request amount'
-    }
-    
-    if (offerToken.value && requestToken.value && 
-        offerToken.value.mint === requestToken.value.mint) {
-      errors.tokens = 'Offer and request tokens must be different'
-    }
-    
-    // Only validate optional settings if they are enabled
-    if (settings.value.direct && settings.value.directAddress && !isValidDirectAddress.value) {
-      errors.directAddress = validateSolanaAddress(settings.value.directAddress).error
-    }
-    
-    if (settings.value.expire && settings.value.expireDate && !isValidExpireDate.value) {
-      errors.expireDate = validateExpirationDate(settings.value.expireDate).error
-    }
-    
-    if (settings.value.partialFill && !isValidSlippage.value) {
-      errors.slippage = validateSlippage(settings.value.slippage).error
-    }
-    
-    return errors
-  })
-  
   // Actions
-  const setOfferToken = (token) => {
-    offerToken.value = token
-  }
-  
-  const setOfferAmount = (amount) => {
-    // Ensure amount is always a string
-    offerAmount.value = typeof amount === 'number' ? amount.toString() : (amount || '0.00')
-  }
-  
-  const setRequestToken = (token) => {
-    requestToken.value = token
-  }
-  
-  const setRequestAmount = (amount) => {
-    // Ensure amount is always a string
-    requestAmount.value = typeof amount === 'number' ? amount.toString() : (amount || '0.00')
-  }
-  
-  const updateSettings = (newSettings) => {
-    settings.value = { ...settings.value, ...newSettings }
-  }
-  
-  const resetForm = () => {
-    offerToken.value = null
-    offerAmount.value = '0.00'
-    requestToken.value = null
-    requestAmount.value = '0.00'
-    settings.value = {
-      direct: false,
-      directAddress: '',
-      whitelist: false,
-      whitelistAddresses: [],
-      expire: false,
-      expireDate: null,
-      partialFill: false,
-      slippage: 1
-    }
-  }
   
   const addEscrow = (escrow) => {
     escrows.value.unshift(escrow)
@@ -230,6 +48,11 @@ export const useEscrowStore = defineStore('escrow', () => {
     escrows.value = escrows.value.filter(e => e.id !== escrowId)
   }
   
+  /**
+   * Load escrows from blockchain (optionally filtered by maker)
+   * @param {string|PublicKey|null} makerPublicKey - Optional maker public key to filter by
+   * @returns {Promise<void>}
+   */
   const loadEscrows = async (makerPublicKey = null) => {
     loadingEscrows.value = true
     errors.value.escrows = null
@@ -245,109 +68,117 @@ export const useEscrowStore = defineStore('escrow', () => {
       // Fetch escrows from blockchain
       const rawEscrows = await fetchAllEscrows(connection, makerFilter)
       
+      // Safety check: ensure rawEscrows is an array
+      if (!rawEscrows || !Array.isArray(rawEscrows)) {
+        logError('fetchAllEscrows returned invalid data:', rawEscrows)
+        escrows.value = []
+        errors.value.escrows = 'Invalid data received from blockchain'
+        return
+      }
+      
       // Format escrows with token information
-      const formattedEscrows = await Promise.all(
-        rawEscrows.map(async (escrowData) => {
-          const escrowAccount = escrowData.account
-          const escrowPubkey = escrowData.publicKey
-          
-          // Fetch token info for deposit and request tokens
-          const [depositTokenInfo, requestTokenInfo] = await Promise.all([
-            tokenStore.fetchTokenInfo(escrowAccount.depositToken.toString()),
-            tokenStore.fetchTokenInfo(escrowAccount.requestToken.toString())
-          ])
-          
-          // Format escrow data using helper function
-          const formatted = formatEscrowData(
-            { account: escrowAccount, publicKey: escrowPubkey },
-            depositTokenInfo,
-            requestTokenInfo
-          )
-          
-          // Add createdAt timestamp
-          // Note: For accurate creation time, we would need to fetch the transaction signature
-          // and get blockTime from the transaction. This requires additional RPC calls.
-          // Using current time as fallback - can be enhanced later if needed.
-          return {
-            ...formatted,
-            createdAt: new Date().toISOString()
-          }
-        })
-      )
+      // Process in batches to avoid blocking the UI
+      const formattedEscrows = []
+      
+      for (let i = 0; i < rawEscrows.length; i += BATCH_SIZES.ESCROW_PROCESSING) {
+        const batch = rawEscrows.slice(i, i + BATCH_SIZES.ESCROW_PROCESSING)
+        const batchResults = await Promise.all(
+          batch.map(async (escrowData) => {
+            try {
+              if (!escrowData || !escrowData.account || !escrowData.publicKey) {
+                logError('Invalid escrow data:', escrowData)
+                return null
+              }
+              
+              const escrowAccount = escrowData.account
+              const escrowPubkey = escrowData.publicKey
+              
+              // Fetch token info for deposit and request tokens
+              const [depositTokenInfo, requestTokenInfo] = await Promise.all([
+                tokenStore.fetchTokenInfo(escrowAccount.depositToken.toString()),
+                tokenStore.fetchTokenInfo(escrowAccount.requestToken.toString())
+              ])
+              
+              // Format escrow data using helper function
+              const formatted = formatEscrowData(
+                { account: escrowAccount, publicKey: escrowPubkey },
+                depositTokenInfo,
+                requestTokenInfo
+              )
+              
+              // Add createdAt timestamp
+              // Note: For accurate creation time, we would need to fetch the transaction signature
+              // and get blockTime from the transaction. This requires additional RPC calls.
+              // Using current time as fallback - can be enhanced later if needed.
+              return {
+                ...formatted,
+                createdAt: new Date().toISOString()
+              }
+            } catch (err) {
+              logError('Failed to format escrow:', err)
+              return null
+            }
+          })
+        )
+        
+        // Filter out null values and add to results
+        const validResults = batchResults.filter(e => e !== null)
+        formattedEscrows.push(...validResults)
+      }
       
       escrows.value = formattedEscrows
     } catch (error) {
       logError('Failed to load escrows:', error)
       errors.value.escrows = error.message || 'Failed to load escrows'
+      escrows.value = []
     } finally {
       loadingEscrows.value = false
     }
   }
   
-  const validateForm = () => {
-    errors.value.form = formValidationErrors.value
-    return isFormValid.value
+  /**
+   * Load all escrows from blockchain (convenience method)
+   * Same as loadEscrows(null)
+   */
+  const loadAllEscrows = async () => {
+    return loadEscrows(null)
   }
   
-  const clearFormErrors = () => {
-    errors.value.form = {}
-  }
-  
+  /**
+   * Clear all errors
+   */
   const clearErrors = () => {
     errors.value = {
-      form: {},
       transaction: null,
       network: null,
       escrows: null
     }
   }
   
+  /**
+   * Set a specific error
+   * @param {string} type - Error type ('transaction' | 'network' | 'escrows')
+   * @param {string|null} error - Error message
+   */
   const setError = (type, error) => {
-    if (type === 'form' && typeof error === 'object') {
-      errors.value.form = error
-    } else {
-      errors.value[type] = error
-    }
+    errors.value[type] = error
   }
   
   return {
     // State
-    offerToken,
-    offerAmount,
-    requestToken,
-    requestAmount,
-    settings,
     escrows,
     loadingEscrows,
     errors,
     
     // Computed
     activeEscrows,
-    hasValidOffer,
-    hasValidRequest,
-    canCreateEscrow,
-    exchangeRate,
-    isValidOfferAmount,
-    isValidRequestAmount,
-    isValidDirectAddress,
-    isValidExpireDate,
-    isValidSlippage,
-    isFormValid,
-    formValidationErrors,
     
     // Actions
-    setOfferToken,
-    setOfferAmount,
-    setRequestToken,
-    setRequestAmount,
-    updateSettings,
-    resetForm,
     addEscrow,
     updateEscrow,
     removeEscrow,
     loadEscrows,
-    validateForm,
-    clearFormErrors,
+    loadAllEscrows,
     clearErrors,
     setError
   }

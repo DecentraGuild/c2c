@@ -168,37 +168,39 @@ export function useWalletBalances(options = {}) {
   }
 
   /**
-   * Fetch metadata for all tokens asynchronously (don't wait for all)
-   * Updates balances array as metadata loads
+   * Fetch metadata for all tokens asynchronously
+   * Uses Promise.allSettled to handle all fetches properly
    */
   const fetchAllTokenMetadata = async (tokens) => {
-    // Mark as loading, but don't wait for all metadata
+    // Mark as loading
     loadingMetadata.value = true
     
-    // Start with tokens without metadata (show immediately)
-    const tokensWithMetadata = [...tokens]
-    
-    // Fetch metadata asynchronously and update as they complete
-    // Don't wait for all - update UI as each completes
-    tokens.forEach(async (token, index) => {
-      try {
-        const tokenWithMetadata = await fetchAndUpdateTokenMetadata(token)
-        // Update the token in place
-        tokensWithMetadata[index] = tokenWithMetadata
-        // Trigger reactivity by updating the array
-        balances.value = [...tokensWithMetadata]
-      } catch (err) {
-        // Silently continue - token already has basic info
-      }
-    })
-    
-    // Mark metadata loading as complete immediately (don't wait for all)
-    // This allows UI to show tokens while metadata loads in background
-    setTimeout(() => {
+    try {
+      // Fetch metadata for all tokens in parallel
+      // Use allSettled to ensure all promises complete (both fulfilled and rejected)
+      const metadataPromises = tokens.map((token) => 
+        fetchAndUpdateTokenMetadata(token).catch(() => token)
+      )
+      
+      const results = await Promise.allSettled(metadataPromises)
+      
+      // Extract the token data from settled promises
+      const tokensWithMetadata = results.map((result, index) => {
+        if (result.status === 'fulfilled') {
+          return result.value
+        }
+        // If failed, return original token
+        return tokens[index]
+      })
+      
+      // Update balances once with all metadata
+      balances.value = tokensWithMetadata
+      
+      return tokensWithMetadata
+    } finally {
+      // Always mark loading as complete
       loadingMetadata.value = false
-    }, 100) // Small delay to allow initial metadata fetches to start
-    
-    return tokensWithMetadata
+    }
   }
 
   /**

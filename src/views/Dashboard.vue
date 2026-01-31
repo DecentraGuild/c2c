@@ -1,12 +1,12 @@
 <template>
-  <div class="min-h-screen bg-primary-bg py-3 sm:py-4 px-3 sm:px-4">
-    <div class="max-w-7xl mx-auto">
+  <div class="min-h-screen bg-primary-bg py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-6xl mx-auto">
       <!-- Hero Section -->
-      <div class="text-center mb-8 sm:mb-12">
-        <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-text-primary mb-4 sm:mb-6 leading-tight">
+      <div class="text-center mb-6 sm:mb-8">
+        <h1 class="text-xl sm:text-2xl font-bold text-text-primary mb-2 sm:mb-3 leading-tight">
           Explore Marketplaces Across the Solana Ecosystem
         </h1>
-        <p class="max-w-2xl mx-auto text-lg sm:text-xl text-text-secondary mb-8 leading-relaxed">
+        <p class="max-w-2xl mx-auto text-sm sm:text-base text-text-secondary mb-4 leading-relaxed">
           Buy, sell, and trade across official and community-run storefronts, each with their own branding, collections, currencies, and pricing.
         </p>
       </div>
@@ -14,9 +14,9 @@
       <!-- Marketplaces Section -->
       <div class="mb-6">
         <!-- Title, Search Bar, and View Toggle - All on One Row, Same Width as Marketplaces -->
-        <div class="flex items-center gap-4 mb-4 sm:mb-6">
+        <div class="flex items-center gap-2 sm:gap-3 mb-3">
           <!-- Title - Left -->
-          <h2 class="text-xl sm:text-2xl font-bold text-text-primary flex-shrink-0">Marketplaces</h2>
+          <h2 class="text-base sm:text-lg font-bold text-text-primary flex-shrink-0">Marketplaces</h2>
           
           <!-- Search Bar - Center (flexible, takes remaining space) -->
           <BaseSearchInput
@@ -34,9 +34,9 @@
           <!-- Create Marketplace Button -->
           <router-link
             to="/onboard"
-            class="flex-shrink-0 px-4 py-2 bg-primary-color text-white rounded-lg hover:bg-primary-color/90 transition-colors text-sm font-semibold flex items-center gap-2"
+            class="flex-shrink-0 px-3 py-2 bg-primary-color text-white rounded-lg hover:bg-primary-color/90 transition-colors text-sm font-semibold flex items-center gap-2"
           >
-            <Icon icon="mdi:plus-circle" class="w-5 h-5" />
+            <Icon icon="mdi:plus-circle" class="w-4 h-4" />
             <span class="hidden sm:inline">Create Marketplace</span>
             <span class="sm:hidden">Create</span>
           </router-link>
@@ -56,7 +56,8 @@
         <!-- Marketplaces Grid/List -->
         <div v-else-if="filteredCollections.length > 0">
           <!-- Tile View -->
-          <div v-if="viewMode === 'tile'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div v-if="viewMode === 'tile'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+            <!-- Cards will auto-size based on grid, max ~280-320px each -->
             <CollectionCard
               v-for="collection in filteredCollections"
               :key="collection.id"
@@ -97,10 +98,12 @@ import BaseEmptyState from '../components/BaseEmptyState.vue'
 import CollectionCard from '../components/CollectionCard.vue'
 import CollectionListItem from '../components/CollectionListItem.vue'
 import { useCollectionStore } from '../stores/collection'
+import { useEscrowStore } from '../stores/escrow'
 import { useViewMode } from '../composables/useViewMode'
 import { simpleDebounce } from '../utils/debounce'
 
 const collectionStore = useCollectionStore()
+const escrowStore = useEscrowStore()
 const { viewMode } = useViewMode('dashboard-view-mode', 'tile')
 const searchQuery = ref('')
 const debouncedSearchQuery = ref('')
@@ -143,7 +146,10 @@ onMounted(async () => {
     await collectionStore.loadCollections()
   }
   
-  // Refresh open trades counts
-  await collectionStore.refreshOpenTradesCounts()
+  // Load all escrows from blockchain via escrow store
+  await escrowStore.loadAllEscrows()
+  
+  // Calculate open trades counts from loaded escrows (pass escrows directly)
+  collectionStore.refreshOpenTradesCounts(escrowStore.escrows)
 })
 </script>

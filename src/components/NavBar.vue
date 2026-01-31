@@ -2,13 +2,13 @@
   <nav class="bg-primary-bg/95 backdrop-blur-xl border-b border-border-color sticky top-0 z-50 safe-area-top safe-area-x">
     <div class="max-w-7xl mx-auto px-3 sm:px-4">
       <!-- Mobile Layout -->
-      <div class="flex items-center justify-between h-14 sm:h-16 md:hidden">
+      <div class="flex items-center justify-between h-12 sm:h-14 md:hidden">
         <!-- Logo -->
-        <div class="flex items-center gap-2 flex-shrink-0">
-          <router-link to="/" class="flex items-center hover:opacity-80 transition-opacity">
-            <img src="/dguild-logo-p2p.svg" alt="DecentraGuild Logo" class="w-8 h-8 sm:w-10 sm:h-10" />
-          </router-link>
-        </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <router-link to="/" class="flex items-center hover:opacity-80 transition-opacity">
+              <img src="/dguild-logo-p2p.svg" alt="DecentraGuild Logo" class="w-7 h-7 sm:w-8 sm:h-8" />
+            </router-link>
+          </div>
 
         <!-- Mobile Menu Button and Wallet -->
         <div class="flex items-center gap-2">
@@ -102,7 +102,7 @@
       </div>
 
       <!-- Desktop Layout - Single Adaptive Layer -->
-      <div class="hidden md:flex items-center h-14 transition-all duration-300">
+      <div class="hidden md:flex items-center h-12 transition-all duration-300">
         <!-- Platform Context: Show when on platform routes OR when no collection selected -->
         <template v-if="isPlatformRoute || !selectedCollectionId">
           <!-- Logo/Brand - Left -->
@@ -143,7 +143,7 @@
         <!-- Collection Context: Show when collection selected AND on collection routes -->
         <template v-else-if="selectedCollectionId && isCollectionRoute">
           <!-- Collection Logo - Left (fit height, auto width) -->
-          <div class="flex items-center gap-2 flex-shrink-0 h-8">
+          <div class="flex items-center gap-2 flex-shrink-0 h-7">
             <img
               v-if="selectedCollection?.logo"
               :src="selectedCollection.logo"
@@ -153,12 +153,12 @@
             <Icon
               v-else
               icon="mdi:image-off"
-              class="h-8 w-8 text-text-muted"
+              class="h-7 w-7 text-text-muted"
             />
           </div>
 
           <!-- Collection Selector - Next to Logo (with spacing) -->
-          <div class="flex items-center gap-2 flex-shrink-0 ml-3">
+          <div class="flex items-center gap-2 flex-shrink-0 ml-2">
             <NavBarCollectionSelector
               v-model="selectedCollectionId"
               hide-logo
@@ -167,10 +167,10 @@
           </div>
 
           <!-- Collection Navigation Tabs - Centered -->
-          <div class="flex-1 flex items-center justify-center gap-2">
+          <div class="flex-1 flex items-center justify-center gap-1.5">
             <router-link
               to="/marketplace"
-              class="px-3 py-2 text-sm font-semibold rounded-lg transition-all nav-link"
+              class="px-2.5 py-1.5 text-sm font-semibold rounded-lg transition-all nav-link"
               :class="isActive('/marketplace') 
                 ? 'text-primary-color' 
                 : 'text-text-secondary hover:text-primary-color transition-all duration-300'"
@@ -179,7 +179,7 @@
             </router-link>
             <router-link
               to="/create"
-              class="px-3 py-2 text-sm font-semibold rounded-lg transition-all nav-link"
+              class="px-2.5 py-1.5 text-sm font-semibold rounded-lg transition-all nav-link"
               :class="isActive('/create') 
                 ? 'text-primary-color' 
                 : 'text-text-secondary hover:text-primary-color transition-all duration-300'"
@@ -188,7 +188,7 @@
             </router-link>
             <router-link
               to="/manage"
-              class="px-3 py-2 text-sm font-semibold rounded-lg transition-all nav-link"
+              class="px-2.5 py-1.5 text-sm font-semibold rounded-lg transition-all nav-link"
               :class="isActive('/manage') 
                 ? 'text-primary-color' 
                 : 'text-text-secondary hover:text-primary-color transition-all duration-300'"
@@ -208,15 +208,15 @@
           <!-- Logo/Brand - Left -->
           <div class="flex items-center gap-2 flex-shrink-0">
             <router-link to="/" class="flex items-center hover:opacity-80 transition-opacity">
-              <img src="/dguild-logo-p2p.svg" alt="DecentraGuild Logo" class="w-8 h-8" />
+              <img src="/dguild-logo-p2p.svg" alt="DecentraGuild Logo" class="w-7 h-7" />
             </router-link>
           </div>
 
           <!-- Platform Navigation Links - Centered -->
-          <div class="flex-1 flex items-center justify-center gap-4">
+          <div class="flex-1 flex items-center justify-center gap-3">
             <router-link
               to="/"
-              class="px-3 py-2 text-sm font-semibold rounded-lg transition-all nav-link"
+              class="px-2.5 py-1.5 text-sm font-semibold rounded-lg transition-all nav-link"
               :class="isActive('/') 
                 ? 'text-primary-color' 
                 : 'text-text-secondary hover:text-primary-color transition-all duration-300'"
@@ -225,7 +225,7 @@
             </router-link>
             <router-link
               to="/onboard"
-              class="px-3 py-2 text-sm font-semibold rounded-lg transition-all nav-link"
+              class="px-2.5 py-1.5 text-sm font-semibold rounded-lg transition-all nav-link"
               :class="isActive('/onboard') 
                 ? 'text-primary-color' 
                 : 'text-text-secondary hover:text-primary-color transition-all duration-300'"

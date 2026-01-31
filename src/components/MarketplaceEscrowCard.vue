@@ -1,33 +1,36 @@
 <template>
   <router-link
     :to="`/escrow/${escrow.id}`"
-    class="card hover:border-primary-color/50 transition-all duration-200 hover:shadow-lg block h-full"
+    class="card hover:border-primary-color/50 transition-all duration-200 hover:shadow-lg block h-full w-full"
   >
     <!-- Card View (Vertical) -->
-    <div v-if="viewMode === 'card'" class="flex flex-col h-full">
+    <div v-if="viewMode === 'card'" class="p-3 sm:p-4 flex flex-col h-full">
       <!-- Trade Type Badge -->
-      <div class="mb-3">
+      <div class="flex items-center justify-between mb-3">
         <span
           :class="[
-            'px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap',
+            'px-2.5 py-1 rounded-lg text-xs font-bold',
             tradeTypeClass,
             tradeTypeBgClass
           ]"
         >
           {{ tradeTypeLabel }}
         </span>
+        <span class="text-xs text-text-muted">
+          {{ escrow.allowPartialFill ? 'Partial' : 'Full' }}
+        </span>
       </div>
 
       <!-- Token Images -->
-      <div class="relative w-full aspect-square mb-4 rounded-lg overflow-hidden bg-secondary-bg flex items-center justify-center">
-        <div class="absolute inset-0 flex items-center justify-center gap-4 p-4">
+      <div class="relative w-full aspect-[2/1] mb-3 rounded-lg overflow-hidden bg-secondary-bg flex items-center justify-center">
+        <div class="absolute inset-0 flex items-center justify-center gap-3 p-4">
           <!-- Deposit Token Image -->
           <div class="flex-1 flex flex-col items-center justify-center">
             <img
               v-if="depositTokenImage"
               :src="depositTokenImage"
               :alt="depositTokenDisplayName"
-              class="w-full h-full max-w-24 max-h-24 object-contain"
+              class="w-full h-full max-w-20 max-h-20 object-contain"
             />
             <Icon
               v-else
@@ -45,7 +48,7 @@
               v-if="requestTokenImage"
               :src="requestTokenImage"
               :alt="requestTokenDisplayName"
-              class="w-full h-full max-w-24 max-h-24 object-contain"
+              class="w-full h-full max-w-20 max-h-20 object-contain"
             />
             <Icon
               v-else
@@ -57,135 +60,127 @@
       </div>
 
       <!-- Token Info -->
-      <div class="flex-1 flex flex-col">
+      <div class="space-y-2.5 flex-1">
         <!-- Deposit Token -->
-        <div class="mb-3">
-          <div class="text-base font-semibold text-text-primary mb-1">
-            {{ formatAmount(escrow.depositRemaining) }}
+        <div>
+          <div class="text-sm font-semibold text-text-primary">
+            {{ formatAmount(escrow.depositRemaining) }} {{ depositTokenDisplayName }}
           </div>
-          <div class="text-sm text-text-secondary line-clamp-2" :title="depositTokenDisplayName">
-            {{ depositTokenDisplayName }}
-          </div>
+          <div class="text-xs text-text-secondary">Offering</div>
         </div>
 
         <!-- Request Token -->
-        <div class="mb-4">
-          <div class="text-base font-semibold text-text-primary mb-1">
-            {{ formatAmount(escrow.requestAmount) }}
+        <div>
+          <div class="text-sm font-semibold text-text-primary">
+            {{ formatAmount(escrow.requestAmount) }} {{ requestTokenDisplayName }}
           </div>
-          <div class="text-sm text-text-secondary line-clamp-2" :title="requestTokenDisplayName">
-            {{ requestTokenDisplayName }}
-          </div>
+          <div class="text-xs text-text-secondary">Requesting</div>
         </div>
 
         <!-- Price & Status -->
-        <div class="pt-4 border-t border-border-color mt-auto">
-          <div class="text-sm font-semibold text-text-primary mb-1">
+        <div class="pt-2.5 border-t border-border-color mt-auto">
+          <div class="text-xs text-text-muted mb-1">Price</div>
+          <div class="text-sm font-semibold text-text-primary">
             {{ formatPrice(escrow.price) }}
-          </div>
-          <div class="text-xs text-text-secondary mb-2">
-            {{ escrow.allowPartialFill ? 'Partial Fill' : 'Full Fill' }}
-          </div>
-          <!-- User Balance Indicator -->
-          <div
-            v-if="canFill"
-            class="flex items-center gap-1 text-xs text-primary-color"
-          >
-            <Icon icon="mdi:check-circle" class="w-4 h-4" />
-            <span>You can fill</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- List View (Horizontal) -->
-    <div v-else class="flex items-center gap-4 py-2">
-      <!-- Trade Type Badge - Fixed Width -->
-      <div class="flex-shrink-0 self-center w-16 flex items-center justify-center">
+    <!-- List View (Horizontal) - Compact with vertical badge on mobile -->
+    <div v-else class="flex items-stretch gap-2 sm:gap-3 p-2 sm:p-2.5">
+      <!-- Trade Type Badge - Vertical on mobile, horizontal on desktop -->
+      <div class="flex-shrink-0 flex items-center">
+        <!-- Mobile: Vertical -->
+        <div
+          class="sm:hidden px-1 py-2 rounded text-[10px] font-bold whitespace-nowrap"
+          :class="[tradeTypeClass, tradeTypeBgClass]"
+          style="writing-mode: vertical-rl; text-orientation: mixed;"
+        >
+          {{ tradeTypeLabel }}
+        </div>
+        <!-- Desktop: Horizontal -->
         <span
-          :class="[
-            'px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap',
-            tradeTypeClass,
-            tradeTypeBgClass
-          ]"
+          class="hidden sm:inline-block px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap"
+          :class="[tradeTypeClass, tradeTypeBgClass]"
         >
           {{ tradeTypeLabel }}
         </span>
       </div>
 
       <!-- Token Info -->
-      <div class="flex-1 min-w-0 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+      <div class="flex-1 min-w-0 flex items-center gap-2 sm:gap-4">
         <!-- Deposit Token -->
-        <div class="flex items-center gap-3 min-w-0">
-          <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center">
+        <div class="flex items-center gap-2 min-w-0 flex-1">
+          <div class="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center">
             <img
               v-if="depositTokenImage"
               :src="depositTokenImage"
               :alt="depositTokenDisplayName"
-              class="w-12 h-12 rounded-lg object-cover"
+              class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg object-cover"
             />
             <Icon
               v-else
               icon="mdi:coin"
-              class="w-12 h-12 text-text-muted"
+              class="w-10 h-10 sm:w-12 sm:h-12 text-text-muted"
             />
           </div>
-          <div class="min-w-0 flex-1 flex flex-col justify-center">
-            <div class="font-semibold text-text-primary text-base leading-tight">
+          <div class="min-w-0 flex-1">
+            <div class="font-semibold text-text-primary text-sm leading-tight">
               {{ formatAmount(escrow.depositRemaining) }}
             </div>
-            <div class="text-sm text-text-secondary truncate leading-tight mt-0.5" :title="depositTokenDisplayName">
+            <div class="text-xs text-text-secondary truncate leading-tight mt-0.5" :title="depositTokenDisplayName">
               {{ depositTokenDisplayName }}
             </div>
           </div>
         </div>
 
         <!-- Arrow -->
-        <div class="flex-shrink-0 flex items-center justify-center">
-          <Icon icon="mdi:arrow-right" class="w-5 h-5 text-text-muted" />
+        <div class="flex-shrink-0">
+          <Icon icon="mdi:arrow-right" class="w-4 h-4 sm:w-5 sm:h-5 text-text-muted" />
         </div>
 
         <!-- Request Token -->
-        <div class="flex items-center gap-3 min-w-0">
-          <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center">
+        <div class="flex items-center gap-2 min-w-0 flex-1">
+          <div class="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center">
             <img
               v-if="requestTokenImage"
               :src="requestTokenImage"
               :alt="requestTokenDisplayName"
-              class="w-12 h-12 rounded-lg object-cover"
+              class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg object-cover"
             />
             <Icon
               v-else
               icon="mdi:coin"
-              class="w-12 h-12 text-text-muted"
+              class="w-10 h-10 sm:w-12 sm:h-12 text-text-muted"
             />
           </div>
-          <div class="min-w-0 flex-1 flex flex-col justify-center">
-            <div class="font-semibold text-text-primary text-base leading-tight">
+          <div class="min-w-0 flex-1">
+            <div class="font-semibold text-text-primary text-sm leading-tight">
               {{ formatAmount(escrow.requestAmount) }}
             </div>
-            <div class="text-sm text-text-secondary truncate leading-tight mt-0.5" :title="requestTokenDisplayName">
+            <div class="text-xs text-text-secondary truncate leading-tight mt-0.5" :title="requestTokenDisplayName">
               {{ requestTokenDisplayName }}
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Price & Status - Fixed Width -->
-      <div class="flex-shrink-0 text-right self-center w-24">
-        <div class="text-base font-semibold text-text-primary leading-tight">
+      <!-- Price & Status -->
+      <div class="flex-shrink-0 text-right flex flex-col justify-center min-w-[80px] sm:min-w-[100px]">
+        <div class="text-sm font-semibold text-text-primary leading-tight">
           {{ formatPrice(escrow.price) }}
         </div>
-        <div class="text-sm text-text-secondary leading-tight mt-1">
-          {{ escrow.allowPartialFill ? 'Partial Fill' : 'Full Fill' }}
+        <div class="text-xs text-text-secondary leading-tight mt-1">
+          {{ escrow.allowPartialFill ? 'Partial' : 'Full' }}
         </div>
         <!-- User Balance Indicator -->
         <div
           v-if="canFill"
           class="flex items-center justify-end gap-1 text-xs text-primary-color mt-1.5"
         >
-          <Icon icon="mdi:check-circle" class="w-4 h-4" />
-          <span>You can fill</span>
+          <Icon icon="mdi:check-circle" class="w-3.5 h-3.5" />
+          <span class="hidden sm:inline">Can fill</span>
         </div>
       </div>
     </div>

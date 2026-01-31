@@ -4,7 +4,7 @@
  */
 
 import { logError, logDebug } from './logger'
-import { SEARCH_LIMITS } from './constants/ui'
+import { SEARCH_LIMITS, BATCH_SIZES } from './constants/ui'
 
 /**
  * Get Helius API key from environment
@@ -160,10 +160,9 @@ export async function fetchNFTsByCreatorFromHelius(creatorAddress) {
     
     // Fetch full NFT data for each mint using DAS API getAsset
     const allNFTs = []
-    const batchSize = 50 // Process in batches to avoid overwhelming the API
     
-    for (let i = 0; i < mints.length; i += batchSize) {
-      const batch = mints.slice(i, i + batchSize)
+    for (let i = 0; i < mints.length; i += BATCH_SIZES.NFT_METADATA_FETCH) {
+      const batch = mints.slice(i, i + BATCH_SIZES.NFT_METADATA_FETCH)
       const nftPromises = batch.map(mint => fetchNFTByMint(mint))
       const batchNFTs = await Promise.all(nftPromises)
       allNFTs.push(...batchNFTs.filter(nft => nft !== null))
@@ -391,15 +390,17 @@ function formatDASNFT(dasAsset) {
   const id = dasAsset.id || dasAsset.mint || ''
   const content = dasAsset.content || {}
   const metadata = content.metadata || {}
+  const json = content.json || {}
   const files = content.files || []
   
-  // Extract image
+  // Extract image (following Helius DAS structure)
+  // Priority: files[0].uri > json.image > metadata.image > content.image
   let image = null
   if (files && files.length > 0) {
     image = files[0]?.uri || files[0]?.cdn_uri || null
   }
   if (!image) {
-    image = metadata.image || content.image || null
+    image = json.image || metadata.image || content.image || null
   }
   
   // Extract collection info from grouping
@@ -420,8 +421,11 @@ function formatDASNFT(dasAsset) {
     uri: content.json_uri || content.uri || metadata.uri || null,
     isCollectionItem: true,
     fetchingType: 'NFT',
-    attributes: metadata.attributes || [],
-    collection: collectionMint
+    attributes: json.attributes || metadata.attributes || [],
+    collection: collectionMint,
+    // Store ownership and compression info for future use
+    owner: dasAsset.ownership?.owner || null,
+    compressed: dasAsset.compression?.compressed ?? false
   }
 }
 

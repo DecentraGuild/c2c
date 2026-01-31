@@ -40,7 +40,7 @@ export function useErrorDisplay({ txError = null, errorTypes = ['transaction', '
     }
 
     // Check first form field error
-    if (errorTypes.includes('form')) {
+    if (errorTypes.includes('form') && escrowStore.errors.form) {
       const formErrors = escrowStore.errors.form
       const firstError = Object.values(formErrors).find(error => error)
       if (firstError) return firstError

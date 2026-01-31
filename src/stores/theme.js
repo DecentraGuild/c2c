@@ -76,6 +76,29 @@ const defaultTheme = {
     mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
   },
   
+  // Font sizes (in rem)
+  fontSize: {
+    xs: '0.75rem',      // 12px
+    sm: '0.875rem',     // 14px
+    base: '1rem',       // 16px
+    lg: '1.125rem',     // 18px
+    xl: '1.25rem',      // 20px
+    '2xl': '1.5rem',    // 24px
+    '3xl': '1.875rem',  // 30px
+    '4xl': '2.25rem',   // 36px
+    '5xl': '3rem',      // 48px
+  },
+  
+  // Spacing scale (in rem) - for padding, margins, gaps
+  spacing: {
+    xs: '0.5rem',    // 8px
+    sm: '0.75rem',   // 12px
+    md: '1rem',      // 16px
+    lg: '1.5rem',    // 24px
+    xl: '2rem',      // 32px
+    '2xl': '3rem',   // 48px
+  },
+  
   // Border radius
   borderRadius: {
     sm: '0.5rem',   // 8px
@@ -137,6 +160,8 @@ export const useThemeStore = defineStore('theme', () => {
   // Computed properties for easy access
   const colors = computed(() => currentTheme.value.colors)
   const fonts = computed(() => currentTheme.value.fonts)
+  const fontSize = computed(() => currentTheme.value.fontSize)
+  const spacing = computed(() => currentTheme.value.spacing)
   const borderRadius = computed(() => currentTheme.value.borderRadius)
   const borderWidth = computed(() => currentTheme.value.borderWidth)
   const branding = computed(() => currentTheme.value.branding)
@@ -198,6 +223,25 @@ export const useThemeStore = defineStore('theme', () => {
       '--theme-window-bg': theme.colors.window.background,
       '--theme-window-border': theme.colors.window.border,
       '--theme-window-header': theme.colors.window.header,
+      
+      // Font sizes
+      '--theme-font-xs': theme.fontSize.xs,
+      '--theme-font-sm': theme.fontSize.sm,
+      '--theme-font-base': theme.fontSize.base,
+      '--theme-font-lg': theme.fontSize.lg,
+      '--theme-font-xl': theme.fontSize.xl,
+      '--theme-font-2xl': theme.fontSize['2xl'],
+      '--theme-font-3xl': theme.fontSize['3xl'],
+      '--theme-font-4xl': theme.fontSize['4xl'],
+      '--theme-font-5xl': theme.fontSize['5xl'],
+      
+      // Spacing
+      '--theme-space-xs': theme.spacing.xs,
+      '--theme-space-sm': theme.spacing.sm,
+      '--theme-space-md': theme.spacing.md,
+      '--theme-space-lg': theme.spacing.lg,
+      '--theme-space-xl': theme.spacing.xl,
+      '--theme-space-2xl': theme.spacing['2xl'],
       
       // Border radius
       '--theme-radius-sm': theme.borderRadius.sm,
@@ -277,6 +321,14 @@ export const useThemeStore = defineStore('theme', () => {
             ...defaultTheme.colors.window,
             ...(themeData.colors?.window || {}),
           },
+        },
+        fontSize: {
+          ...defaultTheme.fontSize,
+          ...(themeData.fontSize || {}),
+        },
+        spacing: {
+          ...defaultTheme.spacing,
+          ...(themeData.spacing || {}),
         },
         borderRadius: {
           ...defaultTheme.borderRadius,
@@ -453,6 +505,8 @@ export const useThemeStore = defineStore('theme', () => {
     // Computed
     colors,
     fonts,
+    fontSize,
+    spacing,
     borderRadius,
     borderWidth,
     branding,

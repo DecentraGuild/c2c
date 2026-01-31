@@ -1,9 +1,9 @@
 <template>
-  <div class="bg-secondary-bg/50 rounded-xl p-4 border border-border-color hover:border-primary-color/40 transition-all">
+  <div class="bg-secondary-bg/50 rounded-xl p-3 border border-border-color hover:border-primary-color/40 transition-all">
     <!-- Header Row -->
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-start gap-3 sm:gap-0 sm:justify-between mb-4">
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-start gap-2 sm:gap-0 sm:justify-between mb-3">
       <div class="flex-1 min-w-0">
-        <div class="flex flex-wrap items-center gap-2 mb-2">
+        <div class="flex flex-wrap items-center gap-1.5 mb-1.5">
           <span
             :class="[
               'px-2 py-0.5 rounded text-xs font-semibold',
@@ -24,9 +24,9 @@
         </div>
         
         <!-- Trade Details -->
-        <div class="space-y-2">
+        <div class="space-y-1.5">
           <div class="flex items-center gap-2">
-            <span class="text-text-muted text-sm">Offering:</span>
+            <span class="text-text-muted text-xs">Offering:</span>
             <TokenAmountDisplay
               :token="escrow.depositToken"
               :amount="escrow.depositRemaining"
@@ -35,7 +35,7 @@
             />
           </div>
           <div class="flex items-center gap-2">
-            <span class="text-text-muted text-sm">Requesting:</span>
+            <span class="text-text-muted text-xs">Requesting:</span>
             <TokenAmountDisplay
               :token="escrow.requestToken"
               :amount="escrow.requestAmount"
@@ -43,8 +43,8 @@
               icon-size="sm"
             />
           </div>
-          <div v-if="escrow.expireTimestamp > 0" class="flex items-center gap-2">
-            <Icon icon="mdi:clock-outline" class="w-4 h-4 text-text-muted" />
+          <div v-if="escrow.expireTimestamp > 0" class="flex items-center gap-1.5">
+            <Icon icon="mdi:clock-outline" class="w-3.5 h-3.5 text-text-muted" />
             <span class="text-text-muted text-xs">
               Expires: {{ formatTimestamp(escrow.expireTimestamp * 1000) }}
             </span>
@@ -53,22 +53,22 @@
       </div>
       
       <!-- Action Buttons -->
-      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:ml-4">
-        <div class="flex gap-2">
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 sm:ml-3">
+        <div class="flex gap-1.5">
           <button
             @click="$emit('share', escrow)"
-            class="btn-secondary text-sm py-2.5 sm:py-2 px-3 sm:px-4 inline-flex items-center justify-center gap-2 flex-1 sm:flex-initial min-h-[44px]"
+            class="btn-secondary text-xs py-2 px-2.5 inline-flex items-center justify-center gap-1.5 flex-1 sm:flex-initial min-h-[40px]"
             title="Share escrow"
           >
-            <Icon icon="mdi:share-variant" class="w-4 h-4" />
+            <Icon icon="mdi:share-variant" class="w-3.5 h-3.5" />
             <span class="hidden sm:inline">Share</span>
           </button>
           <router-link
             :to="`/escrow/${escrow.id}`"
-            class="btn-secondary text-sm py-2.5 sm:py-2 px-3 sm:px-4 inline-flex items-center justify-center gap-2 flex-1 sm:flex-initial min-h-[44px]"
+            class="btn-secondary text-xs py-2 px-2.5 inline-flex items-center justify-center gap-1.5 flex-1 sm:flex-initial min-h-[40px]"
             title="View details"
           >
-            <Icon icon="mdi:eye" class="w-4 h-4" />
+            <Icon icon="mdi:eye" class="w-3.5 h-3.5" />
             <span class="hidden sm:inline">Details</span>
           </router-link>
         </div>
@@ -76,7 +76,7 @@
           v-if="escrow.status === 'filled'"
           @click="$emit('claim', escrow)"
           :disabled="loading"
-          class="btn-primary text-sm py-2.5 sm:py-2 px-3 sm:px-4 inline-flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px] w-full sm:w-auto"
+          class="btn-primary text-xs py-2 px-2.5 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 min-h-[40px] w-full sm:w-auto"
           title="Complete escrow and recover rent"
         >
           <Icon v-if="loading" icon="svg-spinners:ring-resize" class="w-4 h-4" />

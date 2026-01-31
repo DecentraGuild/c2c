@@ -1,14 +1,14 @@
 <template>
-  <div class="min-h-screen bg-primary-bg py-3 sm:py-4 px-3 sm:px-4">
-    <div class="max-w-3xl mx-auto">
+  <div class="min-h-screen bg-primary-bg py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-2xl mx-auto">
       <!-- Header -->
-      <div class="text-center mb-3 sm:mb-4">
-        <h1 class="text-xl sm:text-2xl font-bold text-text-primary mb-1">CREATE ESCROW</h1>
-        <p class="text-xs sm:text-sm text-text-secondary">Secure SPL token escrow for Solana</p>
+      <div class="text-center mb-4">
+        <h1 class="text-base sm:text-lg font-bold text-text-primary mb-1">CREATE ESCROW</h1>
+        <p class="text-xs text-text-secondary">Secure SPL token escrow for Solana</p>
       </div>
 
       <!-- Main Card -->
-      <div class="card space-y-3">
+      <div class="card space-y-2.5">
         <!-- Offer Section -->
         <TokenAmountSelector
           type="offer"
@@ -46,16 +46,16 @@
         />
 
         <!-- Error Message -->
-        <div v-if="displayError" class="p-3 bg-status-error/10 border border-status-error/20 rounded-lg text-sm text-status-error">
+        <div v-if="displayError" class="p-2.5 bg-status-error/10 border border-status-error/20 rounded-lg text-xs sm:text-sm text-status-error">
           {{ displayError }}
         </div>
 
         <!-- Action Button -->
-        <div class="pt-2">
+        <div class="pt-1.5">
           <button 
             @click="handleCreateEscrow"
             :disabled="!canSubmit || loading"
-            class="btn-primary w-full py-3 sm:py-2.5 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base min-h-[44px]"
+            class="btn-primary w-full py-2.5 sm:py-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm min-h-[44px]"
           >
             <span v-if="loading">Creating Escrow...</span>
             <span v-else>Create Escrow</span>
@@ -63,10 +63,10 @@
         </div>
 
         <!-- Transaction Cost Breakdown -->
-        <div class="pt-2 border-t border-border-color">
-          <div v-if="costBreakdown" class="space-y-1.5">
-            <div class="text-xs text-text-muted mb-1.5">Transaction Costs</div>
-            <div class="space-y-1">
+        <div class="pt-1.5 border-t border-border-color">
+          <div v-if="costBreakdown" class="space-y-1">
+            <div class="text-xs text-text-muted mb-1">Transaction Costs</div>
+            <div class="space-y-0.5">
               <!-- Solana Token Accounts (includes all recoverable accounts) -->
               <div
                 v-for="item in costBreakdown.items.filter(item => item.label.includes('Solana Token Accounts'))"
@@ -86,12 +86,12 @@
                 <span class="text-text-primary font-medium">{{ formatDecimals(item.amount) }} SOL</span>
               </div>
             </div>
-            <div class="pt-1.5 border-t border-border-color/50 flex items-center justify-between">
-              <span class="text-text-primary font-semibold">Total Costs</span>
-              <span class="text-text-primary font-bold">{{ formatDecimals(costBreakdown.total) }} SOL</span>
+            <div class="pt-1 border-t border-border-color/50 flex items-center justify-between">
+              <span class="text-text-primary font-semibold text-xs">Total Costs</span>
+              <span class="text-text-primary font-bold text-xs">{{ formatDecimals(costBreakdown.total) }} SOL</span>
             </div>
             <!-- Deposit -->
-            <div v-if="offerToken && offerAmount" class="pt-1.5 border-t border-border-color/50 flex items-center justify-between text-xs">
+            <div v-if="offerToken && offerAmount" class="pt-1 border-t border-border-color/50 flex items-center justify-between text-xs">
               <span class="text-text-primary font-semibold">Deposit</span>
               <div class="flex items-center gap-1.5">
                 <span class="text-text-primary font-bold">{{ formatDecimals(offerAmount) }}</span>
@@ -141,6 +141,7 @@ import PriceDisplay from '../components/PriceDisplay.vue'
 import AdditionalSettings from '../components/AdditionalSettings.vue'
 import PricingModal from '../components/PricingModal.vue'
 import { useEscrowStore } from '../stores/escrow'
+import { useEscrowFormStore } from '../stores/escrowForm'
 import { useCollectionStore } from '../stores/collection'
 import { useEscrowTransactions } from '../composables/useEscrowTransactions'
 import { useSolanaConnection } from '../composables/useSolanaConnection'
@@ -161,6 +162,7 @@ import { logError } from '../utils/logger'
 
 const router = useRouter()
 const escrowStore = useEscrowStore()
+const formStore = useEscrowFormStore()
 const collectionStore = useCollectionStore()
 const walletAdapter = useWallet()
 const anchorWallet = useAnchorWallet() // Get Anchor-compatible wallet
@@ -178,7 +180,7 @@ const showPricing = ref(false)
 
 const canSubmit = computed(() => {
   // Ensure Anchor wallet is available for transaction building
-  return escrowStore.isFormValid && 
+  return formStore.isFormValid && 
          connected.value && 
          !!anchorWallet.value && 
          !loading.value && 
@@ -187,71 +189,71 @@ const canSubmit = computed(() => {
 
 // Create computed properties with getters/setters for v-model compatibility
 const offerToken = computed({
-  get: () => escrowStore.offerToken,
-  set: (value) => escrowStore.setOfferToken(value)
+  get: () => formStore.offerToken,
+  set: (value) => formStore.setOfferToken(value)
 })
 
 const offerAmount = computed({
-  get: () => escrowStore.offerAmount,
-  set: (value) => escrowStore.setOfferAmount(value)
+  get: () => formStore.offerAmount,
+  set: (value) => formStore.setOfferAmount(value)
 })
 
 const requestToken = computed({
-  get: () => escrowStore.requestToken,
-  set: (value) => escrowStore.setRequestToken(value)
+  get: () => formStore.requestToken,
+  set: (value) => formStore.setRequestToken(value)
 })
 
 const requestAmount = computed({
-  get: () => escrowStore.requestAmount,
-  set: (value) => escrowStore.setRequestAmount(value)
+  get: () => formStore.requestAmount,
+  set: (value) => formStore.setRequestAmount(value)
 })
 
 // Individual settings computed properties for v-model compatibility
 const settingsDirect = computed({
-  get: () => escrowStore.settings.direct,
-  set: (value) => escrowStore.updateSettings({ direct: value })
+  get: () => formStore.settings.direct,
+  set: (value) => formStore.updateSettings({ direct: value })
 })
 
 const settingsDirectAddress = computed({
-  get: () => escrowStore.settings.directAddress,
-  set: (value) => escrowStore.updateSettings({ directAddress: value })
+  get: () => formStore.settings.directAddress,
+  set: (value) => formStore.updateSettings({ directAddress: value })
 })
 
 const settingsWhitelist = computed({
-  get: () => escrowStore.settings.whitelist,
-  set: (value) => escrowStore.updateSettings({ whitelist: value })
+  get: () => formStore.settings.whitelist,
+  set: (value) => formStore.updateSettings({ whitelist: value })
 })
 
 const settingsWhitelistAddresses = computed({
-  get: () => escrowStore.settings.whitelistAddresses,
-  set: (value) => escrowStore.updateSettings({ whitelistAddresses: value })
+  get: () => formStore.settings.whitelistAddresses,
+  set: (value) => formStore.updateSettings({ whitelistAddresses: value })
 })
 
 const settingsExpire = computed({
-  get: () => escrowStore.settings.expire,
-  set: (value) => escrowStore.updateSettings({ expire: value })
+  get: () => formStore.settings.expire,
+  set: (value) => formStore.updateSettings({ expire: value })
 })
 
 const settingsExpireDate = computed({
-  get: () => escrowStore.settings.expireDate,
-  set: (value) => escrowStore.updateSettings({ expireDate: value })
+  get: () => formStore.settings.expireDate,
+  set: (value) => formStore.updateSettings({ expireDate: value })
 })
 
 const settingsPartialFill = computed({
-  get: () => escrowStore.settings.partialFill,
-  set: (value) => escrowStore.updateSettings({ partialFill: value })
+  get: () => formStore.settings.partialFill,
+  set: (value) => formStore.updateSettings({ partialFill: value })
 })
 
 const settingsSlippage = computed({
-  get: () => escrowStore.settings.slippage,
-  set: (value) => escrowStore.updateSettings({ slippage: value })
+  get: () => formStore.settings.slippage,
+  set: (value) => formStore.updateSettings({ slippage: value })
 })
 
 // Transaction costs composable
 const { costBreakdown, loadingCosts, calculateCosts } = useTransactionCosts({
   costCalculator: calculateEscrowCreationCosts,
   getParams: () => {
-    if (!connected.value || !publicKey.value || !escrowStore.offerToken || !escrowStore.requestToken) {
+    if (!connected.value || !publicKey.value || !formStore.offerToken || !formStore.requestToken) {
       return null
     }
     
@@ -266,9 +268,9 @@ const { costBreakdown, loadingCosts, calculateCosts } = useTransactionCosts({
     
     return {
       maker: publicKey.value,
-      depositTokenMint: escrowStore.offerToken.mint,
-      requestTokenMint: escrowStore.requestToken.mint,
-      depositAmount: escrowStore.offerAmount,
+      depositTokenMint: formStore.offerToken.mint,
+      requestTokenMint: formStore.requestToken.mint,
+      depositAmount: formStore.offerAmount,
       shopFee,
       tradeValue
     }
@@ -276,7 +278,7 @@ const { costBreakdown, loadingCosts, calculateCosts } = useTransactionCosts({
 })
 
 // Watch for token changes and collection changes to update costs (debounced)
-watch([() => escrowStore.offerToken, () => escrowStore.requestToken, () => escrowStore.offerAmount, () => selectedCollection.value, connected, publicKey], () => {
+watch([() => formStore.offerToken, () => formStore.requestToken, () => formStore.offerAmount, () => selectedCollection.value, connected, publicKey], () => {
   calculateCosts()
 }, { immediate: true })
 
@@ -306,8 +308,8 @@ const handleCreateEscrow = async () => {
     // If recipient is SystemProgram or null, onlyRecipient must be false
     // The program sets onlyRecipient based on whether recipient is provided and not SystemProgram
     let recipientAddress = null
-    if (escrowStore.settings.direct && escrowStore.settings.directAddress) {
-      const validation = validateRecipientAddress(escrowStore.settings.directAddress)
+    if (formStore.settings.direct && formStore.settings.directAddress) {
+      const validation = validateRecipientAddress(formStore.settings.directAddress)
       
       if (!validation.valid) {
         escrowStore.setError('form', { 
@@ -323,13 +325,13 @@ const handleCreateEscrow = async () => {
     
     // Convert amounts to smallest units
     const depositAmount = toSmallestUnits(
-      escrowStore.offerAmount,
-      escrowStore.offerToken.decimals
+      formStore.offerAmount,
+      formStore.offerToken.decimals
     )
     
     const requestAmount = toSmallestUnits(
-      escrowStore.requestAmount,
-      escrowStore.requestToken.decimals
+      formStore.requestAmount,
+      formStore.requestToken.decimals
     )
 
     // Generate seed using crypto random values (matching developer's implementation)
@@ -339,12 +341,12 @@ const handleCreateEscrow = async () => {
 
     // Calculate expiration timestamp (Unix timestamp in seconds, i64)
     let expireTimestamp = 0
-    if (escrowStore.settings.expire && escrowStore.settings.expireDate) {
-      expireTimestamp = Math.floor(new Date(escrowStore.settings.expireDate).getTime() / 1000)
+    if (formStore.settings.expire && formStore.settings.expireDate) {
+      expireTimestamp = Math.floor(new Date(formStore.settings.expireDate).getTime() / 1000)
     }
-
+    
     // Convert slippage from milli-percent to decimal (1 = 0.001%)
-    const slippage = escrowStore.settings.slippage / SLIPPAGE_DIVISOR
+    const slippage = formStore.settings.slippage / SLIPPAGE_DIVISOR
 
     // Get shop fee configuration from selected collection
     let shopFee = null
@@ -356,14 +358,14 @@ const handleCreateEscrow = async () => {
     const tradeValue = 0 // TODO: Calculate from token prices if available
 
     const params = {
-      depositTokenMint: escrowStore.offerToken.mint,
-      requestTokenMint: escrowStore.requestToken.mint,
+      depositTokenMint: formStore.offerToken.mint,
+      requestTokenMint: formStore.requestToken.mint,
       depositAmount,
       requestAmount,
       seed,
       expireTimestamp,
-      allowPartialFill: escrowStore.settings.partialFill,
-      onlyWhitelist: escrowStore.settings.whitelist,
+      allowPartialFill: formStore.settings.partialFill,
+      onlyWhitelist: formStore.settings.whitelist,
       slippage,
       contractFeeAccount: CONTRACT_FEE_ACCOUNT,
       shopFee, // Pass shop fee configuration
@@ -391,7 +393,7 @@ const handleCreateEscrow = async () => {
     const { escrow: escrowPubkey } = deriveEscrowAccounts(makerPubkey, seedBN, programId)
     
     // Reset form on success
-    escrowStore.resetForm()
+    formStore.resetForm()
 
     // Navigate to escrow details page with share query parameter to auto-open share modal
     router.push({

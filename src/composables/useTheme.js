@@ -13,6 +13,8 @@ export function useTheme() {
   const theme = computed(() => themeStore.currentTheme)
   const colors = computed(() => themeStore.colors)
   const fonts = computed(() => themeStore.fonts)
+  const fontSize = computed(() => themeStore.fontSize)
+  const spacing = computed(() => themeStore.spacing)
   const borderRadius = computed(() => themeStore.borderRadius)
   const borderWidth = computed(() => themeStore.borderWidth)
   const branding = computed(() => themeStore.branding)
@@ -32,6 +34,14 @@ export function useTheme() {
     return borderWidth.value[size] || borderWidth.value.thin
   }
   
+  const getFontSize = (size = 'base') => {
+    return fontSize.value[size] || fontSize.value.base
+  }
+  
+  const getSpacing = (size = 'md') => {
+    return spacing.value[size] || spacing.value.md
+  }
+  
   const getShadow = (type = 'card') => {
     return shadows.value[type] || shadows.value.card
   }
@@ -45,6 +55,8 @@ export function useTheme() {
     theme,
     colors,
     fonts,
+    fontSize,
+    spacing,
     borderRadius,
     borderWidth,
     branding,
@@ -55,6 +67,8 @@ export function useTheme() {
     getColor,
     getRadius,
     getBorderWidth,
+    getFontSize,
+    getSpacing,
     getShadow,
     getGradient,
     

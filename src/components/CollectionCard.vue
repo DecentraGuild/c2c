@@ -1,10 +1,10 @@
 <template>
   <div
-    class="card hover:border-primary-color/50 transition-all duration-200 hover:shadow-lg group"
+    class="card hover:border-primary-color/50 transition-all duration-200 hover:shadow-lg group max-w-sm mx-auto w-full"
   >
     <div class="flex flex-col h-full">
       <!-- Badge at Top of Card - Full Width, Centered -->
-      <div class="mb-3 flex justify-center">
+      <div class="mb-2 flex justify-center">
         <CollectionBadge
           :verification-status="collection.verification_status || (collection.verified ? 'verified' : 'community')"
           size="md"
@@ -14,19 +14,19 @@
       <!-- Collection Image -->
       <router-link
         :to="`/marketplace?collection=${collection.id}`"
-        class="relative w-full aspect-square mb-4 rounded-lg overflow-hidden bg-secondary-bg flex items-center justify-center cursor-pointer"
+        class="relative w-full aspect-square mb-2 rounded-lg overflow-hidden bg-secondary-bg flex items-center justify-center cursor-pointer"
       >
         <img
           v-if="collection.logo"
           :src="collection.logo"
           :alt="collection.name"
-          class="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-200"
+          class="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-200"
           @error="handleImageError"
         />
         <Icon
           v-else
           icon="mdi:image-off"
-          class="w-16 h-16 text-text-muted/30"
+          class="w-10 h-10 text-text-muted/30"
         />
       </router-link>
 
@@ -36,21 +36,21 @@
           :to="`/marketplace?collection=${collection.id}`"
           class="cursor-pointer flex-shrink-0"
         >
-          <h3 class="text-lg sm:text-xl font-bold text-text-primary group-hover:text-primary-color transition-colors mb-2">
+          <h3 class="text-sm font-bold text-text-primary group-hover:text-primary-color transition-colors mb-1">
             {{ collection.name }}
           </h3>
           
-          <p v-if="collection.description" class="text-sm text-text-secondary mb-4 line-clamp-2">
+          <p v-if="collection.description" class="text-xs text-text-secondary mb-2 line-clamp-2">
             {{ collection.description }}
           </p>
         </router-link>
 
         <!-- Stats - Fixed to Bottom -->
-        <div class="pt-4 border-t border-border-color mt-auto">
-          <div class="flex items-start justify-between gap-4 mb-3">
+        <div class="pt-2 border-t border-border-color mt-auto">
+          <div class="flex items-start justify-between gap-2 mb-1.5">
             <!-- Open Trades - Always Visible -->
-            <div class="flex items-center gap-2 text-sm text-text-secondary flex-shrink-0">
-              <Icon icon="mdi:swap-horizontal" class="w-4 h-4" />
+            <div class="flex items-center gap-1 text-xs text-text-secondary flex-shrink-0">
+              <Icon icon="mdi:swap-horizontal" class="w-3.5 h-3.5" />
               <span class="font-semibold">{{ openTrades }}</span>
               <span>{{ openTrades === 1 ? 'trade' : 'trades' }}</span>
             </div>
@@ -58,12 +58,12 @@
             <!-- Expand/Collapse Button -->
             <button
               @click.stop="expanded = !expanded"
-              class="flex items-center gap-1 text-xs text-text-secondary hover:text-primary-color transition-colors flex-shrink-0"
+              class="flex items-center gap-0.5 text-xs text-text-secondary hover:text-primary-color transition-colors flex-shrink-0"
             >
               <span>{{ expanded ? 'Less' : 'Details' }}</span>
               <Icon
                 :icon="expanded ? 'mdi:chevron-up' : 'mdi:chevron-down'"
-                class="w-4 h-4"
+                class="w-3.5 h-3.5"
               />
             </button>
           </div>
@@ -71,12 +71,12 @@
           <!-- Expandable Details -->
           <div
             v-if="expanded"
-            class="space-y-4 pt-3 border-t border-border-color text-xs"
+            class="space-y-2 pt-1.5 border-t border-border-color text-xs"
           >
             <!-- Accepted Currencies Section - First -->
             <div v-if="acceptedCurrencies.length > 0">
-              <div class="flex items-center gap-2 mb-2 text-text-primary font-semibold">
-                <Icon icon="mdi:wallet" class="w-4 h-4" />
+              <div class="flex items-center gap-1.5 mb-1.5 text-text-primary font-semibold text-xs">
+                <Icon icon="mdi:wallet" class="w-3.5 h-3.5" />
                 <span>Accepted Currencies</span>
               </div>
               <div class="pl-6 space-y-1.5">
