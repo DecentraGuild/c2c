@@ -158,16 +158,42 @@ const displayBalances = computed(() => {
   const allItems = [...walletTokens]
   const existingMints = new Set(walletTokens.map(t => t.mint))
   
+  // Add individual NFTs to the list
   nfts.forEach(nft => {
     if (!existingMints.has(nft.mint)) {
       // Ensure NFT has required properties
       const nftWithProps = {
         ...nft,
         fetchingType: 'NFT',
-        isCollectionItem: true
+        isCollectionItem: true,
+        // Ensure balance is set (default to 1 for NFTs)
+        balance: nft.balance !== undefined && nft.balance !== null ? nft.balance : 1
       }
       allItems.push(nftWithProps)
+      existingMints.add(nft.mint)
     }
+  })
+  
+  // Optional: Group NFTs by collection for better display
+  // Sort so NFTs from the same collection are together
+  allItems.sort((a, b) => {
+    // Tokens first, then NFTs
+    if (a.fetchingType !== 'NFT' && b.fetchingType === 'NFT') return -1
+    if (a.fetchingType === 'NFT' && b.fetchingType !== 'NFT') return 1
+    
+    // For NFTs, group by collection
+    if (a.fetchingType === 'NFT' && b.fetchingType === 'NFT') {
+      const collectionA = a.collection || ''
+      const collectionB = b.collection || ''
+      if (collectionA !== collectionB) {
+        return collectionA.localeCompare(collectionB)
+      }
+      // Within same collection, sort by name
+      return (a.name || '').localeCompare(b.name || '')
+    }
+    
+    // For tokens, sort by balance descending
+    return (b.balance || 0) - (a.balance || 0)
   })
   
   return allItems

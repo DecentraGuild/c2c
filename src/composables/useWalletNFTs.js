@@ -26,32 +26,117 @@ export async function fetchWalletNFTsByCollection(walletAddress, collectionMintA
     // Try Helius API first (faster and more reliable)
     try {
       const heliusNFTs = await fetchWalletNFTsFromHelius(walletAddress, collectionMintAddresses)
-      if (heliusNFTs.length > 0) {
+      if (heliusNFTs && heliusNFTs.length > 0) {
+        logDebug(`Successfully fetched ${heliusNFTs.length} NFTs from Helius API`)
         return heliusNFTs
       }
+      logDebug('Helius API returned no NFTs, trying fallback methods')
     } catch (heliusErr) {
-      logDebug('Helius API unavailable, trying Metaplex SDK:', heliusErr.message)
+      logDebug('[DEBUG] Helius API unavailable, trying Metaplex SDK:', heliusErr.message)
     }
     
-    // Fallback to Metaplex SDK
+    // Fallback to RPC method (more reliable than Metaplex SDK for wallet NFTs)
     try {
+      const connection = useSolanaConnection()
+      const nfts = []
+      
+      logDebug('Fetching token accounts from RPC...')
+      
+      // Get all token accounts for the wallet
+      const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+        new PublicKey(walletAddress),
+        {
+          programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
+        }
+      )
+
+      logDebug(`Found ${tokenAccounts.value.length} total token accounts`)
+
+      // Filter for NFTs (0 decimals, balance > 0)
+      const nftAccounts = tokenAccounts.value.filter(account => {
+        const tokenAmount = account.account.data.parsed.info.tokenAmount
+        return tokenAmount.decimals === 0 && tokenAmount.uiAmount > 0
+      })
+
+      logDebug(`Found ${nftAccounts.length} NFT accounts (0 decimals)`)
+
+      // Fetch metadata for each NFT and filter by collection
+      for (const accountInfo of nftAccounts) {
+        try {
+          const mintAddress = accountInfo.account.data.parsed.info.mint
+          const tokenAmount = accountInfo.account.data.parsed.info.tokenAmount
+
+          // Fetch metadata
+          const metadata = await fetchTokenMetadata(connection, mintAddress, true)
+          if (metadata) {
+            // Check if this NFT belongs to any of the collection mints
+            let matchesCollection = false
+            
+            // Check 1: Direct mint match (for individual NFT mints in collectionMints)
+            if (collectionMintAddresses.includes(mintAddress)) {
+              matchesCollection = true
+              logDebug(`✓ NFT ${mintAddress} matches by direct mint`)
+            }
+            
+            // Check 2: Collection membership (for collection-based matching)
+            if (!matchesCollection && metadata.collection) {
+              if (collectionMintAddresses.includes(metadata.collection)) {
+                matchesCollection = true
+                logDebug(`✓ NFT ${mintAddress} belongs to collection ${metadata.collection}`)
+              }
+            }
+            
+            if (matchesCollection) {
+              nfts.push({
+                mint: mintAddress,
+                name: metadata.name || '',
+                symbol: metadata.symbol || '',
+                image: metadata.image,
+                decimals: 0,
+                balance: tokenAmount.uiAmount,
+                balanceRaw: tokenAmount.amount,
+                uri: metadata.uri,
+                isCollectionItem: true,
+                fetchingType: 'NFT',
+                collection: metadata.collection || null
+              })
+            }
+          }
+        } catch (err) {
+          logDebug(`Failed to process NFT ${accountInfo.account.data.parsed.info.mint}:`, err)
+        }
+      }
+      
+      logDebug(`RPC method found ${nfts.length} matching NFTs`)
+      return nfts
+    } catch (rpcErr) {
+      logError('RPC method failed:', rpcErr)
+    }
+    
+    // Last resort: Try Metaplex SDK
+    try {
+      logDebug('Trying Metaplex SDK as last resort...')
       const { Metadata } = await import('@metaplex-foundation/mpl-token-metadata')
       const connection = useSolanaConnection()
       
       const nftsMetadata = await Metadata.findDataByOwner(connection, new PublicKey(walletAddress))
       
+      logDebug(`Metaplex SDK found ${nftsMetadata.length} NFTs`)
+      
       if (nftsMetadata.length > 0) {
-        // Filter by collection/item mints if provided
-        // collectionMintAddresses contains individual NFT/item mints, so we match directly
-        let filteredNFTs = nftsMetadata
+        // Filter by collection/item mints
+        const filteredNFTs = nftsMetadata.filter(metadata => {
+          const mint = metadata.mint?.toString()
+          const collection = metadata.collection?.key?.toString()
+          
+          // Match by mint or collection
+          return mint && (
+            collectionMintAddresses.includes(mint) ||
+            (collection && collectionMintAddresses.includes(collection))
+          )
+        })
         
-        if (collectionMintAddresses && collectionMintAddresses.length > 0) {
-          filteredNFTs = nftsMetadata.filter(metadata => {
-            const mint = metadata.mint?.toString()
-            // Direct mint match - collectionMints contains individual NFT/item mints
-            return mint && collectionMintAddresses.includes(mint)
-          })
-        }
+        logDebug(`Filtered to ${filteredNFTs.length} matching NFTs`)
         
         // Format Metaplex metadata to our standard format
         const formattedNFTs = filteredNFTs.map(metadata => ({
@@ -96,61 +181,16 @@ export async function fetchWalletNFTsByCollection(walletAddress, collectionMintA
         return nftsWithImages
       }
     } catch (metaplexErr) {
-      logDebug('Metaplex SDK unavailable, falling back to RPC method:', metaplexErr.message)
+      logError('Metaplex SDK failed:', metaplexErr)
     }
 
-    // Fallback to RPC method if Helius fails
-    const connection = useSolanaConnection()
-    const nfts = []
-    
-    // Get all token accounts for the wallet
-    const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
-      new PublicKey(walletAddress),
-      {
-        programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
-      }
-    )
-
-    // Filter for NFTs (0 decimals) and match against collectionMintAddresses
-    // collectionMintAddresses contains individual NFT/item mints, so we match directly
-    const nftAccounts = tokenAccounts.value.filter(account => {
-      const tokenAmount = account.account.data.parsed.info.tokenAmount
-      const mintAddress = account.account.data.parsed.info.mint
-      // Only include NFTs that match collection item mints directly
-      return tokenAmount.decimals === 0 && 
-             tokenAmount.uiAmount > 0 &&
-             collectionMintAddresses.includes(mintAddress)
-    })
-
-    // Fetch metadata for matching NFTs
-    for (const accountInfo of nftAccounts) {
-      try {
-        const mintAddress = accountInfo.account.data.parsed.info.mint
-        const tokenAmount = accountInfo.account.data.parsed.info.tokenAmount
-
-        // Fetch metadata
-        const metadata = await fetchTokenMetadata(connection, mintAddress, true)
-        if (metadata) {
-          nfts.push({
-            mint: mintAddress,
-            name: metadata.name || '',
-            symbol: metadata.symbol || '',
-            image: metadata.image,
-            decimals: 0,
-            balance: tokenAmount.uiAmount,
-            balanceRaw: tokenAmount.amount,
-            uri: metadata.uri,
-            isCollectionItem: true
-          })
-        }
-      } catch (err) {
-        logDebug(`Failed to process NFT ${accountInfo.account.data.parsed.info.mint}:`, err)
-      }
-    }
-    return nfts
+    // If all methods fail, return empty array
+    logDebug('All NFT fetching methods failed, returning empty array')
+    return []
   } catch (err) {
     logError(`Failed to fetch wallet NFTs:`, err)
-    throw err
+    // Don't throw, return empty array to allow UI to continue
+    return []
   }
 }
 
