@@ -392,11 +392,18 @@ export const useCollectionStore = defineStore('collection', () => {
         return
       }
       
-      // Count escrows per collection
+      // Count escrows per collection (include cached NFT mints so individual NFTs from collection show)
       const escrowsByCollection = new Map()
-      
+      const metadataStore = useCollectionMetadataStore()
+
       collections.value.forEach(collection => {
-        const matchedEscrows = filterEscrowsByCollection(allEscrows, collection)
+        const cachedNFTs = metadataStore.getCachedNFTs(collection.id) || []
+        const cachedMints = new Set(
+          cachedNFTs.map(n => (n?.mint && String(n.mint).toLowerCase()) || null).filter(Boolean)
+        )
+        const matchedEscrows = filterEscrowsByCollection(allEscrows, collection, {
+          cachedCollectionMints: cachedMints
+        })
         const activeEscrows = filterActiveEscrows(matchedEscrows)
         escrowsByCollection.set(collection.id, activeEscrows.length)
       })

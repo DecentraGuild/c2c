@@ -51,6 +51,7 @@ import { ref, computed, watch } from 'vue'
 import { Icon } from '@iconify/vue'
 import { getEscrowItemMetadata } from '../composables/useCollectionMetadata'
 import { filterEscrowsByCollection, filterActiveEscrows } from '../utils/marketplaceHelpers'
+import { useCollectionMetadataStore } from '../stores/collectionMetadata'
 
 const props = defineProps({
   collection: {
@@ -68,14 +69,21 @@ const emit = defineEmits(['update:activeFilters'])
 const activeFilters = ref(new Set()) // Set of "itemType:class" strings
 const expandedItemTypes = ref(new Set())
 
-// Build grouped filters from escrows
+const collectionMetadataStore = useCollectionMetadataStore()
+
+// Build grouped filters from escrows (include cached NFT mints so individual NFTs from collection show)
 const groupedFilters = computed(() => {
   if (!props.collection || props.escrows.length === 0) {
     return {}
   }
 
-  // Filter escrows by collection first
-  const collectionEscrows = filterEscrowsByCollection(props.escrows, props.collection)
+  const cachedNFTs = collectionMetadataStore.getCachedNFTs(props.collection.id) || []
+  const cachedMints = new Set(
+    cachedNFTs.map(n => (n?.mint && String(n.mint).toLowerCase()) || null).filter(Boolean)
+  )
+  const collectionEscrows = filterEscrowsByCollection(props.escrows, props.collection, {
+    cachedCollectionMints: cachedMints
+  })
   const activeEscrows = filterActiveEscrows(collectionEscrows)
   
   const groups = {}

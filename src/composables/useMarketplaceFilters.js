@@ -17,6 +17,7 @@ import {
   getShopCurrencyMints
 } from '../utils/marketplaceHelpers'
 import { getEscrowItemMetadata } from './useCollectionMetadata'
+import { useCollectionMetadataStore } from '../stores/collectionMetadata'
 
 /**
  * Composable for marketplace filtering - optimized single-pass filtering
@@ -48,6 +49,23 @@ function useMarketplaceFilters({
     updateDebouncedSearch(newValue)
   }, { immediate: true })
 
+  const collectionMetadataStore = useCollectionMetadataStore()
+
+  /**
+   * Cached NFT mints for the selected collection (individual NFTs from metadata)
+   * So escrows that use any NFT from the collection show up, not only those in collectionMints
+   */
+  const cachedCollectionMintSet = computed(() => {
+    const coll = selectedCollection.value
+    if (!coll?.id) return new Set()
+    const nfts = collectionMetadataStore.getCachedNFTs(coll.id)
+    return new Set(
+      (nfts || [])
+        .map(n => (n?.mint && String(n.mint).toLowerCase()) || null)
+        .filter(Boolean)
+    )
+  })
+
   /**
    * Combined filtering logic - single pass for better performance
    * Applies all filters (collection, trade type, itemType/class, search) in one iteration
@@ -57,22 +75,24 @@ function useMarketplaceFilters({
     if (!selectedCollection.value || !allEscrows.value || allEscrows.value.length === 0) {
       return []
     }
-    
+
     const query = debouncedSearchQuery.value?.trim()
     const lowerQuery = query ? query.toLowerCase() : null
     const hasActiveFilters = activeFilters.value && activeFilters.value.size > 0
-    
+
     const collection = selectedCollection.value
     const shopCurrencyMints = getShopCurrencyMints(collection) || []
     const collectionMints = collection.collectionMints || []
+    const cachedMints = cachedCollectionMintSet.value
 
     // Single pass filter - combines all filter conditions
     const filtered = allEscrows.value.filter(escrow => {
-      // Filter 1: Both sides must belong to the shop (collection mints or shop currencies)
+      // Filter 1: Both sides must belong to the shop (collection mints, cached NFT mints, or shop currencies)
       const depositMint = escrow.depositToken?.mint
       const requestMint = escrow.requestToken?.mint
       if (!depositMint || !requestMint) return false
-      if (!belongsToShop(depositMint, collection) || !belongsToShop(requestMint, collection)) {
+      const shopOptions = { cachedCollectionMints: cachedMints }
+      if (!belongsToShop(depositMint, collection, shopOptions) || !belongsToShop(requestMint, collection, shopOptions)) {
         return false
       }
 
@@ -84,7 +104,7 @@ function useMarketplaceFilters({
       // Filter 3: Trade type
       const tradeType = selectedTradeType.value
       if (tradeType !== 'all') {
-        const escrowTradeType = getTradeType(escrow, collectionMints, shopCurrencyMints)
+        const escrowTradeType = getTradeType(escrow, collectionMints, shopCurrencyMints, cachedMints)
         if (escrowTradeType !== tradeType) {
           return false
         }

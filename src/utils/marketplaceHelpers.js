@@ -18,15 +18,23 @@ export function getShopCurrencyMints(collection) {
 }
 
 /**
- * Check if a mint belongs to the shop (collection mints or shop currencies)
+ * Check if a mint belongs to the shop (collection mints, cached NFT mints, or shop currencies)
  * @param {string} mintAddress - Token mint address
  * @param {Object} collection - Collection object with collectionMints and baseCurrency/customCurrencies
+ * @param {{ cachedCollectionMints?: Set<string>|Array<string> }} [options] - Optional cached NFT mints from collection metadata (individual NFTs in collection)
  * @returns {boolean} True if mint is part of the shop
  */
-export function belongsToShop(mintAddress, collection) {
+export function belongsToShop(mintAddress, collection, options = {}) {
   if (!mintAddress || !collection) return false
+  const { cachedCollectionMints } = options
+  const mint = String(mintAddress).toLowerCase()
+  if (cachedCollectionMints && cachedCollectionMints.size !== undefined) {
+    if (cachedCollectionMints.has(mint)) return true
+  } else if (cachedCollectionMints && Array.isArray(cachedCollectionMints)) {
+    if (cachedCollectionMints.some(m => String(m).toLowerCase() === mint)) return true
+  }
   const collectionMints = collection.collectionMints || []
-  if (belongsToCollection(mintAddress, collectionMints)) return true
+  if (belongsToCollection(mintAddress, collectionMints, cachedCollectionMints)) return true
   const shopCurrencyMints = getShopCurrencyMints(collection)
   return shopCurrencyMints.includes(mintAddress)
 }
@@ -35,26 +43,25 @@ export function belongsToShop(mintAddress, collection) {
  * Check if a mint address belongs to a collection
  * @param {string} mintAddress - Token/NFT mint address
  * @param {Array<string|Object>} collectionMints - Array of collection mint addresses (strings) or objects with mint property
+ * @param {Set<string>|Array<string>} [cachedCollectionMints] - Optional set/array of individual NFT mints from collection metadata cache
  * @returns {boolean} True if mint belongs to collection
  */
-export function belongsToCollection(mintAddress, collectionMints = []) {
-  if (!mintAddress || !collectionMints || collectionMints.length === 0) {
-    return false
+export function belongsToCollection(mintAddress, collectionMints = [], cachedCollectionMints = null) {
+  if (!mintAddress) return false
+  const mint = String(mintAddress).toLowerCase()
+  if (cachedCollectionMints) {
+    if (cachedCollectionMints.size !== undefined && cachedCollectionMints.has(mint)) return true
+    if (Array.isArray(cachedCollectionMints) && cachedCollectionMints.some(m => String(m).toLowerCase() === mint)) return true
   }
-  
-  // Handle both old format (array of strings) and new format (array of objects)
-  if (collectionMints.length > 0) {
-    const firstItem = collectionMints[0]
-    if (typeof firstItem === 'string') {
-      // Old format: array of strings
-      return collectionMints.includes(mintAddress)
-    } else if (typeof firstItem === 'object' && firstItem.mint) {
-      // New format: array of objects with mint property
-      // Check both the mint address and fetchingType
-      return collectionMints.some(item => item.mint === mintAddress)
-    }
+  if (!collectionMints || collectionMints.length === 0) return false
+
+  const firstItem = collectionMints[0]
+  if (typeof firstItem === 'string') {
+    return collectionMints.some(m => String(m).toLowerCase() === mint)
   }
-  
+  if (typeof firstItem === 'object' && firstItem.mint) {
+    return collectionMints.some(item => String(item.mint).toLowerCase() === mint)
+  }
   return false
 }
 
@@ -107,18 +114,19 @@ export function isAllowedCurrency(mintAddress, allowedCurrencies = []) {
  * @param {Object} escrow - Formatted escrow object
  * @param {Array<string>} collectionMints - Array of collection mint addresses
  * @param {Array<string>} allowedCurrencies - Array of allowed (shop) currency mint addresses
+ * @param {Set<string>|Array<string>} [cachedCollectionMints] - Optional individual NFT mints from collection metadata cache
  * @returns {string} Trade type: 'buy', 'sell', 'trade', 'swap', or null
  */
-export function getTradeType(escrow, collectionMints = [], allowedCurrencies = []) {
+export function getTradeType(escrow, collectionMints = [], allowedCurrencies = [], cachedCollectionMints = null) {
   if (!escrow || !escrow.depositToken || !escrow.requestToken) {
     return null
   }
-  
+
   const depositMint = escrow.depositToken.mint
   const requestMint = escrow.requestToken.mint
-  
-  const depositIsNFT = belongsToCollection(depositMint, collectionMints)
-  const requestIsNFT = belongsToCollection(requestMint, collectionMints)
+
+  const depositIsNFT = belongsToCollection(depositMint, collectionMints, cachedCollectionMints)
+  const requestIsNFT = belongsToCollection(requestMint, collectionMints, cachedCollectionMints)
   const depositIsCurrency = isAllowedCurrency(depositMint, allowedCurrencies)
   const requestIsCurrency = isAllowedCurrency(requestMint, allowedCurrencies)
   
@@ -147,26 +155,26 @@ export function getTradeType(escrow, collectionMints = [], allowedCurrencies = [
 
 /**
  * Filter escrows by collection (storefront)
- * Only show trades where BOTH deposit and request are from the shop (collection mints or shop currencies)
+ * Only show trades where BOTH deposit and request are from the shop (collection mints, cached NFT mints, or shop currencies)
  * @param {Array} escrows - Array of formatted escrow objects
  * @param {Object} collection - Collection object with collectionMints and baseCurrency/customCurrencies
+ * @param {{ cachedCollectionMints?: Set<string>|Array<string> }} [options] - Optional cached NFT mints from collection metadata
  * @returns {Array} Filtered escrows that match the collection
  */
-export function filterEscrowsByCollection(escrows, collection) {
+export function filterEscrowsByCollection(escrows, collection, options = {}) {
   if (!escrows || !collection) {
     return []
   }
-  
+
   return escrows.filter(escrow => {
     if (!escrow.depositToken || !escrow.requestToken) {
       return false
     }
-    
+
     const depositMint = escrow.depositToken.mint
     const requestMint = escrow.requestToken.mint
-    
-    // Both sides must belong to the shop (collection mints or shop currencies)
-    return belongsToShop(depositMint, collection) && belongsToShop(requestMint, collection)
+
+    return belongsToShop(depositMint, collection, options) && belongsToShop(requestMint, collection, options)
   })
 }
 
