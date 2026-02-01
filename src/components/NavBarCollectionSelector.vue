@@ -63,7 +63,7 @@
       </div>
 
       <!-- Collections List -->
-      <div class="overflow-y-auto max-h-64">
+      <BaseScrollArea max-height="16rem" content-class="flex-1 min-h-0">
         <!-- Clear Selection Option (shown when collection is selected) -->
         <div
           v-if="modelValue"
@@ -115,7 +115,7 @@
         <div v-if="filteredCollections.length === 0" class="px-4 py-6 text-center text-sm text-text-muted">
           No collections found
         </div>
-      </div>
+      </BaseScrollArea>
     </div>
   </div>
 </template>
@@ -125,6 +125,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useCollectionStore } from '@/stores/collection'
 import { filterCollectionsByQuery } from '@/utils/collectionHelpers'
+import BaseScrollArea from './BaseScrollArea.vue'
 import CollectionBadge from './CollectionBadge.vue'
 
 const props = defineProps({

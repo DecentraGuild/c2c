@@ -46,8 +46,9 @@
         <!-- Dropdown panel: scrollable list of trait types and values -->
         <div
           v-show="filtersDropdownOpen"
-          class="absolute right-0 top-full mt-1 z-[60] min-w-[240px] max-w-[min(90vw,320px)] max-h-[min(60vh,320px)] overflow-y-auto overflow-x-hidden bg-card-bg border border-border-color rounded-lg shadow-xl py-2"
+          class="absolute right-0 top-full mt-1 z-[60] min-w-[240px] max-w-[min(90vw,320px)] max-h-[min(60vh,320px)] overflow-y-auto overflow-x-hidden collection-scroll-container bg-card-bg border border-border-color rounded-lg shadow-xl py-2"
         >
+          <div class="collection-scroll-content">
           <div class="px-3 pb-2 border-b border-border-color flex items-center justify-between sticky top-0 bg-card-bg z-10">
             <span class="text-xs font-medium text-text-muted">Filter by traits</span>
             <button
@@ -82,11 +83,13 @@
               </div>
             </div>
           </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="flex-1 overflow-y-auto">
+    <div class="flex-1 min-h-0 overflow-y-auto collection-scroll-container">
+      <div class="collection-scroll-content">
       <!-- Loading -->
       <div v-if="loading" class="p-4 text-center text-text-muted">
         <Icon icon="svg-spinners:ring-resize" class="w-8 h-8 inline-block mb-2" />
@@ -172,6 +175,7 @@
             </div>
           </div>
         </button>
+      </div>
       </div>
     </div>
   </BaseDropdown>

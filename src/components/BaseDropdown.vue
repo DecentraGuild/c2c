@@ -2,16 +2,20 @@
   <!-- Full screen modal (when containerClass includes 'full-screen') -->
   <Teleport to="body" v-if="show && isFullScreen">
     <div class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" @click.self="$emit('close')">
-      <div :class="containerClass" ref="dropdownRef" @click.stop class="max-w-[95vw] max-h-[95vh]">
-        <slot />
+      <div :class="[containerClass, 'collection-scroll-container']" ref="dropdownRef" @click.stop class="max-w-[95vw] max-h-[95vh]">
+        <div class="collection-scroll-content h-full flex flex-col min-h-0">
+          <slot />
+        </div>
       </div>
     </div>
   </Teleport>
   
   <!-- Regular dropdown -->
   <div v-if="show && !isFullScreen" class="absolute top-full left-0 right-0 mt-1 z-50" ref="dropdownRef" @click.stop>
-    <div :class="containerClass">
-      <slot />
+    <div :class="[containerClass, 'collection-scroll-container']">
+      <div class="collection-scroll-content">
+        <slot />
+      </div>
     </div>
   </div>
 </template>

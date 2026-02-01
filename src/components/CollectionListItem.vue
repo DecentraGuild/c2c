@@ -49,7 +49,7 @@
             </router-link>
 
             <!-- Stats Row -->
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-1.5">
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
               <!-- Open Trades - Always Visible -->
               <div class="flex items-center gap-1.5 text-xs text-text-secondary">
                 <Icon icon="mdi:swap-horizontal" class="w-3.5 h-3.5" />
@@ -57,128 +57,14 @@
                 <span>{{ openTrades === 1 ? 'trade' : 'trades' }}</span>
               </div>
               
-              <!-- Expand/Collapse Button -->
+              <!-- Details Button - Opens modal -->
               <button
-                @click.stop="expanded = !expanded"
+                @click.stop="showDetailsModal = true"
                 class="flex items-center gap-1 text-xs text-text-secondary hover:text-primary-color transition-colors"
               >
-                <span>{{ expanded ? 'Less' : 'Details' }}</span>
-                <Icon
-                  :icon="expanded ? 'mdi:chevron-up' : 'mdi:chevron-down'"
-                  class="w-4 h-4"
-                />
+                <span>Details</span>
+                <Icon icon="mdi:information-outline" class="w-4 h-4" />
               </button>
-            </div>
-
-            <!-- Expandable Details -->
-            <div
-              v-if="expanded"
-              class="pt-3 border-t border-border-color space-y-4 text-xs"
-            >
-              <!-- Accepted Currencies Section - First -->
-              <div v-if="acceptedCurrencies.length > 0">
-                <div class="flex items-center gap-2 mb-2 text-text-primary font-semibold">
-                  <Icon icon="mdi:wallet" class="w-4 h-4" />
-                  <span>Accepted Currencies</span>
-                </div>
-                <div class="pl-6 space-y-1.5">
-                  <div
-                    v-for="currency in acceptedCurrencies"
-                    :key="currency.mint"
-                    class="flex items-center justify-between gap-2"
-                  >
-                    <span class="text-text-secondary">
-                      {{ currency.symbol || currency.name || 'Unknown' }}
-                    </span>
-                    <BaseAddressDisplay
-                      :address="currency.mint"
-                      :truncate="true"
-                      :show-explorer="false"
-                      :compact="true"
-                      text-class="text-text-muted text-xs"
-                      copy-title="Copy mint address"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <!-- Fees Section - Second -->
-              <div>
-                <div class="flex items-center gap-2 mb-2 text-text-primary font-semibold">
-                  <Icon icon="mdi:currency-usd" class="w-4 h-4" />
-                  <span>Fees</span>
-                </div>
-                <div class="space-y-1.5 pl-6">
-                  <div class="flex items-center justify-between">
-                    <span class="text-text-secondary">Maker:</span>
-                    <span class="font-semibold text-primary-color">{{ getMakerFee() }} SOL</span>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <span class="text-text-secondary">Taker:</span>
-                    <span class="font-semibold text-primary-color">{{ getTakerFee() }} SOL</span>
-                  </div>
-                  <div v-if="maxRoyalty > 0" class="flex items-center justify-between">
-                    <span class="text-text-secondary">Max Royalty:</span>
-                    <span class="font-semibold text-primary-color">{{ maxRoyalty.toFixed(2) }}%</span>
-                  </div>
-                  <div v-if="collection.shopFee?.wallet" class="flex items-center justify-between">
-                    <span class="text-text-secondary">Shop Fee:</span>
-                    <span class="font-semibold text-primary-color">
-                      {{ getShopFeeDisplay() }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Fee Wallet Section - Third -->
-              <div v-if="collection.shopFee?.wallet">
-                <div class="flex items-center gap-2 mb-2 text-text-primary font-semibold">
-                  <Icon icon="mdi:wallet-outline" class="w-4 h-4" />
-                  <span>Fee Wallet</span>
-                </div>
-                <div class="pl-6">
-                  <BaseAddressDisplay
-                    :address="collection.shopFee.wallet"
-                    :truncate="true"
-                    text-class="text-text-secondary text-xs"
-                    copy-title="Copy fee wallet address"
-                  />
-                </div>
-              </div>
-
-              <!-- Collection Mints Section - Last -->
-              <div v-if="collectionMintsList.length > 0">
-                <div class="flex items-center gap-2 mb-2 text-text-primary font-semibold">
-                  <Icon icon="mdi:format-list-bulleted" class="w-4 h-4" />
-                  <span>Collection Items ({{ collectionMintsList.length }})</span>
-                </div>
-                <div class="pl-6 space-y-1.5 max-h-48 overflow-y-auto collection-scroll-container">
-                  <div class="collection-scroll-content">
-                    <template v-for="(item, index) in collectionMintsList" :key="item.mint || index">
-                      <!-- Category Header (show when category changes) -->
-                      <div
-                        v-if="item.category && (index === 0 || collectionMintsList[index - 1].category !== item.category)"
-                        class="text-text-primary font-semibold text-xs capitalize"
-                      >
-                        {{ item.category }}
-                      </div>
-                      <div class="flex items-center justify-between gap-2" :class="{ 'pl-4': item.category }">
-                        <span class="text-text-secondary truncate flex-1">
-                          {{ item.name || truncateAddress(item.mint, 4, 4) }}
-                        </span>
-                        <BaseAddressDisplay
-                          :address="item.mint"
-                          :truncate="true"
-                          :show-explorer="false"
-                          :compact="true"
-                          text-class="text-text-muted text-xs"
-                          copy-title="Copy mint address"
-                        />
-                      </div>
-                    </template>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -192,16 +78,20 @@
         </div>
       </div>
     </div>
+
+    <CollectionDetailsModal
+      v-model:show="showDetailsModal"
+      :collection="collection"
+      :open-trades="openTrades"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { Icon } from '@iconify/vue'
 import CollectionBadge from './CollectionBadge.vue'
-import BaseAddressDisplay from './BaseAddressDisplay.vue'
-import { useCollectionDisplay } from '../composables/useCollectionDisplay'
-import { truncateAddress } from '../utils/formatters'
+import CollectionDetailsModal from './CollectionDetailsModal.vue'
 
 const props = defineProps({
   collection: {
@@ -215,18 +105,7 @@ const props = defineProps({
 })
 
 const imageError = ref(false)
-const expanded = ref(false)
-
-// Use collection display composable
-const {
-  getMakerFee,
-  getTakerFee,
-  getShopFeeDisplay,
-  collectionMintsList,
-  maxRoyalty,
-  acceptedCurrencies,
-  formatRoyaltyFee
-} = useCollectionDisplay(computed(() => props.collection))
+const showDetailsModal = ref(false)
 
 const handleImageError = () => {
   imageError.value = true

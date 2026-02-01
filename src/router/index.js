@@ -8,6 +8,9 @@ const CreateEscrow = () => import('../views/CreateEscrow.vue')
 const ManageEscrows = () => import('../views/ManageEscrows.vue')
 const EscrowDetail = () => import('../views/EscrowDetail.vue')
 const OnboardCollection = () => import('../views/OnboardCollection.vue')
+const TermsOfService = () => import('../views/TermsOfService.vue')
+const PrivacyPolicy = () => import('../views/PrivacyPolicy.vue')
+const ShopownerAgreement = () => import('../views/ShopownerAgreement.vue')
 
 // GitHub Pages SPA redirect handler
 // GitHub Pages redirects 404s to 404.html with the path as ?/path
@@ -59,6 +62,21 @@ const routes = [
     path: '/onboard',
     name: 'OnboardCollection',
     component: OnboardCollection
+  },
+  {
+    path: '/terms',
+    name: 'TermsOfService',
+    component: TermsOfService
+  },
+  {
+    path: '/privacy',
+    name: 'PrivacyPolicy',
+    component: PrivacyPolicy
+  },
+  {
+    path: '/shopowner-agreement',
+    name: 'ShopownerAgreement',
+    component: ShopownerAgreement
   }
 ]
 

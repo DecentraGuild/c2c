@@ -24,7 +24,8 @@
       </div>
 
       <!-- Content Area -->
-      <div class="flex-1 overflow-y-auto">
+      <div class="flex-1 min-h-0 overflow-y-auto collection-scroll-container">
+        <div class="collection-scroll-content">
         <!-- Loading State -->
         <div v-if="isLoading || fetchingTokenInfo || localFetchingTokenInfo" class="p-4 text-center text-text-muted">
           <Icon icon="svg-spinners:ring-resize" class="w-8 h-8 inline-block mb-2" />
@@ -87,6 +88,7 @@
               />
             </div>
           </button>
+        </div>
         </div>
       </div>
   </BaseDropdown>
