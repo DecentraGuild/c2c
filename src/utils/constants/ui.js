@@ -11,7 +11,8 @@ export const UI_CONSTANTS = {
   METADATA_LOADING_DELAY: 100, // Small delay for initial metadata fetches to start
   DROPDOWN_BLUR_DELAY: 200, // ms before closing dropdown on blur (allows click to fire)
   QR_CODE_SIZE: 280, // Share modal QR code size in pixels
-  RPC_ESCROW_FETCH_TIMEOUT_MS: 25000 // Timeout for fetching escrows (avoids hang on slow/mobile networks)
+  RPC_ESCROW_FETCH_TIMEOUT_MS: 25000, // Timeout for fetching escrows (avoids hang on slow/mobile networks)
+  RPC_BALANCE_FETCH_TIMEOUT_MS: 25000 // Timeout for fetching wallet balances (avoids hang on slow/mobile networks)
 }
 
 // Debounce delay constants (in milliseconds)

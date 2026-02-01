@@ -13,6 +13,7 @@ import { cleanTokenString } from '../utils/formatters'
 import { useTokenStore } from '../stores/token'
 import { logError, logDebug, logWarning } from '../utils/logger'
 import { fetchAllTokenBalancesFromDAS } from '../utils/heliusDAS'
+import { UI_CONSTANTS } from '../utils/constants/ui.js'
 
 const BALANCE_CACHE_TTL_MS = 60 * 1000 // 60 seconds – avoid refetching too often
 
@@ -307,42 +308,47 @@ export function useWalletBalances(options = {}) {
     loading.value = true
     error.value = null
 
-    try {
-      
-      // Fetch SOL balance and SPL token balances in parallel
+    const timeoutMs = UI_CONSTANTS.RPC_BALANCE_FETCH_TIMEOUT_MS ?? 25000
+    const fetchPromise = (async () => {
       const [solBalance, splBalances] = await Promise.all([
         fetchSOLBalance(walletAddress),
         fetchSPLTokenBalances(walletAddress)
       ])
-
-      // Combine balances, SOL first
       const allBalances = []
-      if (solBalance) {
-        allBalances.push(solBalance)
-      }
-      if (splBalances && splBalances.length > 0) {
-        allBalances.push(...splBalances)
-      }
+      if (solBalance) allBalances.push(solBalance)
+      if (splBalances && splBalances.length > 0) allBalances.push(...splBalances)
+      return allBalances
+    })()
 
-      // Set initial balances (without metadata)
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`Balance fetch timed out after ${timeoutMs / 1000} seconds. Try again on a stronger connection.`))
+      }, timeoutMs)
+    })
+
+    try {
+      const allBalances = await Promise.race([fetchPromise, timeoutPromise])
+
       balances.value = allBalances
       lastBalanceFetchTs = Date.now()
       lastBalanceFetchWallet = walletAddress
 
-      // Fetch metadata for all tokens asynchronously (with rate limiting)
       if (allBalances.length > 0) {
         fetchAllTokenMetadata(allBalances).then(tokensWithMetadata => {
-          // Update balances with metadata
           balances.value = tokensWithMetadata
         })
       }
     } catch (err) {
       logError('Error fetching balances:', err)
-      // Provide more user-friendly error messages
-      if (err.message && err.message.includes('403')) {
+      const msg = err?.message || ''
+      if (msg.includes('timed out') || msg.includes('timeout')) {
+        error.value = 'Request took too long. Try again on a stronger connection (e.g. Wi‑Fi).'
+      } else if (msg.includes('Failed to fetch') || msg.includes('Network request failed') || msg.includes('Load failed')) {
+        error.value = 'Network error. Check your connection and try again.'
+      } else if (msg.includes('403')) {
         error.value = 'RPC access forbidden. Please check your API key configuration.'
       } else {
-        error.value = err.message || 'Failed to fetch balances'
+        error.value = msg || 'Failed to fetch balances'
       }
       balances.value = []
     } finally {
