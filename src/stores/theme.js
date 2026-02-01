@@ -62,6 +62,9 @@ const defaultTheme = {
       trade: '#ffaa00',     // Orange/amber for trade orders
       tradeHover: '#cc8800',
       tradeLight: '#ffbb33',
+      swap: '#6366f1',      // Indigo for swap (currency<->currency)
+      swapHover: '#4f46e5',
+      swapLight: '#818cf8',
     },
     window: {
       background: '#1a1a2e',  // Window/modal background
@@ -218,6 +221,9 @@ export const useThemeStore = defineStore('theme', () => {
       '--theme-trade-trade': theme.colors.trade.trade,
       '--theme-trade-trade-hover': theme.colors.trade.tradeHover,
       '--theme-trade-trade-light': theme.colors.trade.tradeLight,
+      '--theme-trade-swap': theme.colors.trade.swap,
+      '--theme-trade-swap-hover': theme.colors.trade.swapHover,
+      '--theme-trade-swap-light': theme.colors.trade.swapLight,
       
       // Window colors
       '--theme-window-bg': theme.colors.window.background,

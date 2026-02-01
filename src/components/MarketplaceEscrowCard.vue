@@ -191,7 +191,7 @@
 import { computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import { formatDecimals } from '../utils/formatters'
-import { getTradeType, canUserFillEscrow } from '../utils/marketplaceHelpers'
+import { getTradeType, getShopCurrencyMints, canUserFillEscrow } from '../utils/marketplaceHelpers'
 import { useCollectionMetadata } from '../composables/useCollectionMetadata'
 
 const props = defineProps({
@@ -245,7 +245,7 @@ const requestTokenImage = computed(() => {
 
 const tradeType = computed(() => {
   if (!props.collection) return null
-  
+
   // Extract mint addresses from collectionMints (handle both old and new format)
   let collectionMints = props.collection.collectionMints || []
   if (Array.isArray(collectionMints) && collectionMints.length > 0) {
@@ -254,11 +254,13 @@ const tradeType = computed(() => {
       collectionMints = collectionMints.map(item => item.mint)
     }
   }
-  
+
+  // Use shop currency mints (baseCurrency + customCurrencies) for trade type; fallback to allowedCurrencies
+  const shopCurrencyMints = getShopCurrencyMints(props.collection) || props.collection.allowedCurrencies || []
   return getTradeType(
     props.escrow,
     collectionMints,
-    props.collection.allowedCurrencies || []
+    shopCurrencyMints
   )
 })
 
@@ -270,6 +272,8 @@ const tradeTypeLabel = computed(() => {
       return 'SELL'
     case 'trade':
       return 'TRADE'
+    case 'swap':
+      return 'SWAP'
     default:
       return 'ORDER'
   }
@@ -283,6 +287,8 @@ const tradeTypeClass = computed(() => {
       return 'text-trade-sell'
     case 'trade':
       return 'text-trade-trade'
+    case 'swap':
+      return 'text-trade-swap'
     default:
       return 'text-text-muted'
   }
@@ -296,6 +302,8 @@ const tradeTypeBgClass = computed(() => {
       return 'bg-trade-sell/20'
     case 'trade':
       return 'bg-trade-trade/20'
+    case 'swap':
+      return 'bg-trade-swap/20'
     default:
       return 'bg-text-muted/20'
   }

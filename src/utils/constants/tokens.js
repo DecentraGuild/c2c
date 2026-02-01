@@ -2,6 +2,19 @@
  * Token configuration constants
  */
 
+import { PublicKey } from '@solana/web3.js'
+
+// SPL Token program IDs (for legacy vs Token-2022 mint detection)
+export const TOKEN_PROGRAM_ID_STR = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+export const TOKEN_2022_PROGRAM_ID_STR = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+
+// MPL Core (Metaplex Core) - single-account NFT standard; not SPL Token
+export const MPL_CORE_PROGRAM_ID_STR = 'CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d'
+
+export const TOKEN_PROGRAM_ID_PK = new PublicKey(TOKEN_PROGRAM_ID_STR)
+export const TOKEN_2022_PROGRAM_ID_PK = new PublicKey(TOKEN_2022_PROGRAM_ID_STR)
+export const MPL_CORE_PROGRAM_ID_PK = new PublicKey(MPL_CORE_PROGRAM_ID_STR)
+
 // Native SOL configuration
 export const NATIVE_SOL = {
   mint: 'So11111111111111111111111111111111111111112',

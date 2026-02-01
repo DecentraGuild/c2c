@@ -44,7 +44,10 @@
     --theme-trade-trade: #ffaa00;
     --theme-trade-trade-hover: #cc8800;
     --theme-trade-trade-light: #ffbb33;
-    
+    --theme-trade-swap: #6366f1;
+    --theme-trade-swap-hover: #4f46e5;
+    --theme-trade-swap-light: #818cf8;
+
     --theme-window-bg: #1a1a2e;
     --theme-window-border: #2a2a3e;
     --theme-window-header: #141420;

@@ -4,6 +4,32 @@
  */
 
 import { PublicKey } from '@solana/web3.js'
+import { getCollectionCurrencies } from './constants/baseCurrencies'
+
+/**
+ * Get shop currency mint addresses (baseCurrency + customCurrencies) for a collection
+ * @param {Object} collection - Collection object with baseCurrency and customCurrencies
+ * @returns {Array<string>} Array of currency mint addresses
+ */
+export function getShopCurrencyMints(collection) {
+  if (!collection) return []
+  const currencies = getCollectionCurrencies(collection)
+  return currencies.map(c => c.mint).filter(Boolean)
+}
+
+/**
+ * Check if a mint belongs to the shop (collection mints or shop currencies)
+ * @param {string} mintAddress - Token mint address
+ * @param {Object} collection - Collection object with collectionMints and baseCurrency/customCurrencies
+ * @returns {boolean} True if mint is part of the shop
+ */
+export function belongsToShop(mintAddress, collection) {
+  if (!mintAddress || !collection) return false
+  const collectionMints = collection.collectionMints || []
+  if (belongsToCollection(mintAddress, collectionMints)) return true
+  const shopCurrencyMints = getShopCurrencyMints(collection)
+  return shopCurrencyMints.includes(mintAddress)
+}
 
 /**
  * Check if a mint address belongs to a collection
@@ -80,8 +106,8 @@ export function isAllowedCurrency(mintAddress, allowedCurrencies = []) {
  * Determine trade type for an escrow
  * @param {Object} escrow - Formatted escrow object
  * @param {Array<string>} collectionMints - Array of collection mint addresses
- * @param {Array<string>} allowedCurrencies - Array of allowed currency mint addresses
- * @returns {string} Trade type: 'buy', 'sell', 'trade', or null
+ * @param {Array<string>} allowedCurrencies - Array of allowed (shop) currency mint addresses
+ * @returns {string} Trade type: 'buy', 'sell', 'trade', 'swap', or null
  */
 export function getTradeType(escrow, collectionMints = [], allowedCurrencies = []) {
   if (!escrow || !escrow.depositToken || !escrow.requestToken) {
@@ -95,6 +121,11 @@ export function getTradeType(escrow, collectionMints = [], allowedCurrencies = [
   const requestIsNFT = belongsToCollection(requestMint, collectionMints)
   const depositIsCurrency = isAllowedCurrency(depositMint, allowedCurrencies)
   const requestIsCurrency = isAllowedCurrency(requestMint, allowedCurrencies)
+  
+  // Swap: both sides are shop currencies (currency -> currency)
+  if (depositIsCurrency && requestIsCurrency) {
+    return 'swap'
+  }
   
   // Buy order: SPL currency -> NFT (user wants to buy NFT with currency)
   if (depositIsCurrency && requestIsNFT) {
@@ -115,18 +146,16 @@ export function getTradeType(escrow, collectionMints = [], allowedCurrencies = [
 }
 
 /**
- * Filter escrows by collection
+ * Filter escrows by collection (storefront)
+ * Only show trades where BOTH deposit and request are from the shop (collection mints or shop currencies)
  * @param {Array} escrows - Array of formatted escrow objects
- * @param {Object} collection - Collection object with collectionMints and allowedCurrencies
+ * @param {Object} collection - Collection object with collectionMints and baseCurrency/customCurrencies
  * @returns {Array} Filtered escrows that match the collection
  */
 export function filterEscrowsByCollection(escrows, collection) {
   if (!escrows || !collection) {
     return []
   }
-  
-  const collectionMints = collection.collectionMints || []
-  const allowedCurrencies = collection.allowedCurrencies || []
   
   return escrows.filter(escrow => {
     if (!escrow.depositToken || !escrow.requestToken) {
@@ -136,30 +165,8 @@ export function filterEscrowsByCollection(escrows, collection) {
     const depositMint = escrow.depositToken.mint
     const requestMint = escrow.requestToken.mint
     
-    // Escrow matches if:
-    // 1. Deposit token is in collection OR request token is in collection
-    // 2. If deposit is currency, it must be in allowedCurrencies
-    // 3. If request is currency, it must be in allowedCurrencies
-    
-    const depositInCollection = belongsToCollection(depositMint, collectionMints)
-    const requestInCollection = belongsToCollection(requestMint, collectionMints)
-    
-    // At least one token must be in the collection
-    if (!depositInCollection && !requestInCollection) {
-      return false
-    }
-    
-    // If deposit is not in collection, it must be an allowed currency
-    if (!depositInCollection && !isAllowedCurrency(depositMint, allowedCurrencies)) {
-      return false
-    }
-    
-    // If request is not in collection, it must be an allowed currency
-    if (!requestInCollection && !isAllowedCurrency(requestMint, allowedCurrencies)) {
-      return false
-    }
-    
-    return true
+    // Both sides must belong to the shop (collection mints or shop currencies)
+    return belongsToShop(depositMint, collection) && belongsToShop(requestMint, collection)
   })
 }
 
@@ -257,7 +264,7 @@ export function canUserFillEscrow(escrow, userBalances = {}) {
 /**
  * Filter escrows by trade type
  * @param {Array} escrows - Array of formatted escrow objects
- * @param {string} tradeType - Trade type: 'buy', 'sell', 'trade', or 'all'
+ * @param {string} tradeType - Trade type: 'buy', 'sell', 'trade', 'swap', or 'all'
  * @param {Object} collection - Collection object
  * @returns {Array} Filtered escrows
  */
@@ -267,7 +274,7 @@ export function filterEscrowsByTradeType(escrows, tradeType, collection) {
   }
   
   const collectionMints = collection?.collectionMints || []
-  const allowedCurrencies = collection?.allowedCurrencies || []
+  const allowedCurrencies = getShopCurrencyMints(collection) || collection?.allowedCurrencies || []
   
   return escrows.filter(escrow => {
     const escrowTradeType = getTradeType(escrow, collectionMints, allowedCurrencies)

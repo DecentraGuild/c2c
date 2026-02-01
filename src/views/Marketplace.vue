@@ -148,7 +148,7 @@ import { useCollectionStore } from '../stores/collection'
 import { useEscrowStore } from '../stores/escrow'
 import { useWalletBalances } from '../composables/useWalletBalances'
 import { useViewMode } from '../composables/useViewMode'
-import { useMarketplaceFilters } from '../composables/useMarketplaceFilters'
+import useMarketplaceFilters from '../composables/useMarketplaceFilters'
 import { logDebug } from '../utils/logger'
 
 const route = useRoute()
@@ -178,7 +178,8 @@ const tradeTypes = [
   { value: 'all', label: 'All' },
   { value: 'buy', label: 'Buy' },
   { value: 'sell', label: 'Sell' },
-  { value: 'trade', label: 'Trade' }
+  { value: 'trade', label: 'Trade' },
+  { value: 'swap', label: 'Swap' }
 ]
 
 // Computed

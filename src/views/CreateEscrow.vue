@@ -282,8 +282,8 @@ watch([() => formStore.offerToken, () => formStore.requestToken, () => formStore
  * Handle escrow creation
  */
 const handleCreateEscrow = async () => {
-  // Validate form
-  if (!escrowStore.validateForm()) {
+  // Validate form (validateForm lives on escrowForm store)
+  if (!formStore.validateForm()) {
     return
   }
 
@@ -353,6 +353,10 @@ const handleCreateEscrow = async () => {
     // Calculate trade value for percentage fees (optional, can be 0 if not available)
     const tradeValue = 0 // TODO: Calculate from token prices if available
 
+    const offerSymbol = formStore.offerToken?.symbol || 'Token'
+    const requestSymbol = formStore.requestToken?.symbol || 'Token'
+    const memo = `Create escrow: ${formatDecimals(formStore.offerAmount)} ${offerSymbol} for ${formatDecimals(formStore.requestAmount)} ${requestSymbol}`
+
     const params = {
       depositTokenMint: formStore.offerToken.mint,
       requestTokenMint: formStore.requestToken.mint,
@@ -366,6 +370,7 @@ const handleCreateEscrow = async () => {
       contractFeeAccount: CONTRACT_FEE_ACCOUNT,
       shopFee, // Pass shop fee configuration
       tradeValue,
+      memo,
       connection,
       wallet: anchorWallet.value
     }

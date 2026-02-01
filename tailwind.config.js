@@ -53,7 +53,10 @@ export default {
         'trade-trade': 'var(--theme-trade-trade, #ffaa00)',
         'trade-trade-hover': 'var(--theme-trade-trade-hover, #cc8800)',
         'trade-trade-light': 'var(--theme-trade-trade-light, #ffbb33)',
-        
+        'trade-swap': 'var(--theme-trade-swap, #6366f1)',
+        'trade-swap-hover': 'var(--theme-trade-swap-hover, #4f46e5)',
+        'trade-swap-light': 'var(--theme-trade-swap-light, #818cf8)',
+
         // Window colors
         'window-bg': 'var(--theme-window-bg, #1a1a2e)',
         'window-border': 'var(--theme-window-border, #2a2a3e)',

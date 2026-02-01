@@ -1,0 +1,14 @@
+---
+description: Read Agent/INDEX.md before starting a prompt; use it to target docs and follow project conventions
+alwaysApply: true
+---
+
+# Read Agent Index Before Starting
+
+Before starting work on any prompt in this project:
+
+1. **Read `Agent/INDEX.md`** at the start of the conversation.
+2. Use its table and "Getting into work quickly" section to open the right docs for the task (e.g. file-locations, views-and-pages, constants-and-patterns).
+3. Follow the **Critical rules** listed there (errors, logging, constants, debounce) and the project layout.
+
+This keeps context aligned with project structure, naming, and patterns.

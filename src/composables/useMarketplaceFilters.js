@@ -12,7 +12,9 @@ import {
   filterActiveEscrows,
   sortEscrowsByUserBalance,
   canUserFillEscrow,
-  belongsToCollection
+  belongsToShop,
+  getTradeType,
+  getShopCurrencyMints
 } from '../utils/marketplaceHelpers'
 import { getEscrowItemMetadata } from './useCollectionMetadata'
 
@@ -27,7 +29,7 @@ import { getEscrowItemMetadata } from './useCollectionMetadata'
  * @param {import('vue').Ref<string>} options.searchQuery - Search query string
  * @returns {{filteredEscrows: import('vue').ComputedRef<Array>, userFillableEscrows: import('vue').ComputedRef<Array>, otherEscrows: import('vue').ComputedRef<Array>, debouncedSearchQuery: import('vue').Ref<string>}} Filtered escrows and helper functions
  */
-export function useMarketplaceFilters({
+function useMarketplaceFilters({
   allEscrows,
   selectedCollection,
   selectedTradeType,
@@ -60,41 +62,30 @@ export function useMarketplaceFilters({
     const lowerQuery = query ? query.toLowerCase() : null
     const hasActiveFilters = activeFilters.value && activeFilters.value.size > 0
     
+    const collection = selectedCollection.value
+    const shopCurrencyMints = getShopCurrencyMints(collection) || []
+    const collectionMints = collection.collectionMints || []
+
     // Single pass filter - combines all filter conditions
     const filtered = allEscrows.value.filter(escrow => {
-      // Filter 1: Collection match (using helper function logic)
+      // Filter 1: Both sides must belong to the shop (collection mints or shop currencies)
       const depositMint = escrow.depositToken?.mint
       const requestMint = escrow.requestToken?.mint
-      const collectionMints = selectedCollection.value.collectionMints || []
-      
-      const isDepositInCollection = depositMint && belongsToCollection(depositMint, collectionMints)
-      const isRequestInCollection = requestMint && belongsToCollection(requestMint, collectionMints)
-      
-      if (!isDepositInCollection && !isRequestInCollection) {
+      if (!depositMint || !requestMint) return false
+      if (!belongsToShop(depositMint, collection) || !belongsToShop(requestMint, collection)) {
         return false
       }
-      
+
       // Filter 2: Active status (not closed/expired) and has remaining deposit
       if (escrow.status === 'closed' || escrow.depositRemaining <= 0) {
         return false
       }
-      
+
       // Filter 3: Trade type
       const tradeType = selectedTradeType.value
       if (tradeType !== 'all') {
-        const isDepositNFT = isDepositInCollection
-        const isRequestNFT = isRequestInCollection
-        
-        // Buy: currency -> NFT (deposit is currency, request is NFT)
-        if (tradeType === 'buy' && (isDepositNFT || !isRequestNFT)) {
-          return false
-        }
-        // Sell: NFT -> currency (deposit is NFT, request is currency)
-        if (tradeType === 'sell' && (!isDepositNFT || isRequestNFT)) {
-          return false
-        }
-        // Trade: NFT -> NFT (both deposit and request are NFTs)
-        if (tradeType === 'trade' && (!isDepositNFT || !isRequestNFT)) {
+        const escrowTradeType = getTradeType(escrow, collectionMints, shopCurrencyMints)
+        if (escrowTradeType !== tradeType) {
           return false
         }
       }
@@ -182,3 +173,6 @@ export function useMarketplaceFilters({
     debouncedSearchQuery
   }
 }
+
+export { useMarketplaceFilters }
+export default useMarketplaceFilters

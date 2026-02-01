@@ -8,11 +8,12 @@ import {
   SystemProgram, 
   PublicKey
 } from '@solana/web3.js'
-import { 
+import {
   getAssociatedTokenAddressSync,
   ASSOCIATED_TOKEN_PROGRAM_ID,
   TOKEN_PROGRAM_ID
 } from '@solana/spl-token'
+import { getTokenProgramIdForMint } from './tokenProgramUtils'
 import {
   isWrappedSol,
   getWrappedSolAccount,
@@ -30,6 +31,7 @@ import { ESCROW_PROGRAM_ID, CONTRACT_FEE_ACCOUNT, WHITELIST_PROGRAM_ID } from '.
 import { FEE_CONFIG, FUND_TAKER_COSTS, TRANSACTION_COSTS } from './constants/fees'
 import { addMakerFeeInstructions, calculateTakerFee } from './marketplaceFees'
 import { checkAtaExists, makeAtaInstruction } from './ataUtils'
+import { createMemoInstruction } from './memo'
 import idl from '../idl/escrow_service.json'
 import { logDebug, logError } from './logger'
 
@@ -152,6 +154,7 @@ export function deriveEscrowAccounts(maker, seed, programId) {
  * @param {PublicKey|string|null} params.whitelist - Optional whitelist account
  * @param {PublicKey|string|null} params.entry - Optional whitelist entry
  * @param {PublicKey|string} params.contractFeeAccount - Contract's fee account (REQUIRED)
+ * @param {string|null} [params.memo] - Optional memo text for wallet display (e.g. "Create escrow: 50 USDC for 1.5 SOL")
  * @param {Connection} params.connection - Solana connection
  * @param {Object} params.wallet - Wallet adapter from solana-wallets-vue
  * @returns {Promise<Transaction>} Built transaction
@@ -174,41 +177,50 @@ export async function buildInitializeTransaction({
   contractFeeAccount = CONTRACT_FEE_ACCOUNT,
   shopFee = null, // Shop fee configuration: { wallet, makerFlatFee, takerFlatFee, makerPercentFee, takerPercentFee }
   tradeValue = 0, // Trade value in SOL (for percentage fees, optional)
+  memo = null,
   connection,
   wallet
 }) {
   const transaction = new Transaction()
+  if (memo && memo.trim()) {
+    transaction.add(createMemoInstruction(memo.trim()))
+  }
   const programId = toPublicKey(ESCROW_PROGRAM_ID)
   const makerPubkey = toPublicKey(maker)
   const seedBN = toBN(seed)
   
   const { auth, vault, escrow } = deriveEscrowAccounts(makerPubkey, seedBN, programId)
-  
-  const makerAta = getAssociatedTokenAddressSync(
-    new PublicKey(depositTokenMint),
-    makerPubkey,
-    false,
-    TOKEN_PROGRAM_ID,
-    ASSOCIATED_TOKEN_PROGRAM_ID
-  )
-  
-  const makerAtaRequest = getAssociatedTokenAddressSync(
-    new PublicKey(requestTokenMint),
-    makerPubkey,
-    false,
-    TOKEN_PROGRAM_ID,
-    ASSOCIATED_TOKEN_PROGRAM_ID
-  )
-  
+
   const depositTokenPubkey = toPublicKey(depositTokenMint)
   const requestTokenPubkey = toPublicKey(requestTokenMint)
+
+  // Validate both mints are legacy SPL Token (rejects Token-2022 and MPL Core with clear error)
+  await getTokenProgramIdForMint(connection, depositTokenPubkey, 'deposit')
+  await getTokenProgramIdForMint(connection, requestTokenPubkey, 'request')
+
+  const makerAta = getAssociatedTokenAddressSync(
+    depositTokenPubkey,
+    makerPubkey,
+    false,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  )
+
+  const makerAtaRequest = getAssociatedTokenAddressSync(
+    requestTokenPubkey,
+    makerPubkey,
+    false,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  )
+
   const feeAccount = toPublicKey(contractFeeAccount || CONTRACT_FEE_ACCOUNT)
-  
-  // Create ATAs if they don't exist
+
+  // Create ATAs if they don't exist (escrow supports only legacy SPL Token)
   if (!(await checkAtaExists(depositTokenPubkey, makerPubkey, connection))) {
     transaction.add(makeAtaInstruction(depositTokenPubkey, makerPubkey, makerPubkey))
   }
-  
+
   if (!(await checkAtaExists(requestTokenPubkey, makerPubkey, connection))) {
     transaction.add(makeAtaInstruction(requestTokenPubkey, makerPubkey, makerPubkey))
   }
