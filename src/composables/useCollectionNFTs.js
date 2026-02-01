@@ -148,8 +148,9 @@ export async function fetchNFTsFromCollection(collectionMintAddress, options = {
         const mintOffset = 1 + 32
         const mintPubkey = new PublicKey(data.slice(mintOffset, mintOffset + 32))
 
-        // Fetch metadata from URI to get image
+        // Fetch metadata from URI to get image and attributes
         let image = null
+        let attributes = []
         if (uri && uri.length > 0 && !uri.startsWith('http://localhost')) {
           try {
             let metadataUrl = uri
@@ -163,6 +164,13 @@ export async function fetchNFTsFromCollection(collectionMintAddress, options = {
             if (metadataResponse.ok) {
               const metadataJson = await metadataResponse.json()
               image = metadataJson.image || metadataJson.image_url || null
+              const rawAttrs = metadataJson.attributes || metadataJson.properties?.attributes || []
+              attributes = Array.isArray(rawAttrs)
+                ? rawAttrs.map((a) => ({
+                    trait_type: a.trait_type ?? a.traitType ?? '',
+                    value: a.value ?? ''
+                  })).filter((a) => a.trait_type !== '' || a.value !== '')
+                : []
             }
           } catch (err) {
             logDebug(`Failed to fetch metadata from URI ${uri}:`, err)
@@ -176,7 +184,8 @@ export async function fetchNFTsFromCollection(collectionMintAddress, options = {
           image: image,
           decimals: 0, // NFTs have 0 decimals
           uri: uri,
-          isCollectionItem: true
+          isCollectionItem: true,
+          attributes
         })
       } catch (err) {
         logDebug(`Failed to parse NFT metadata for ${pubkey.toString()}:`, err)
