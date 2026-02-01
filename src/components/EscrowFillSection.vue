@@ -18,8 +18,8 @@
       </div>
     </div>
 
-    <!-- Partial Fill Input/Slider -->
-    <div v-if="escrow.allowPartialFill" class="space-y-3">
+    <!-- Amount to Fill: slider and input (always shown; read-only when partial fill disabled) -->
+    <div class="space-y-3">
       <div>
         <label class="text-sm font-semibold text-text-primary">Amount to Fill</label>
       </div>
@@ -34,7 +34,9 @@
             min="0"
             max="100"
             :step="sliderStep"
-            class="w-full h-2 bg-secondary-bg rounded-lg appearance-none cursor-pointer slider-filled"
+            :disabled="!escrow.allowPartialFill"
+            class="w-full h-2 bg-secondary-bg rounded-lg appearance-none slider-filled disabled:opacity-60 disabled:cursor-not-allowed"
+            :class="{ 'cursor-pointer': escrow.allowPartialFill }"
             style="accent-color: var(--theme-secondary);"
             :style="{ '--fill-percent': Math.min(fillAmountPercent, maxFillPercentage) + '%' }"
           />
@@ -58,11 +60,13 @@
             type="text"
             inputmode="decimal"
             :placeholder="getPlaceholderForDecimals(inputSide === 'request' ? escrow.requestToken.decimals : escrow.depositToken.decimals)"
-            class="input-field w-full pr-20"
+            class="input-field w-full pr-20 disabled:opacity-60 disabled:cursor-not-allowed"
+            :readonly="!escrow.allowPartialFill"
             @input="handleFillAmountInput($event)"
             @keydown="handleFillAmountKeydown($event)"
           />
           <button
+            v-if="escrow.allowPartialFill"
             @click="toggleInputSide"
             class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-text-muted hover:text-primary-color transition-colors cursor-pointer flex items-center gap-1"
             type="button"
@@ -71,8 +75,11 @@
             <span>{{ inputSide === 'request' ? (escrow.requestToken.symbol || 'Token') : (escrow.depositToken.symbol || 'Token') }}</span>
             <Icon icon="mdi:swap-horizontal" class="w-4 h-4 opacity-60" />
           </button>
+          <span v-else class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">
+            {{ escrow.requestToken.symbol || 'Token' }}
+          </span>
         </div>
-        <div class="flex gap-2 mt-2">
+        <div v-if="escrow.allowPartialFill" class="flex gap-2 mt-2">
           <button
             v-for="percentage in [25, 50, 75, 100]"
             :key="percentage"
@@ -98,7 +105,7 @@
         </div>
       </div>
 
-      <!-- Expected Receive -->
+      <!-- You will receive -->
       <div class="bg-secondary-bg/50 rounded-xl p-3">
         <div class="flex flex-col sm:grid sm:grid-cols-2 gap-2 sm:gap-4 items-start sm:items-center">
           <span class="text-sm text-text-muted">You will receive:</span>
@@ -110,30 +117,6 @@
             container-class="text-left"
           />
         </div>
-      </div>
-    </div>
-
-    <!-- Full Fill Display (when partial fill disabled) -->
-    <div v-else class="bg-secondary-bg/50 rounded-xl p-3 space-y-2">
-      <div class="flex flex-col sm:grid sm:grid-cols-2 gap-2 sm:gap-4 items-start sm:items-center">
-        <span class="text-sm text-text-muted">You will pay:</span>
-        <TokenAmountDisplay
-          :token="escrow.requestToken"
-          :amount="escrow.requestAmount"
-          :decimals="escrow.requestToken.decimals"
-          icon-size="sm"
-          container-class="text-left"
-        />
-      </div>
-      <div class="flex flex-col sm:grid sm:grid-cols-2 gap-2 sm:gap-4 items-start sm:items-center">
-        <span class="text-sm text-text-muted">You will receive:</span>
-        <TokenAmountDisplay
-          :token="escrow.depositToken"
-          :amount="escrow.depositRemaining"
-          :decimals="escrow.depositToken.decimals"
-          icon-size="sm"
-          container-class="text-left"
-        />
       </div>
     </div>
 

@@ -43,6 +43,10 @@
               icon-size="sm"
             />
           </div>
+          <div class="flex items-center gap-2">
+            <span class="text-text-muted text-xs">Price:</span>
+            <span class="text-text-secondary text-xs">{{ formatPriceAsTrade(escrow) }}</span>
+          </div>
           <div v-if="escrow.expireTimestamp > 0" class="flex items-center gap-1.5">
             <Icon icon="mdi:clock-outline" class="w-3.5 h-3.5 text-text-muted" />
             <span class="text-text-muted text-xs">
@@ -127,7 +131,7 @@
 import { Icon } from '@iconify/vue'
 import TokenAmountDisplay from './TokenAmountDisplay.vue'
 import BaseAddressDisplay from './BaseAddressDisplay.vue'
-import { formatTimestamp } from '../utils/formatters'
+import { formatTimestamp, formatDecimals } from '../utils/formatters'
 
 defineProps({
   escrow: {
@@ -141,4 +145,17 @@ defineProps({
 })
 
 defineEmits(['share', 'cancel', 'claim'])
+
+// Same price-as-trade display as marketplace (deposit : request using human amounts)
+const formatAmount = (amount) => {
+  if (amount === 0) return '0'
+  if (amount < 0.01) return '< 0.01'
+  return formatDecimals(amount)
+}
+const formatPriceAsTrade = (escrow) => {
+  if (!escrow?.depositRemaining && !escrow?.requestAmount) return 'N/A'
+  const deposit = formatAmount(escrow.depositRemaining ?? 0)
+  const request = formatAmount(escrow.requestAmount ?? 0)
+  return `${deposit} : ${request}`
+}
 </script>

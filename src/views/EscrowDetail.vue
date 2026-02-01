@@ -148,6 +148,7 @@ import { calculateDepositAmountToExchange, prepareExchangeAmounts } from '../uti
 import { formatUserFriendlyError } from '../utils/errorMessages'
 import { logError } from '../utils/logger'
 import { getCollectionForEscrow } from '../utils/marketplaceHelpers'
+import { getDecimalsForMintFromCollections } from '../utils/collectionHelpers'
 import { useCollectionStore } from '../stores/collection'
 import { useCollectionMetadataStore } from '../stores/collectionMetadata'
 
@@ -452,8 +453,10 @@ watch(() => escrow.value, (newEscrow) => {
         fillAmountPercent.value = 100
         // Will be set after balance loads
       } else {
-        fillAmount.value = ''
         fillAmountPercent.value = 100
+        fillAmount.value = newEscrow.requestToken?.decimals === 0
+          ? Math.floor(newEscrow.requestAmount || 0).toString()
+          : formatDecimals(newEscrow.requestAmount || 0)
       }
     } else {
       // For filled/expired escrows, reset fill amount state
@@ -519,12 +522,35 @@ const loadEscrow = async () => {
 
     const escrowAccount = rawEscrow.account
     const escrowPubkey = rawEscrow.publicKey
+    const depositMint = escrowAccount.depositToken.toString()
+    const requestMint = escrowAccount.requestToken.toString()
 
     // Fetch token info
-    const [depositTokenInfo, requestTokenInfo] = await Promise.all([
-      tokenRegistry.fetchTokenInfo(escrowAccount.depositToken.toString()),
-      tokenRegistry.fetchTokenInfo(escrowAccount.requestToken.toString())
+    let [depositTokenInfo, requestTokenInfo] = await Promise.all([
+      tokenRegistry.fetchTokenInfo(depositMint),
+      tokenRegistry.fetchTokenInfo(requestMint)
     ])
+
+    const collections = collectionStore.collections || []
+    const depositDecimalsFromCollection = getDecimalsForMintFromCollections(depositMint, collections)
+    const requestDecimalsFromCollection = getDecimalsForMintFromCollections(requestMint, collections)
+    // Prefer collection decimals (e.g. RACE PASS = 0); blockchain amounts are in raw units per these decimals
+    const depositDecimals = depositDecimalsFromCollection ?? depositTokenInfo?.decimals ?? 9
+    const requestDecimals = requestDecimalsFromCollection ?? requestTokenInfo?.decimals ?? 9
+    depositTokenInfo = {
+      mint: depositMint,
+      name: depositTokenInfo?.name ?? null,
+      symbol: depositTokenInfo?.symbol ?? null,
+      image: depositTokenInfo?.image ?? null,
+      decimals: depositDecimals
+    }
+    requestTokenInfo = {
+      mint: requestMint,
+      name: requestTokenInfo?.name ?? null,
+      symbol: requestTokenInfo?.symbol ?? null,
+      image: requestTokenInfo?.image ?? null,
+      decimals: requestDecimals
+    }
 
     // Format escrow data using helper function
     escrow.value = formatEscrowData(

@@ -145,6 +145,7 @@ import { useEscrowTransactions } from '../composables/useEscrowTransactions'
 import { useSolanaConnection } from '../composables/useSolanaConnection'
 import { useErrorDisplay } from '../composables/useErrorDisplay'
 import { toSmallestUnits, formatDecimals } from '../utils/formatters'
+import { getDecimalsForMintFromCollections } from '../utils/collectionHelpers'
 import { CONTRACT_FEE_ACCOUNT } from '../utils/constants'
 import { ESCROW_PROGRAM_ID, SLIPPAGE_DIVISOR } from '../utils/constants/escrow'
 import { calculateEscrowCreationCosts } from '../utils/transactionCosts'
@@ -326,15 +327,30 @@ const handleCreateEscrow = async () => {
       recipientAddress = validation.pubkey.toString()
     }
     
-    // Convert amounts to smallest units
+    // Resolve decimals from collection config (blockchain truth: wrong decimals = wrong on-chain price).
+    // Use full collections list; if empty (e.g. direct /create), ensure loaded and fall back to selectedCollection.
+    let collectionsForDecimals = collectionStore.collections || []
+    if (collectionsForDecimals.length === 0) {
+      await collectionStore.loadCollections()
+      collectionsForDecimals = collectionStore.collections || []
+    }
+    if (collectionsForDecimals.length === 0 && selectedCollection.value) {
+      collectionsForDecimals = [selectedCollection.value]
+    }
+    const depositDecimals = getDecimalsForMintFromCollections(formStore.offerToken.mint, collectionsForDecimals) ??
+      formStore.offerToken?.decimals ?? 9
+    const requestDecimals = getDecimalsForMintFromCollections(formStore.requestToken.mint, collectionsForDecimals) ??
+      formStore.requestToken?.decimals ?? 9
+
+    // Convert amounts to smallest units (must match chain expectation: raw units per token decimals)
     const depositAmount = toSmallestUnits(
       formStore.offerAmount,
-      formStore.offerToken.decimals
+      depositDecimals
     )
     
     const requestAmount = toSmallestUnits(
       formStore.requestAmount,
-      formStore.requestToken.decimals
+      requestDecimals
     )
 
     // Generate seed using crypto random values (matching developer's implementation)

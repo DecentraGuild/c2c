@@ -40,18 +40,26 @@ export function calculateEscrowStatus(escrowAccount) {
 export function formatEscrowData(escrowData, depositTokenInfo, requestTokenInfo) {
   const { account: escrowAccount, publicKey: escrowPubkey } = escrowData
   
+  const depositDecimals = depositTokenInfo?.decimals ?? 9
+  const requestDecimals = requestTokenInfo?.decimals ?? 9
+
   // Calculate amounts in human-readable format
   const depositRemaining = fromSmallestUnits(
     escrowAccount.tokensDepositRemaining.toString(),
-    depositTokenInfo.decimals
+    depositDecimals
   )
   const depositInitial = fromSmallestUnits(
     escrowAccount.tokensDepositInit.toString(),
-    depositTokenInfo.decimals
+    depositDecimals
   )
-  
-  // Calculate request amount based on remaining deposit and price
-  const requestAmount = depositRemaining * escrowAccount.price
+
+  // Price on-chain is requestRaw/depositRaw (ratio). Human request = human deposit * price.
+  // Derive human request from ratio so display is correct even if Create sent wrong raw units (e.g. 1e9 instead of 1).
+  const chainPrice = Number(escrowAccount.price)
+  const requestAmountRaw = depositRemaining > 0 && chainPrice >= 0 ? depositRemaining * chainPrice : 0
+  const requestAmount = requestDecimals === 0
+    ? Math.round(requestAmountRaw)
+    : Math.round(requestAmountRaw * Math.pow(10, requestDecimals)) / Math.pow(10, requestDecimals)
   
   // Determine status
   const status = calculateEscrowStatus(escrowAccount)

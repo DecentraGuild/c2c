@@ -17,8 +17,10 @@
       "mint": "8AmJR4JiZeDtSXtV3KQSBgjWDtpP3NsK3Mg3ZXvaW8eE",
       "name": "RACE PASS",
       "symbol": "RPASS",
-      "itemType": "NFT",
-      "fetchingType": "NFT",
+      "decimals": 0,
+      "itemType": "pass",
+      "fetchingType": "Token",
+      "class": "Pass",
       "category": "Pass",
       "uri": "https://file.dexlab.space/file/5a0cb98f39204375ad6cce026e45230b",
       "sellerFeeBasisPoints": 0

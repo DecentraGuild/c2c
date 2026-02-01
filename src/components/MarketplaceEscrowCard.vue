@@ -77,11 +77,11 @@
           <div class="text-xs text-text-secondary">Requesting</div>
         </div>
 
-        <!-- Price & Status -->
+        <!-- Price (trade as on chain: deposit for request) -->
         <div class="pt-2.5 border-t border-border-color mt-auto">
           <div class="text-xs text-text-muted mb-1">Price</div>
           <div class="text-sm font-semibold text-text-primary">
-            {{ formatPrice(escrow.price) }}
+            {{ formatPriceAsTrade(escrow) }}
           </div>
         </div>
       </div>
@@ -166,10 +166,10 @@
         </div>
       </div>
 
-      <!-- Price & Status -->
+      <!-- Price (trade as on chain) -->
       <div class="flex-shrink-0 text-right flex flex-col justify-center min-w-[80px] sm:min-w-[100px]">
         <div class="text-sm font-semibold text-text-primary leading-tight">
-          {{ formatPrice(escrow.price) }}
+          {{ formatPriceAsTrade(escrow) }}
         </div>
         <div class="text-xs text-text-secondary leading-tight mt-1">
           {{ escrow.allowPartialFill ? 'Partial' : 'Full' }}
@@ -319,10 +319,11 @@ const formatAmount = (amount) => {
   return formatDecimals(amount)
 }
 
-const formatPrice = (price) => {
-  if (!price || price === 0) return 'N/A'
-  // Price is requestAmount / depositAmount
-  // For display, show as "1 X = Y Z"
-  return `1:${formatDecimals(price)}`
+// Show price as trade (deposit for request) using human amounts from escrow (same logic as detail page)
+const formatPriceAsTrade = (escrow) => {
+  if (!escrow?.depositRemaining && !escrow?.requestAmount) return 'N/A'
+  const deposit = formatAmount(escrow.depositRemaining ?? 0)
+  const request = formatAmount(escrow.requestAmount ?? 0)
+  return `${deposit} : ${request}`
 }
 </script>

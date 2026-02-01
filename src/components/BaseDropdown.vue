@@ -13,7 +13,7 @@
   <!-- Regular dropdown -->
   <div v-if="show && !isFullScreen" class="absolute top-full left-0 right-0 mt-1 z-50" ref="dropdownRef" @click.stop>
     <div :class="[containerClass, 'collection-scroll-container']">
-      <div class="collection-scroll-content">
+      <div class="collection-scroll-content flex-1 min-h-0 flex flex-col">
         <slot />
       </div>
     </div>

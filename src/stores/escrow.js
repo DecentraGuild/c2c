@@ -9,7 +9,9 @@ import { ref, computed } from 'vue'
 import { fetchAllEscrows } from '../utils/escrowTransactions'
 import { useSolanaConnection } from '../composables/useSolanaConnection'
 import { useTokenStore } from './token'
+import { useCollectionStore } from './collection'
 import { formatEscrowData } from '../utils/escrowHelpers'
+import { getDecimalsForMintFromCollections } from '../utils/collectionHelpers'
 import { toPublicKey } from '../utils/solanaUtils'
 import { logError } from '../utils/logger'
 import { BATCH_SIZES } from '../utils/constants'
@@ -59,7 +61,9 @@ export const useEscrowStore = defineStore('escrow', () => {
     try {
       const connection = useSolanaConnection()
       const tokenStore = useTokenStore()
-      
+      const collectionStore = useCollectionStore()
+      const collections = collectionStore.collections || []
+
       // Convert makerPublicKey to PublicKey if it's a string
       const makerFilter = makerPublicKey 
         ? toPublicKey(makerPublicKey)
@@ -92,12 +96,34 @@ export const useEscrowStore = defineStore('escrow', () => {
               
               const escrowAccount = escrowData.account
               const escrowPubkey = escrowData.publicKey
-              
+              const depositMint = escrowAccount.depositToken.toString()
+              const requestMint = escrowAccount.requestToken.toString()
+
               // Fetch token info for deposit and request tokens
-              const [depositTokenInfo, requestTokenInfo] = await Promise.all([
-                tokenStore.fetchTokenInfo(escrowAccount.depositToken.toString()),
-                tokenStore.fetchTokenInfo(escrowAccount.requestToken.toString())
+              let [depositTokenInfo, requestTokenInfo] = await Promise.all([
+                tokenStore.fetchTokenInfo(depositMint),
+                tokenStore.fetchTokenInfo(requestMint)
               ])
+
+              // Prefer collection decimals (e.g. RACE PASS = 0); blockchain amounts are in raw units per these decimals
+              const depositDecimalsFromCollection = getDecimalsForMintFromCollections(depositMint, collections)
+              const requestDecimalsFromCollection = getDecimalsForMintFromCollections(requestMint, collections)
+              const depositDecimals = depositDecimalsFromCollection ?? depositTokenInfo?.decimals ?? 9
+              const requestDecimals = requestDecimalsFromCollection ?? requestTokenInfo?.decimals ?? 9
+              depositTokenInfo = {
+                mint: depositMint,
+                name: depositTokenInfo?.name ?? null,
+                symbol: depositTokenInfo?.symbol ?? null,
+                image: depositTokenInfo?.image ?? null,
+                decimals: depositDecimals
+              }
+              requestTokenInfo = {
+                mint: requestMint,
+                name: requestTokenInfo?.name ?? null,
+                symbol: requestTokenInfo?.symbol ?? null,
+                image: requestTokenInfo?.image ?? null,
+                decimals: requestDecimals
+              }
               
               // Format escrow data using helper function
               const formatted = formatEscrowData(

@@ -1,11 +1,12 @@
 <template>
   <BaseDropdown 
     :show="show" 
-    container-class="bg-card-bg border border-border-color rounded-xl shadow-xl max-h-96 overflow-hidden flex flex-col"
+    container-class="bg-card-bg border border-border-color rounded-xl shadow-xl max-h-64 overflow-hidden flex flex-col"
     @close="$emit('close')"
   >
+    <div class="flex flex-col min-h-0 flex-1 overflow-hidden">
       <!-- Unified Search Input -->
-      <div class="p-3 border-b border-border-color">
+      <div class="p-3 border-b border-border-color flex-shrink-0">
         <div class="relative">
           <Icon icon="mdi:magnify" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
           <input
@@ -46,7 +47,7 @@
             @click="handleTokenClick(token)"
             class="w-full px-4 py-3 hover:bg-secondary-bg/50 transition-colors flex items-center justify-between text-left"
           >
-            <TokenDisplay :token="token" :show-address="true" />
+            <TokenDisplay :token="token" />
             <div class="flex items-center gap-2 flex-shrink-0">
               <Icon 
                 v-if="token.fetchingType === 'NFT' && token.isCollectionItem" 
@@ -79,7 +80,7 @@
             @click="handleTokenClick(token)"
             class="w-full px-4 py-3 hover:bg-secondary-bg/50 transition-colors flex items-center justify-between text-left"
           >
-            <TokenDisplay :token="token" :show-address="true" />
+            <TokenDisplay :token="token" />
             <div class="flex items-center gap-2 flex-shrink-0">
               <Icon 
                 v-if="token.fetchingType === 'NFT' && token.isCollectionItem" 
@@ -91,6 +92,7 @@
         </div>
         </div>
       </div>
+    </div>
   </BaseDropdown>
 
   <!-- NFT Instance Selector (fullscreen, outside dropdown) -->
@@ -588,8 +590,8 @@ const displayTokens = computed(() => {
         existingMints.add(item.mint)
         tokens.push(mergeBalanceIntoToken(item, [], collectionId))
       }
-      collectionItems.forEach(addItem)
       currencies.forEach(addItem)
+      collectionItems.forEach(addItem)
     }
     // No fallback to wallet: request selector shows only shop options
   }
