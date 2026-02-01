@@ -369,3 +369,25 @@ export function groupEscrowsByCollection(escrows, collections = []) {
   
   return groups
 }
+
+/**
+ * Get the collection an escrow belongs to (for navbar/storefront context)
+ * @param {Object} escrow - Formatted escrow object
+ * @param {Array} collections - Array of collection objects
+ * @param {Object} [metadataStore] - Optional collection metadata store (useCollectionMetadataStore()) for cached NFT mints
+ * @returns {Object|null} First matching collection or null
+ */
+export function getCollectionForEscrow(escrow, collections = [], metadataStore = null) {
+  if (!escrow || !collections || collections.length === 0) return null
+  for (const collection of collections) {
+    const cachedNFTs = metadataStore?.getCachedNFTs?.(collection.id) || []
+    const cachedMints = new Set(
+      cachedNFTs.map(n => (n?.mint && String(n.mint).toLowerCase()) || null).filter(Boolean)
+    )
+    const matched = filterEscrowsByCollection([escrow], collection, {
+      cachedCollectionMints: cachedMints
+    })
+    if (matched.length > 0) return collection
+  }
+  return null
+}

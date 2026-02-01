@@ -123,7 +123,8 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { Icon } from '@iconify/vue'
-import { useCollectionStore } from '../stores/collection'
+import { useCollectionStore } from '@/stores/collection'
+import { filterCollectionsByQuery } from '@/utils/collectionHelpers'
 import CollectionBadge from './CollectionBadge.vue'
 
 const props = defineProps({
@@ -152,19 +153,9 @@ const selectedCollection = computed(() => {
   return collections.value.find(c => c.id === props.modelValue)
 })
 
-const filteredCollections = computed(() => {
-  if (!searchQuery.value.trim()) {
-    return collections.value
-  }
-  
-  const query = searchQuery.value.toLowerCase()
-  return collections.value.filter(collection => {
-    return (
-      collection.name.toLowerCase().includes(query) ||
-      (collection.description && collection.description.toLowerCase().includes(query))
-    )
-  })
-})
+const filteredCollections = computed(() =>
+  filterCollectionsByQuery(collections.value, searchQuery.value)
+)
 
 const selectCollection = (collection) => {
   emit('update:modelValue', collection.id)

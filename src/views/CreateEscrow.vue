@@ -130,7 +130,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useRouter } from 'vue-router'
 import { useWallet, useAnchorWallet } from 'solana-wallets-vue'
@@ -170,6 +170,13 @@ const { displayError } = useErrorDisplay({ txError, errorTypes: ['transaction', 
 
 // Get selected collection for marketplace fee calculation
 const selectedCollection = computed(() => collectionStore.selectedCollection)
+
+// When landing on /create directly, ensure collections load so last storefront can be restored
+onMounted(async () => {
+  if (collectionStore.collections.length === 0) {
+    await collectionStore.loadCollections()
+  }
+})
 
 const loading = ref(false)
 const showPricing = ref(false)

@@ -61,3 +61,24 @@ export function isMintAllowed(mintAddress, collection) {
   const { allMints } = getAllowedMints(collection)
   return allMints.includes(mintAddress)
 }
+
+/**
+ * Filter collections by search query (name, description, and optionally id)
+ * @param {Array} collections - Array of collection objects
+ * @param {string} query - Search query (trimmed; empty returns all)
+ * @param {Object} options - Options
+ * @param {boolean} options.includeId - If true, also match collection.id (default: false for selectors, true for dashboard)
+ * @returns {Array} Filtered collections
+ */
+export function filterCollectionsByQuery(collections, query, { includeId = false } = {}) {
+  if (!collections || !Array.isArray(collections)) return []
+  const trimmed = (query || '').trim()
+  if (!trimmed) return collections
+  const lower = trimmed.toLowerCase()
+  return collections.filter(collection => {
+    const nameMatch = collection.name?.toLowerCase().includes(lower)
+    const descriptionMatch = collection.description?.toLowerCase().includes(lower)
+    const idMatch = includeId && collection.id?.toLowerCase().includes(lower)
+    return nameMatch || descriptionMatch || idMatch
+  })
+}

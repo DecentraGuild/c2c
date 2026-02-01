@@ -110,8 +110,8 @@ import { useCollectionStore } from '../stores/collection'
 import { useCollectionMetadataStore } from '../stores/collectionMetadata'
 import { storeToRefs } from 'pinia'
 import { useWallet } from 'solana-wallets-vue'
-import { debounce } from '../utils/debounce'
-import { getAllowedMints } from '../utils/collectionHelpers'
+import { useDebounce, DEBOUNCE_DELAYS } from '@/composables/useDebounce'
+import { getAllowedMints } from '@/utils/collectionHelpers'
 import { getCollectionCurrencies } from '../utils/constants/baseCurrencies'
 import BaseDropdown from './BaseDropdown.vue'
 import TokenDisplay from './TokenDisplay.vue'
@@ -484,14 +484,13 @@ const performSearch = async (query) => {
   }
 }
 
-// Debounced search function
-const debouncedSearch = debounce((query) => {
+const debouncedSearch = useDebounce((query) => {
   if (query && query.trim()) {
     performSearch(query)
   } else {
     localSearchResults.value = []
   }
-}, 300)
+}, DEBOUNCE_DELAYS.MEDIUM)
 
 const handleSearch = () => {
   const query = searchQuery.value

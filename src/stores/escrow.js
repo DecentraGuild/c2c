@@ -129,7 +129,14 @@ export const useEscrowStore = defineStore('escrow', () => {
       escrows.value = formattedEscrows
     } catch (error) {
       logError('Failed to load escrows:', error)
-      errors.value.escrows = error.message || 'Failed to load escrows'
+      const msg = error?.message || ''
+      if (msg.includes('timed out') || msg.includes('timeout')) {
+        errors.value.escrows = 'Request took too long. Try again on a stronger connection (e.g. Wi‑Fi).'
+      } else if (msg.includes('Failed to fetch') || msg.includes('Network request failed') || msg.includes('Load failed')) {
+        errors.value.escrows = 'Network error. Check your connection and try again.'
+      } else {
+        errors.value.escrows = msg || 'Failed to load escrows'
+      }
       escrows.value = []
     } finally {
       loadingEscrows.value = false

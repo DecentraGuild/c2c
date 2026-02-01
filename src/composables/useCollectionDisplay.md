@@ -179,8 +179,9 @@ Processed and sorted list of collection mints with metadata.
 
 **Example:**
 ```javascript
+import { logDebug } from '@/utils/logger'
 collectionMintsList.value.forEach(item => {
-  console.log(`${item.name} - ${item.royalty}% royalty`)
+  logDebug(`${item.name} - ${item.royalty}% royalty`)
 })
 ```
 
@@ -193,8 +194,9 @@ Maximum royalty percentage from all collection mints.
 
 **Example:**
 ```javascript
+import { logDebug } from '@/utils/logger'
 if (maxRoyalty.value > 0) {
-  console.log(`Highest royalty: ${maxRoyalty.value}%`)
+  logDebug(`Highest royalty: ${maxRoyalty.value}%`)
 }
 ```
 
@@ -217,8 +219,9 @@ List of accepted currencies with metadata (symbol, name, mint address).
 
 **Example:**
 ```javascript
+import { logDebug } from '@/utils/logger'
 acceptedCurrencies.value.forEach(currency => {
-  console.log(`Accepts: ${currency.symbol}`)
+  logDebug(`Accepts: ${currency.symbol}`)
 })
 ```
 

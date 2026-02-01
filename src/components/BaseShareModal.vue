@@ -49,10 +49,11 @@
 <script setup>
 import { ref, watch, nextTick } from 'vue'
 import { Icon } from '@iconify/vue'
-import { useClipboard } from '../composables/useClipboard'
-import { useQRCode } from '../composables/useQRCode'
-import { useToast } from '../composables/useToast'
-import { logWarning } from '../utils/logger'
+import { useClipboard } from '@/composables/useClipboard'
+import { useQRCode } from '@/composables/useQRCode'
+import { useToast } from '@/composables/useToast'
+import { logWarning } from '@/utils/logger'
+import { UI_CONSTANTS } from '@/utils/constants/ui'
 
 const props = defineProps({
   show: {
@@ -99,8 +100,7 @@ const { copyToClipboard, isCopying } = useClipboard()
 const { generateQRCode } = useQRCode()
 const { success, error: showError } = useToast()
 const qrCanvas = ref(null)
-// Larger QR code size for better mobile visibility
-const qrSize = 280 // QR code size in pixels (increased from 200)
+const qrSize = UI_CONSTANTS.QR_CODE_SIZE
 
 const handleClose = () => {
   emit('update:show', false)

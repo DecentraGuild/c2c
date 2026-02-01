@@ -3,9 +3,8 @@
  * Centralizes filtering operations for better performance and reusability
  */
 
-import { computed, ref, watch } from 'vue'
-import { DEBOUNCE_DELAYS } from '../utils/constants'
-import { simpleDebounce } from '../utils/debounce'
+import { computed } from 'vue'
+import { useDebouncedSearch } from './useDebouncedSearch'
 import {
   filterEscrowsByCollection,
   filterEscrowsByTradeType,
@@ -38,17 +37,7 @@ function useMarketplaceFilters({
   activeFilters,
   searchQuery
 }) {
-  // Debounce search query to avoid excessive filtering
-  const debouncedSearchQuery = ref(searchQuery.value)
-  
-  const updateDebouncedSearch = simpleDebounce((value) => {
-    debouncedSearchQuery.value = value
-  }, DEBOUNCE_DELAYS.MEDIUM)
-  
-  watch(searchQuery, (newValue) => {
-    updateDebouncedSearch(newValue)
-  }, { immediate: true })
-
+  const { debouncedQuery: debouncedSearchQuery } = useDebouncedSearch(searchQuery)
   const collectionMetadataStore = useCollectionMetadataStore()
 
   /**

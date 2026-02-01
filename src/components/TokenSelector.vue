@@ -59,13 +59,15 @@
 <script setup>
 import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
-import { useTokenStore } from '../stores/token'
-import { useCollectionStore } from '../stores/collection'
-import { useCollectionMetadataStore } from '../stores/collectionMetadata'
+import { useTokenStore } from '@/stores/token'
+import { useCollectionStore } from '@/stores/collection'
+import { useCollectionMetadataStore } from '@/stores/collectionMetadata'
 import { useWallet } from 'solana-wallets-vue'
-import { formatBalance as formatBalanceUtil } from '../utils/formatters'
-import { getAllowedMints } from '../utils/collectionHelpers'
-import { logDebug } from '../utils/logger'
+import { useDebounce } from '@/composables/useDebounce'
+import { formatBalance as formatBalanceUtil } from '@/utils/formatters'
+import { getAllowedMints } from '@/utils/collectionHelpers'
+import { logDebug } from '@/utils/logger'
+import { UI_CONSTANTS } from '@/utils/constants/ui'
 import BaseDropdown from './BaseDropdown.vue'
 import TokenDisplay from './TokenDisplay.vue'
 
@@ -234,18 +236,8 @@ const processBalances = async () => {
   processedBalances.value = [...currenciesAndTokens, ...matchingNFTs]
 }
 
-// Debounce processBalances to prevent rapid-fire calls
-let processBalancesTimeout = null
-const debouncedProcessBalances = () => {
-  if (processBalancesTimeout) {
-    clearTimeout(processBalancesTimeout)
-  }
-  processBalancesTimeout = setTimeout(() => {
-    processBalances()
-  }, 100) // 100ms debounce
-}
+const debouncedProcessBalances = useDebounce(processBalances, UI_CONSTANTS.METADATA_LOADING_DELAY)
 
-// Watch for changes and process (debounced)
 watch([balances, selectedCollection], debouncedProcessBalances, { immediate: true })
 
 // Also process when dropdown opens (only if not already processing)

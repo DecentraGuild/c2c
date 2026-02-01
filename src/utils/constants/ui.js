@@ -8,7 +8,10 @@ export const UI_CONSTANTS = {
   TOAST_DURATION_LONG: 5000, // 5 seconds (important messages)
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000, // 1 second
-  METADATA_LOADING_DELAY: 100 // Small delay for initial metadata fetches to start
+  METADATA_LOADING_DELAY: 100, // Small delay for initial metadata fetches to start
+  DROPDOWN_BLUR_DELAY: 200, // ms before closing dropdown on blur (allows click to fire)
+  QR_CODE_SIZE: 280, // Share modal QR code size in pixels
+  RPC_ESCROW_FETCH_TIMEOUT_MS: 25000 // Timeout for fetching escrows (avoids hang on slow/mobile networks)
 }
 
 // Debounce delay constants (in milliseconds)

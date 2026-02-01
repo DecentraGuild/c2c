@@ -273,9 +273,9 @@ const isPlatformRoute = computed(() => {
   return route.path === '/' || route.path === '/onboard'
 })
 
-// Determine if we're on a collection route
+// Determine if we're on a collection route (including escrow detail so storefront shows)
 const isCollectionRoute = computed(() => {
-  return ['/marketplace', '/create', '/manage'].includes(route.path)
+  return ['/marketplace', '/create', '/manage'].includes(route.path) || route.path.startsWith('/escrow/')
 })
 
 const handleCollectionChange = (collectionId) => {

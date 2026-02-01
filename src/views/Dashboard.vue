@@ -89,7 +89,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import BaseLoading from '../components/BaseLoading.vue'
 import BaseSearchInput from '../components/BaseSearchInput.vue'
@@ -97,47 +97,26 @@ import BaseViewModeToggle from '../components/BaseViewModeToggle.vue'
 import BaseEmptyState from '../components/BaseEmptyState.vue'
 import CollectionCard from '../components/CollectionCard.vue'
 import CollectionListItem from '../components/CollectionListItem.vue'
-import { useCollectionStore } from '../stores/collection'
-import { useEscrowStore } from '../stores/escrow'
-import { useViewMode } from '../composables/useViewMode'
-import { simpleDebounce } from '../utils/debounce'
+import { useCollectionStore } from '@/stores/collection'
+import { useEscrowStore } from '@/stores/escrow'
+import { useViewMode } from '@/composables/useViewMode'
+import { useDebouncedSearch } from '@/composables/useDebouncedSearch'
+import { filterCollectionsByQuery } from '@/utils/collectionHelpers'
 
 const collectionStore = useCollectionStore()
 const escrowStore = useEscrowStore()
 const { viewMode } = useViewMode('dashboard-view-mode', 'tile')
 const searchQuery = ref('')
-const debouncedSearchQuery = ref('')
+const { debouncedQuery: debouncedSearchQuery } = useDebouncedSearch(searchQuery)
 
 const viewModes = [
   { value: 'tile', label: 'Tile view', icon: 'mdi:view-grid' },
   { value: 'list', label: 'List view', icon: 'mdi:view-list' }
 ]
 
-// Debounce search query updates
-const updateDebouncedSearch = simpleDebounce((value) => {
-  debouncedSearchQuery.value = value
-}, 300)
-
-watch(searchQuery, (newValue) => {
-  updateDebouncedSearch(newValue)
-}, { immediate: true })
-
-// Filter collections based on debounced search query
 const filteredCollections = computed(() => {
   const collections = collectionStore.collections || []
-  
-  if (!debouncedSearchQuery.value.trim()) {
-    return collections
-  }
-  
-  const query = debouncedSearchQuery.value.toLowerCase().trim()
-  return collections.filter(collection => {
-    const nameMatch = collection.name?.toLowerCase().includes(query)
-    const descriptionMatch = collection.description?.toLowerCase().includes(query)
-    const idMatch = collection.id?.toLowerCase().includes(query)
-    
-    return nameMatch || descriptionMatch || idMatch
-  })
+  return filterCollectionsByQuery(collections, debouncedSearchQuery.value, { includeId: true })
 })
 
 onMounted(async () => {

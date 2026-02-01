@@ -81,9 +81,18 @@ export const useCollectionStore = defineStore('collection', () => {
   // Track if preloading is in progress to prevent duplicates
   const preloadingCollections = ref(new Set())
   
+  const LAST_COLLECTION_STORAGE_KEY = 'c2c_last_collection_id'
+
   const setSelectedCollection = (collectionId) => {
     selectedCollectionId.value = collectionId
-    
+    if (collectionId) {
+      try {
+        localStorage.setItem(LAST_COLLECTION_STORAGE_KEY, collectionId)
+      } catch (e) {
+        // Ignore storage errors (private mode, quota)
+      }
+    }
+
     // Load theme from collection if available
     // Note: Theme loading is also handled by watcher, but we do it here for immediate effect
     const collection = collections.value.find(c => c.id === collectionId)
@@ -196,7 +205,19 @@ export const useCollectionStore = defineStore('collection', () => {
 
       // Filter out null values (failed loads)
       collections.value = loadedCollections.filter(c => c !== null)
-      
+
+      // Restore last visited storefront when none selected (e.g. direct nav to /create)
+      if (!selectedCollectionId.value && collections.value.length > 0) {
+        try {
+          const lastId = localStorage.getItem(LAST_COLLECTION_STORAGE_KEY)
+          if (lastId && collections.value.some(c => c.id === lastId)) {
+            setSelectedCollection(lastId)
+          }
+        } catch (e) {
+          // Ignore storage errors
+        }
+      }
+
       logDebug(`Loaded ${collections.value.length} collections`)
     } catch (err) {
       logError('Failed to load collections:', err)

@@ -80,6 +80,8 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { Icon } from '@iconify/vue'
+import { filterCollectionsByQuery } from '@/utils/collectionHelpers'
+import { UI_CONSTANTS } from '@/utils/constants/ui'
 
 const props = defineProps({
   modelValue: {
@@ -102,19 +104,9 @@ const selectedCollection = computed(() => {
   return props.collections.find(c => c.id === props.modelValue)
 })
 
-const filteredCollections = computed(() => {
-  if (!searchQuery.value.trim()) {
-    return props.collections
-  }
-  
-  const query = searchQuery.value.toLowerCase()
-  return props.collections.filter(collection => {
-    return (
-      collection.name.toLowerCase().includes(query) ||
-      (collection.description && collection.description.toLowerCase().includes(query))
-    )
-  })
-})
+const filteredCollections = computed(() =>
+  filterCollectionsByQuery(props.collections, searchQuery.value)
+)
 
 const selectCollection = (collection) => {
   emit('update:modelValue', collection.id)
@@ -123,10 +115,9 @@ const selectCollection = (collection) => {
 }
 
 const handleBlur = () => {
-  // Delay to allow click events to fire
   setTimeout(() => {
     showDropdown.value = false
-  }, 200)
+  }, UI_CONSTANTS.DROPDOWN_BLUR_DELAY)
 }
 
 watch(() => props.modelValue, () => {

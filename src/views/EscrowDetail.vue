@@ -147,9 +147,14 @@ import { formatEscrowData } from '../utils/escrowHelpers'
 import { calculateDepositAmountToExchange, prepareExchangeAmounts } from '../utils/exchangeHelpers'
 import { formatUserFriendlyError } from '../utils/errorMessages'
 import { logError } from '../utils/logger'
+import { getCollectionForEscrow } from '../utils/marketplaceHelpers'
+import { useCollectionStore } from '../stores/collection'
+import { useCollectionMetadataStore } from '../stores/collectionMetadata'
 
 const route = useRoute()
 const router = useRouter()
+const collectionStore = useCollectionStore()
+const collectionMetadataStore = useCollectionMetadataStore()
 const walletAdapter = useWallet()
 const anchorWallet = useAnchorWallet()
 const { publicKey, connected } = walletAdapter
@@ -527,6 +532,15 @@ const loadEscrow = async () => {
       depositTokenInfo,
       requestTokenInfo
     )
+
+    // Set storefront (collection) so navbar shows 2nd level when viewing this offer
+    if (collectionStore.collections.length === 0) {
+      await collectionStore.loadCollections()
+    }
+    const collection = getCollectionForEscrow(escrow.value, collectionStore.collections, collectionMetadataStore)
+    if (collection) {
+      collectionStore.setSelectedCollection(collection.id)
+    }
 
     // Auto-open share modal if share query parameter is present
     if (route.query.share === 'true') {

@@ -34,6 +34,7 @@ import { checkAtaExists, makeAtaInstruction } from './ataUtils'
 import { createMemoInstruction } from './memo'
 import idl from '../idl/escrow_service.json'
 import { logDebug, logError } from './logger'
+import { UI_CONSTANTS } from './constants/ui.js'
 
 /**
  * Validate and return Anchor-compatible wallet
@@ -555,27 +556,35 @@ export function getEscrowProgramReadOnly(connection) {
 }
 
 /**
- * Fetch all escrows from the blockchain
+ * Fetch all escrows from the blockchain with timeout
+ * Timeout avoids indefinite hang on slow/mobile networks where RPC can be slow or unresponsive.
  * @param {Connection} connection - Solana connection
  * @param {PublicKey|null} makerFilter - Optional maker public key to filter by
  * @returns {Promise<Array>} Array of escrow accounts
  */
 export async function fetchAllEscrows(connection, makerFilter = null) {
-  try {
+  const timeoutMs = UI_CONSTANTS.RPC_ESCROW_FETCH_TIMEOUT_MS ?? 25000
+
+  const fetchPromise = (async () => {
     const program = getEscrowProgramReadOnly(connection)
-    
-    // Fetch all escrow accounts
     const escrows = await program.account.escrow.all()
-    
-    // Filter by maker if provided
     if (makerFilter) {
       const makerPubkey = makerFilter instanceof PublicKey ? makerFilter : new PublicKey(makerFilter)
-      return escrows.filter(escrow => 
+      return escrows.filter(escrow =>
         escrow.account.maker.toString() === makerPubkey.toString()
       )
     }
-    
     return escrows
+  })()
+
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`Request timed out after ${timeoutMs / 1000} seconds. Try again on a stronger connection.`))
+    }, timeoutMs)
+  })
+
+  try {
+    return await Promise.race([fetchPromise, timeoutPromise])
   } catch (error) {
     logError('Failed to fetch escrows:', error)
     throw error
