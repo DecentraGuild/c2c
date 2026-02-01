@@ -66,7 +66,6 @@ export function useComposableName(params) {
 ### 5. Form Composables
 - `useDebounce` - Debounced functions with cleanup
 - `useDecimalHandling` - Decimal input handling
-- `useFillAmount` - Fill amount calculations
 - `usePercentageButtons` - Percentage button logic
 - `useVModel` - v-model helper
 

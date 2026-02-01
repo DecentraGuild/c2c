@@ -31,3 +31,6 @@ dist-ssr
 # Example/dev reference files (old Skull & Bones implementation)
 example/
 Example/
+
+# Agent docs (AI/editor context; not shipped)
+Agent/

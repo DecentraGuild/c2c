@@ -12,6 +12,9 @@ import { metadataRateLimiter } from '../utils/rateLimiter'
 import { cleanTokenString } from '../utils/formatters'
 import { useTokenStore } from '../stores/token'
 import { logError, logDebug, logWarning } from '../utils/logger'
+import { fetchAllTokenBalancesFromDAS } from '../utils/heliusDAS'
+
+const BALANCE_CACHE_TTL_MS = 60 * 1000 // 60 seconds – avoid refetching too often
 
 export function useWalletBalances(options = {}) {
   const { autoFetch = true } = options
@@ -20,6 +23,10 @@ export function useWalletBalances(options = {}) {
   const loading = ref(false)
   const error = ref(null)
   const loadingMetadata = ref(false)
+
+  // Cache: skip refetch if same wallet and data is fresh
+  let lastBalanceFetchTs = 0
+  let lastBalanceFetchWallet = null
 
   // Use shared connection
   const connection = useSolanaConnection()
@@ -48,50 +55,87 @@ export function useWalletBalances(options = {}) {
   }
 
   /**
-   * Fetch all SPL token balances
+   * Legacy RPC: fetch SPL token balances via getParsedTokenAccountsByOwner for Token Program
+   * and Token-2022. Reliably returns USDC, USDT, and other standard SPL tokens that DAS may omit.
+   */
+  const fetchSPLTokenBalancesFromRPC = async (walletAddress) => {
+    const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
+    const TOKEN_2022_PROGRAM_ID = new PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb')
+
+    const [standardTokenAccounts, token2022Accounts] = await Promise.all([
+      connection.getParsedTokenAccountsByOwner(
+        new PublicKey(walletAddress),
+        { programId: TOKEN_PROGRAM_ID }
+      ).catch(() => ({ value: [] })),
+      connection.getParsedTokenAccountsByOwner(
+        new PublicKey(walletAddress),
+        { programId: TOKEN_2022_PROGRAM_ID }
+      ).catch(() => ({ value: [] }))
+    ])
+
+    const allTokenAccounts = [
+      ...(standardTokenAccounts.value || []),
+      ...(token2022Accounts.value || [])
+    ]
+
+    const tokenBalances = []
+    for (const accountInfo of allTokenAccounts) {
+      const parsedInfo = accountInfo.account?.data?.parsed?.info
+      if (!parsedInfo) continue
+      const mintAddress = parsedInfo.mint
+      const tokenAmount = parsedInfo.tokenAmount
+      if (tokenAmount?.uiAmount > 0) {
+        tokenBalances.push({
+          mint: mintAddress,
+          symbol: null,
+          name: null,
+          decimals: tokenAmount.decimals,
+          balance: tokenAmount.uiAmount,
+          balanceRaw: tokenAmount.amount,
+          isNative: false
+        })
+      }
+    }
+    return tokenBalances
+  }
+
+  /**
+   * Fetch all SPL token balances from the wallet.
+   * Uses both DAS (getAssetsByOwner) and legacy RPC (getParsedTokenAccountsByOwner for Token +
+   * Token-2022) in parallel, then merges by mint. RPC ensures USDC, USDT, RRR and other standard
+   * SPL tokens are always found; DAS adds assets from other programs and enriches metadata.
    */
   const fetchSPLTokenBalances = async (walletAddress) => {
     try {
-      const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
-        new PublicKey(walletAddress),
-        {
-          programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
-        }
-      )
+      const [dasBalances, rpcBalances] = await Promise.all([
+        fetchAllTokenBalancesFromDAS(walletAddress).catch((dasErr) => {
+          logDebug('DAS getAssetsByOwner unavailable or partial:', dasErr?.message)
+          return []
+        }),
+        fetchSPLTokenBalancesFromRPC(walletAddress)
+      ])
 
-      // DEBUG: Only log if debug mode is enabled (via window.debugWalletBalances.debugMode = true)
-      if (typeof window !== 'undefined' && window.debugWalletBalances?.debugMode) {
-        logDebug('🔍 Raw Token Accounts Response')
-        logDebug('Total token accounts:', tokenAccounts.value.length)
-        if (tokenAccounts.value.length > 0) {
-          logDebug('Sample account structure:', JSON.stringify(tokenAccounts.value[0], null, 2))
-          logDebug('Available fields in parsedInfo:', Object.keys(tokenAccounts.value[0].account?.data?.parsed?.info || {}))
-          logDebug('Note: Balance fetch only provides: mint, decimals, balance. No name/symbol/image.')
+      logDebug(`DAS: ${dasBalances.length} token balances, RPC: ${rpcBalances.length} (Token + Token-2022)`)
+
+      // Merge by mint: RPC is authoritative for balance (finds USDC, RRR, etc.); add DAS-only mints; enrich with DAS metadata when missing
+      const byMint = new Map()
+      for (const entry of rpcBalances) {
+        byMint.set(entry.mint, { ...entry })
+      }
+      for (const entry of dasBalances) {
+        const existing = byMint.get(entry.mint)
+        if (!existing) {
+          byMint.set(entry.mint, { ...entry })
+        } else {
+          if (entry.name != null && entry.name !== '') existing.name = entry.name
+          if (entry.symbol != null && entry.symbol !== '') existing.symbol = entry.symbol
+          if (entry.image != null && entry.image !== '') existing.image = entry.image
         }
       }
 
-      const tokenBalances = []
-
-      for (const accountInfo of tokenAccounts.value) {
-        const parsedInfo = accountInfo.account.data.parsed.info
-        const mintAddress = parsedInfo.mint
-        const tokenAmount = parsedInfo.tokenAmount
-
-        // Only include tokens with non-zero balance
-        if (tokenAmount.uiAmount > 0) {
-          tokenBalances.push({
-            mint: mintAddress,
-            symbol: null, // Will be fetched from metadata if needed
-            name: null, // Will be fetched from metadata if needed
-            decimals: tokenAmount.decimals,
-            balance: tokenAmount.uiAmount,
-            balanceRaw: tokenAmount.amount,
-            isNative: false
-          })
-        }
-      }
-
-      return tokenBalances
+      const merged = Array.from(byMint.values())
+      logDebug(`Merged SPL balances: ${merged.length} tokens`)
+      return merged
     } catch (err) {
       logError('Error fetching SPL token balances:', err)
       return []
@@ -168,47 +212,95 @@ export function useWalletBalances(options = {}) {
   }
 
   /**
-   * Fetch metadata for all tokens asynchronously
-   * Uses Promise.allSettled to handle all fetches properly
+   * Fetch metadata for all tokens. Uses token store cache first – we don't re-fetch
+   * metadata when it's already cached (e.g. after changing page). Only tokens without
+   * valid cache hit the network; cached metadata is reused across sections.
+   * Only fetches metadata for fungible tokens (decimals > 0); NFTs (decimals === 0)
+   * are skipped – collection NFT display uses preloaded collection metadata.
    */
   const fetchAllTokenMetadata = async (tokens) => {
-    // Mark as loading
     loadingMetadata.value = true
-    
+    const tokenStore = useTokenStore()
+
     try {
-      // Fetch metadata for all tokens in parallel
-      // Use allSettled to ensure all promises complete (both fulfilled and rejected)
-      const metadataPromises = tokens.map((token) => 
+      // Only fetch metadata for fungible tokens (SOL, USDC, RRR, etc.); skip NFTs
+      const fungibleTokens = tokens.filter(t => t.decimals != null && t.decimals > 0)
+      const nftTokens = tokens.filter(t => t.decimals != null && t.decimals === 0)
+
+      // Satisfy from cache first – no network for tokens we've already fetched
+      const tokensNeedingFetch = []
+      const cacheHits = new Map()
+      for (const token of fungibleTokens) {
+        const cached = tokenStore.getCachedTokenInfo(token?.mint)
+        if (cached && cached.name) {
+          cacheHits.set(token.mint, { ...token, ...cached })
+        } else {
+          tokensNeedingFetch.push(token)
+        }
+      }
+      // NFTs: use existing balance data only (no metadata fetch); merge with cache if present
+      for (const token of nftTokens) {
+        const cached = tokenStore.getCachedTokenInfo(token?.mint)
+        if (cached && cached.name) {
+          cacheHits.set(token.mint, { ...token, ...cached })
+        }
+      }
+
+      // If everything was in cache, merge and finish without any network calls
+      if (tokensNeedingFetch.length === 0) {
+        const merged = tokens.map((t) => cacheHits.get(t.mint) ?? t)
+        balances.value = merged
+        loadingMetadata.value = false
+        logDebug(`Metadata: all ${tokens.length} tokens from cache (no fetch)`)
+        return merged
+      }
+
+      logDebug(`Metadata: ${cacheHits.size} from cache, ${tokensNeedingFetch.length} to fetch`)
+
+      // Only fetch for tokens without valid cache
+      const metadataPromises = tokensNeedingFetch.map((token) =>
         fetchAndUpdateTokenMetadata(token).catch(() => token)
       )
-      
       const results = await Promise.allSettled(metadataPromises)
-      
-      // Extract the token data from settled promises
-      const tokensWithMetadata = results.map((result, index) => {
-        if (result.status === 'fulfilled') {
-          return result.value
-        }
-        // If failed, return original token
-        return tokens[index]
+      const fetchedMap = new Map()
+      results.forEach((result, index) => {
+        const token = tokensNeedingFetch[index]
+        const value = result.status === 'fulfilled' ? result.value : token
+        if (token?.mint) fetchedMap.set(token.mint, value)
       })
-      
-      // Update balances once with all metadata
-      balances.value = tokensWithMetadata
-      
-      return tokensWithMetadata
+
+      // Merge: cache hits + newly fetched; preserve order of original tokens
+      const merged = tokens.map((t) => fetchedMap.get(t.mint) ?? cacheHits.get(t.mint) ?? t)
+      balances.value = merged
+      return merged
     } finally {
-      // Always mark loading as complete
       loadingMetadata.value = false
     }
   }
 
   /**
    * Fetch all balances (SOL + SPL tokens)
+   * Includes guard to prevent duplicate simultaneous calls and cache TTL
    */
-  const fetchBalances = async () => {
+  const fetchBalances = async (forceRefresh = false) => {
     if (!connected.value || !publicKey.value) {
       balances.value = []
+      return
+    }
+    
+    const walletAddress = publicKey.value.toString()
+    const cacheFresh = !forceRefresh &&
+      lastBalanceFetchWallet === walletAddress &&
+      balances.value.length > 0 &&
+      (Date.now() - lastBalanceFetchTs) < BALANCE_CACHE_TTL_MS
+    if (cacheFresh) {
+      logDebug('Balance cache still fresh, skipping refetch')
+      return
+    }
+
+    // Prevent duplicate simultaneous calls
+    if (loading.value) {
+      logDebug('Balance fetch already in progress, skipping duplicate call')
       return
     }
 
@@ -216,7 +308,6 @@ export function useWalletBalances(options = {}) {
     error.value = null
 
     try {
-      const walletAddress = publicKey.value.toString()
       
       // Fetch SOL balance and SPL token balances in parallel
       const [solBalance, splBalances] = await Promise.all([
@@ -235,6 +326,8 @@ export function useWalletBalances(options = {}) {
 
       // Set initial balances (without metadata)
       balances.value = allBalances
+      lastBalanceFetchTs = Date.now()
+      lastBalanceFetchWallet = walletAddress
 
       // Fetch metadata for all tokens asynchronously (with rate limiting)
       if (allBalances.length > 0) {
@@ -343,12 +436,22 @@ export function useWalletBalances(options = {}) {
     }
   }
 
+  // Track if fetch is in progress to prevent duplicate calls
+  let fetchingBalances = false
+  
   // Watch for wallet connection changes (only if autoFetch is enabled)
   if (autoFetch) {
-    watch([connected, publicKey], ([isConnected, pubKey]) => {
-      if (isConnected && pubKey) {
-        fetchBalances()
-      } else {
+    watch([connected, publicKey], ([isConnected, pubKey], [oldConnected, oldPubKey]) => {
+      // Only fetch if wallet actually changed (not just re-triggered)
+      const walletChanged = isConnected !== oldConnected || 
+                           (pubKey && oldPubKey && pubKey.toString() !== oldPubKey.toString())
+      
+      if (isConnected && pubKey && walletChanged && !fetchingBalances) {
+        fetchingBalances = true
+        fetchBalances().finally(() => {
+          fetchingBalances = false
+        })
+      } else if (!isConnected) {
         balances.value = []
       }
     }, { immediate: true })

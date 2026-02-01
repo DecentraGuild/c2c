@@ -229,6 +229,57 @@ async function fetchTokenMetadataFromChain(connection, mintAddress) {
     const uriLength = data.readUInt32LE(offset)
     offset += 4
     const uri = data.slice(offset, offset + uriLength).toString('utf8').trim()
+    offset += uriLength
+    
+    // Read seller_fee_basis_points (2 bytes)
+    if (offset + 2 > data.length) {
+      return {
+        name: cleanTokenString(name),
+        symbol: cleanTokenString(symbol),
+        image: null,
+        uri: uri || null,
+        collection: null
+      }
+    }
+    const sellerFeeBasisPoints = data.readUInt16LE(offset)
+    offset += 2
+    
+    // Read creators (optional)
+    // First byte: 1 if present, 0 if not
+    let collection = null
+    if (offset < data.length) {
+      const hasCreators = data[offset] === 1
+      offset += 1
+      
+      if (hasCreators && offset + 4 <= data.length) {
+        const creatorsLength = data.readUInt32LE(offset)
+        offset += 4
+        // Skip creators data (variable length, complex structure)
+        // Each creator is: 32 bytes (pubkey) + 1 byte (verified) + 1 byte (share)
+        const creatorsDataLength = creatorsLength * 34
+        if (offset + creatorsDataLength <= data.length) {
+          offset += creatorsDataLength
+        }
+      }
+      
+      // Read collection (optional)
+      // First byte: 1 if present, 0 if not
+      if (offset < data.length) {
+        const hasCollection = data[offset] === 1
+        offset += 1
+        if (hasCollection && offset + 33 <= data.length) {
+          // Collection is: 1 byte (verified) + 32 bytes (pubkey)
+          offset += 1 // Skip verified byte
+          try {
+            const collectionPubkey = new PublicKey(data.slice(offset, offset + 32))
+            collection = collectionPubkey.toString()
+          } catch (err) {
+            // Invalid pubkey, skip
+            logDebug(`Invalid collection pubkey for ${mintAddress}`)
+          }
+        }
+      }
+    }
     
     // Fetch JSON metadata from URI (IPFS/Arweave)
     let image = null
@@ -314,7 +365,8 @@ async function fetchTokenMetadataFromChain(connection, mintAddress) {
       name: cleanTokenString(name),
       symbol: cleanTokenString(symbol),
       image: image || null,
-      uri: uri || null
+      uri: uri || null,
+      collection: collection || null
     }
   } catch (err) {
     // Only log non-rate-limit errors to reduce console spam

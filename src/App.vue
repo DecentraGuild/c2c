@@ -13,7 +13,7 @@ import NavBar from './components/NavBar.vue'
 import ToastContainer from './components/ToastContainer.vue'
 import { useTokenStore } from './stores/token'
 import { useThemeStore } from './stores/theme'
-import { isMobileDevice, waitForWalletStandard, isBackpackAvailable } from './utils/walletDetection'
+import { isMobileDevice, waitForWalletStandard } from './utils/walletDetection'
 import { useNetworkStatus } from './composables/useNetworkStatus'
 
 // Theme store is already initialized in main.js before app mount

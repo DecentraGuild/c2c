@@ -63,7 +63,8 @@ export const STORAGE_KEYS = {
 
 // Cache configuration
 export const CACHE_CONFIG = {
-  METADATA_TTL: 30 * 24 * 60 * 60 * 1000, // 30 days (1 month)
+  // Metadata: persisted in localStorage, reused across pages/sections so we don't re-fetch on navigation
+  METADATA_TTL: 30 * 24 * 60 * 60 * 1000, // 7 days – tokens we've successfully fetched are cached
   REGISTRY_TTL: 24 * 60 * 60 * 1000, // 24 hours
   MAX_METADATA_ENTRIES: 1000 // Maximum cached token metadata entries
 }

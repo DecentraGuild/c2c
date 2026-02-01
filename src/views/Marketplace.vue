@@ -135,14 +135,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, shallowRef } from 'vue'
-import { Icon } from '@iconify/vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BaseLoading from '../components/BaseLoading.vue'
 import BaseSearchInput from '../components/BaseSearchInput.vue'
 import BaseViewModeToggle from '../components/BaseViewModeToggle.vue'
 import BaseEmptyState from '../components/BaseEmptyState.vue'
-import MarketplaceEscrowCard from '../components/MarketplaceEscrowCard.vue'
 import MarketplaceEscrowSection from '../components/MarketplaceEscrowSection.vue'
 import MarketplaceFilters from '../components/MarketplaceFilters.vue'
 import CollectionBadge from '../components/CollectionBadge.vue'
@@ -227,28 +225,52 @@ const clearFilters = () => {
   searchQuery.value = ''
 }
 
+// Track if loadEscrows is in progress to prevent duplicate calls
+let isLoadingEscrowsFlag = false
+
 const loadEscrows = async () => {
   if (!selectedCollection.value) {
     return
   }
+  
+  // Prevent duplicate simultaneous calls
+  if (isLoadingEscrowsFlag) {
+    logDebug('Escrows already loading, skipping duplicate call')
+    return
+  }
 
-  // Load all escrows from blockchain via escrow store
-  await escrowStore.loadAllEscrows()
-  
-  // Update collection counts after loading (pass escrows directly)
-  collectionStore.refreshOpenTradesCounts(escrowStore.escrows)
-  
-  logDebug(`Loaded ${escrowStore.escrows.length} escrows for marketplace`)
+  isLoadingEscrowsFlag = true
+  try {
+    // Load all escrows from blockchain via escrow store
+    await escrowStore.loadAllEscrows()
+    
+    // Update collection counts after loading (pass escrows directly)
+    collectionStore.refreshOpenTradesCounts(escrowStore.escrows)
+    
+    logDebug(`Loaded ${escrowStore.escrows.length} escrows for marketplace`)
+  } finally {
+    isLoadingEscrowsFlag = false
+  }
 }
+
+// Track last loaded collection to prevent duplicate loads
+let lastLoadedCollectionId = null
 
 // Watch for collection changes from store
 watch(() => collectionStore.selectedCollectionId, (newCollectionId) => {
   if (newCollectionId && route.path === '/marketplace') {
-    // Update URL to match store
-    router.replace({ query: { collection: newCollectionId } })
-    // Clear filters and search when collection changes
-    clearFilters()
-    loadEscrows()
+    // Only update URL if it's different (prevent circular updates)
+    if (route.query.collection !== newCollectionId) {
+      router.replace({ query: { collection: newCollectionId } })
+    }
+    
+    // Only load escrows if collection actually changed
+    if (newCollectionId !== lastLoadedCollectionId) {
+      // Clear filters and search when collection changes
+      clearFilters()
+      loadEscrows()
+      lastLoadedCollectionId = newCollectionId
+    }
   }
 })
 
@@ -258,7 +280,11 @@ watch(() => route.query.collection, (newCollectionId) => {
     collectionStore.setSelectedCollection(newCollectionId)
     // Clear filters and search when collection changes
     clearFilters()
-    loadEscrows()
+    // Only load if not already loading for this collection
+    if (newCollectionId !== lastLoadedCollectionId) {
+      loadEscrows()
+      lastLoadedCollectionId = newCollectionId
+    }
   }
 }, { immediate: true })
 

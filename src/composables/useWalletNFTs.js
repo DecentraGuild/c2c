@@ -61,46 +61,68 @@ export async function fetchWalletNFTsByCollection(walletAddress, collectionMintA
       logDebug(`Found ${nftAccounts.length} NFT accounts (0 decimals)`)
 
       // Fetch metadata for each NFT and filter by collection
+      logDebug(`Checking ${nftAccounts.length} NFTs against ${collectionMintAddresses.length} collection mints:`, collectionMintAddresses)
+      
       for (const accountInfo of nftAccounts) {
         try {
           const mintAddress = accountInfo.account.data.parsed.info.mint
           const tokenAmount = accountInfo.account.data.parsed.info.tokenAmount
 
-          // Fetch metadata
-          const metadata = await fetchTokenMetadata(connection, mintAddress, true)
-          if (metadata) {
-            // Check if this NFT belongs to any of the collection mints
-            let matchesCollection = false
-            
-            // Check 1: Direct mint match (for individual NFT mints in collectionMints)
-            if (collectionMintAddresses.includes(mintAddress)) {
+          // Check if this NFT matches by direct mint first (before fetching metadata)
+          // This allows us to include NFTs even if metadata fetch fails
+          let matchesCollection = false
+          let collectionMatchType = null
+          
+          // Check 1: Direct mint match (for individual NFT mints in collectionMints)
+          if (collectionMintAddresses.includes(mintAddress)) {
+            matchesCollection = true
+            collectionMatchType = 'direct'
+            logDebug(`✓ NFT ${mintAddress} matches by direct mint`)
+          }
+
+          // Fetch metadata (even if we already matched, we need it for display)
+          let metadata = null
+          try {
+            metadata = await fetchTokenMetadata(connection, mintAddress, true)
+            if (metadata) {
+              logDebug(`Fetched metadata for ${mintAddress}: name=${metadata.name}, collection=${metadata.collection || 'none'}`)
+            }
+          } catch (metadataErr) {
+            // Metadata fetch failed - this is OK, we can still use the NFT if it matches
+            logDebug(`Metadata fetch failed for ${mintAddress} (will still check if matches):`, metadataErr.message)
+          }
+          
+          // Check 2: Collection membership (for collection-based matching)
+          // Only check if we haven't already matched and metadata was fetched successfully
+          if (!matchesCollection && metadata && metadata.collection) {
+            const collectionMatch = collectionMintAddresses.find(cm => cm === metadata.collection)
+            if (collectionMatch) {
               matchesCollection = true
-              logDebug(`✓ NFT ${mintAddress} matches by direct mint`)
+              collectionMatchType = 'collection'
+              logDebug(`✓ NFT ${mintAddress} belongs to collection ${metadata.collection}`)
+            } else {
+              logDebug(`✗ NFT ${mintAddress} collection ${metadata.collection} doesn't match any collection mints`)
             }
-            
-            // Check 2: Collection membership (for collection-based matching)
-            if (!matchesCollection && metadata.collection) {
-              if (collectionMintAddresses.includes(metadata.collection)) {
-                matchesCollection = true
-                logDebug(`✓ NFT ${mintAddress} belongs to collection ${metadata.collection}`)
-              }
-            }
-            
-            if (matchesCollection) {
-              nfts.push({
-                mint: mintAddress,
-                name: metadata.name || '',
-                symbol: metadata.symbol || '',
-                image: metadata.image,
-                decimals: 0,
-                balance: tokenAmount.uiAmount,
-                balanceRaw: tokenAmount.amount,
-                uri: metadata.uri,
-                isCollectionItem: true,
-                fetchingType: 'NFT',
-                collection: metadata.collection || null
-              })
-            }
+          }
+          
+          // Add NFT if it matches (even if metadata fetch failed for direct matches)
+          if (matchesCollection) {
+            nfts.push({
+              mint: mintAddress,
+              name: metadata?.name || `NFT ${mintAddress.slice(0, 8)}...`,
+              symbol: metadata?.symbol || '',
+              image: metadata?.image || null,
+              decimals: 0,
+              balance: tokenAmount.uiAmount,
+              balanceRaw: tokenAmount.amount,
+              uri: metadata?.uri || null,
+              isCollectionItem: true,
+              fetchingType: 'NFT',
+              collection: metadata?.collection || (collectionMatchType === 'direct' ? collectionMintAddresses[0] : null)
+            })
+            logDebug(`Added NFT to list: ${mintAddress}`)
+          } else {
+            logDebug(`✗ NFT ${mintAddress} does not match any collection mints`)
           }
         } catch (err) {
           logDebug(`Failed to process NFT ${accountInfo.account.data.parsed.info.mint}:`, err)

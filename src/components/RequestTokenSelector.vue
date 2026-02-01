@@ -37,7 +37,7 @@
           <p class="text-sm text-status-error">{{ error }}</p>
         </div>
 
-        <!-- Wallet Balances (default view when no search) -->
+        <!-- Available options (shop currencies + collection items; no wallet balance needed for request) -->
         <div v-else-if="!searchQuery && displayTokens.length > 0" class="divide-y divide-border-color">
           <button
             v-for="token in displayTokens"
@@ -46,12 +46,7 @@
             class="w-full px-4 py-3 hover:bg-secondary-bg/50 transition-colors flex items-center justify-between text-left"
           >
             <TokenDisplay :token="token" :show-address="true" />
-            <div class="flex items-center gap-2">
-              <div v-if="token.decimals !== null && token.decimals !== undefined" class="text-right flex-shrink-0">
-                <div class="text-xs text-text-muted">
-                  {{ token.decimals }} decimals
-                </div>
-              </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
               <Icon 
                 v-if="token.fetchingType === 'NFT' && token.isCollectionItem" 
                 icon="mdi:chevron-right" 
@@ -61,11 +56,11 @@
           </button>
         </div>
 
-        <!-- Empty Wallet State -->
+        <!-- Empty: no marketplace selected or no options -->
         <div v-else-if="!searchQuery && displayTokens.length === 0 && !walletBalancesLoading" class="p-4 text-center text-text-muted">
-          <Icon icon="mdi:wallet-outline" class="w-8 h-8 inline-block mb-2" />
-          <p class="text-sm">No tokens in wallet</p>
-          <p class="text-xs mt-1">Search for tokens by name, symbol, or token ID</p>
+          <Icon icon="mdi:store-outline" class="w-8 h-8 inline-block mb-2" />
+          <p class="text-sm">{{ selectedCollection ? 'No options for this marketplace' : 'Select a marketplace to see options' }}</p>
+          <p class="text-xs mt-1">Search by name, symbol, or token ID</p>
         </div>
 
         <!-- No Results (when searching) -->
@@ -84,12 +79,7 @@
             class="w-full px-4 py-3 hover:bg-secondary-bg/50 transition-colors flex items-center justify-between text-left"
           >
             <TokenDisplay :token="token" :show-address="true" />
-            <div class="flex items-center gap-2">
-              <div v-if="token.decimals !== null && token.decimals !== undefined" class="text-right flex-shrink-0">
-                <div class="text-xs text-text-muted">
-                  {{ token.decimals }} decimals
-                </div>
-              </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
               <Icon 
                 v-if="token.fetchingType === 'NFT' && token.isCollectionItem" 
                 icon="mdi:chevron-right" 
@@ -117,13 +107,17 @@ import { ref, watch, computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useTokenStore } from '../stores/token'
 import { useCollectionStore } from '../stores/collection'
+import { useCollectionMetadataStore } from '../stores/collectionMetadata'
 import { storeToRefs } from 'pinia'
 import { useWallet } from 'solana-wallets-vue'
 import { debounce } from '../utils/debounce'
+import { getAllowedMints } from '../utils/collectionHelpers'
+import { getCollectionCurrencies } from '../utils/constants/baseCurrencies'
 import BaseDropdown from './BaseDropdown.vue'
 import TokenDisplay from './TokenDisplay.vue'
 import NFTInstanceSelector from './NFTInstanceSelector.vue'
-import { logError } from '../utils/logger'
+import { logError, logDebug } from '../utils/logger'
+import { formatBalance as formatBalanceUtil } from '../utils/formatters'
 
 const props = defineProps({
   show: {
@@ -137,6 +131,7 @@ const emit = defineEmits(['select', 'close'])
 const { connected } = useWallet()
 const tokenStore = useTokenStore()
 const collectionStore = useCollectionStore()
+const collectionMetadataStore = useCollectionMetadataStore()
 
 // Get selected collection
 const selectedCollection = computed(() => collectionStore.selectedCollection)
@@ -145,43 +140,19 @@ const selectedCollection = computed(() => collectionStore.selectedCollection)
 const shouldFilterByCollection = computed(() => {
   if (!selectedCollection.value) return false
   
-  const collectionMints = selectedCollection.value.collectionMints || []
-  const allowedCurrencies = selectedCollection.value.allowedCurrencies || []
-  
-  // Only filter if we have currencies configured
-  return allowedCurrencies.length > 0 || collectionMints.length > 0
+  const { allMints } = allowedMints.value
+  return allMints.length > 0
 })
 
 // Get allowed mints from collection
 const allowedMints = computed(() => {
-  if (!selectedCollection.value) return null
-  
-  const collectionMints = selectedCollection.value.collectionMints || []
-  const allowedCurrencies = selectedCollection.value.allowedCurrencies || []
-  
-  // Separate Token and NFT collection mints
-  const tokenCollectionMints = collectionMints.filter(
-    item => typeof item === 'string' || (typeof item === 'object' && item.fetchingType !== 'NFT')
-  )
-  const nftCollectionMints = collectionMints.filter(
-    item => typeof item === 'object' && item.fetchingType === 'NFT'
-  )
-  
-  // Extract mint addresses from token collection mints
-  const tokenCollectionMintAddresses = tokenCollectionMints.map(item => 
-    typeof item === 'string' ? item : item.mint
-  )
-  
-  // For NFT collection mints, we'll include the fetched NFTs separately
-  // For now, include the collection mint addresses themselves
-  const nftCollectionMintAddresses = nftCollectionMints.map(item => item.mint)
-  
-  // Combine token collection mints, NFT collection mint addresses, and allowed currencies
-  return [...tokenCollectionMintAddresses, ...nftCollectionMintAddresses, ...allowedCurrencies]
+  if (!selectedCollection.value) return { currencyMints: [], tokenMints: [], nftCollectionMints: [], allMints: [] }
+  return getAllowedMints(selectedCollection.value)
 })
 
 // Convert collectionMints items to token-like objects for display
 // These represent collection categories/types, not individual NFTs
+// Enrich with images from token store cache
 const collectionMintsAsTokens = computed(() => {
   if (!selectedCollection.value) return []
   
@@ -190,18 +161,51 @@ const collectionMintsAsTokens = computed(() => {
   // Convert collection items to token-like objects for display
   return collectionMints
     .filter(item => typeof item === 'object' && item.mint)
-    .map(item => ({
-      mint: item.mint,
-      name: item.name || '',
-      symbol: item.name || item.mint.slice(0, 8),
-      decimals: item.fetchingType === 'NFT' ? 0 : (item.decimals || 9),
-      image: item.image || null,
-      isCollectionItem: true,
-      itemType: item.itemType,
-      fetchingType: item.fetchingType,
-      class: item.class,
-      category: item.category
-    }))
+    .map(item => {
+      // Try to get image from token store cache
+      const cachedTokenInfo = tokenStore.getCachedTokenInfo(item.mint)
+      const cachedMetadata = collectionMetadataStore.getCachedTokenMetadata(item.mint)
+      
+      // Prefer cached image, then collection item image, then null
+      const image = cachedTokenInfo?.image || cachedMetadata?.image || item.image || null
+      
+      return {
+        mint: item.mint,
+        name: cachedTokenInfo?.name || cachedMetadata?.name || item.name || '',
+        symbol: cachedTokenInfo?.symbol || cachedMetadata?.symbol || item.name || item.mint.slice(0, 8),
+        decimals: item.fetchingType === 'NFT' ? 0 : (item.decimals || 9),
+        image: image,
+        isCollectionItem: true,
+        itemType: item.itemType,
+        fetchingType: item.fetchingType,
+        class: item.class,
+        category: item.category
+      }
+    })
+})
+
+// Get allowed currencies as token-like objects for display
+// Enrich with images from token store cache
+const allowedCurrenciesAsTokens = computed(() => {
+  if (!selectedCollection.value) return []
+  
+  const collectionCurrencies = getCollectionCurrencies(selectedCollection.value)
+  
+  return collectionCurrencies.map(currency => {
+    // Try to get image from token store cache
+    const cachedTokenInfo = tokenStore.getCachedTokenInfo(currency.mint)
+    
+    return {
+      mint: currency.mint,
+      name: cachedTokenInfo?.name || currency.name || '',
+      symbol: cachedTokenInfo?.symbol || currency.symbol || '',
+      decimals: cachedTokenInfo?.decimals || 9,
+      image: cachedTokenInfo?.image || null, // Use cached image if available
+      isCollectionItem: false,
+      fetchingType: 'Token',
+      isCurrency: true
+    }
+  })
 })
 
 // Use storeToRefs for refs that need to be reactive (like searchQuery for v-model)
@@ -511,8 +515,8 @@ const handleEnterKey = async () => {
       const tokenInfo = await fetchTokenInfo(query)
       if (tokenInfo) {
         // Check if token is allowed by collection filter
-        if (shouldFilterByCollection.value && allowedMints.value) {
-          if (!allowedMints.value.includes(tokenInfo.mint)) {
+        if (shouldFilterByCollection.value && allowedMints.value && allowedMints.value.allMints) {
+          if (!allowedMints.value.allMints.includes(tokenInfo.mint)) {
             searchError.value = 'This token is not available for the selected collection'
             return
           }
@@ -530,32 +534,66 @@ const handleEnterKey = async () => {
 
 // Filter tokens based on collection if needed
 const filterTokensByCollection = (tokens) => {
-  if (!shouldFilterByCollection.value || !allowedMints.value) {
+  if (!shouldFilterByCollection.value || !allowedMints.value || !allowedMints.value.allMints) {
     return tokens
   }
   
-  return tokens.filter(token => allowedMints.value.includes(token.mint))
+  return tokens.filter(token => allowedMints.value.allMints.includes(token.mint))
 }
 
-// Computed display tokens: wallet balances when no search, search results when searching
+// Merge wallet balance into a token (currency or token/SFT). For NFT collection items, use NFT count.
+function mergeBalanceIntoToken(item, walletBalancesList, collectionId) {
+  const isNFTCollectionItem = item.fetchingType === 'NFT' && item.isCollectionItem
+  if (isNFTCollectionItem) {
+    const cachedNFTs = collectionMetadataStore.getCachedNFTs(collectionId) || []
+    const nftMintsInThisCollection = cachedNFTs
+      .filter(nft => (nft.collectionMint || nft.collection) === item.mint)
+      .map(nft => nft.mint)
+    const count = walletBalancesList.filter(b => nftMintsInThisCollection.includes(b.mint))
+      .reduce((sum, b) => sum + (Number(b.balance) || 0), 0)
+    return { ...item, balance: count, balanceRaw: String(Math.floor(count)), decimals: 0 }
+  }
+  const walletBalance = walletBalancesList.find(b => b.mint === item.mint)
+  if (walletBalance) {
+    return {
+      ...item,
+      balance: walletBalance.balance,
+      balanceRaw: walletBalance.balanceRaw,
+      decimals: item.decimals ?? walletBalance.decimals
+    }
+  }
+  return { ...item, balance: 0, balanceRaw: '0' }
+}
+
+// Computed display tokens: show shop options only (collection items + currencies). Request does not need wallet balances.
 const displayTokens = computed(() => {
   let tokens = []
   
   if (searchQuery.value && searchQuery.value.trim()) {
-    tokens = localSearchResults.value
+    // When searching, show search results filtered by collection (no balance needed for request)
+    const filtered = filterTokensByCollection(localSearchResults.value)
+    const collectionId = selectedCollection.value?.id
+    tokens = filtered.map(t => mergeBalanceIntoToken(t, [], collectionId))
   } else {
-    // Show collection items first (when collection is selected)
-    // These represent collection categories/types that can be clicked to see individual NFTs
-    if (selectedCollection.value && collectionMintsAsTokens.value.length > 0) {
-      tokens = collectionMintsAsTokens.value
-    } else {
-      // Fallback to wallet balances if no collection selected
-      tokens = walletBalances.value || []
+    // Default view: shop options only (collection items + currencies), no wallet balance
+    if (selectedCollection.value) {
+      const collectionItems = collectionMintsAsTokens.value || []
+      const currencies = allowedCurrenciesAsTokens.value || []
+      const collectionId = selectedCollection.value.id
+      const existingMints = new Set()
+      tokens = []
+      const addItem = (item) => {
+        if (existingMints.has(item.mint)) return
+        existingMints.add(item.mint)
+        tokens.push(mergeBalanceIntoToken(item, [], collectionId))
+      }
+      collectionItems.forEach(addItem)
+      currencies.forEach(addItem)
     }
+    // No fallback to wallet: request selector shows only shop options
   }
   
-  // Filter by collection if needed
-  return filterTokensByCollection(tokens)
+  return tokens
 })
 
 // Computed loading state
@@ -569,19 +607,16 @@ const error = computed(() => {
 })
 
 const handleTokenClick = async (token) => {
-  // If it's an NFT collection item, show NFT instance selector to pick individual NFT
+  // If it's an NFT collection type (request "which NFT from this collection"), open instance selector to pick one from the collection
   if (token.fetchingType === 'NFT' && token.isCollectionItem && selectedCollection.value) {
-    // Create a collection item object that preserves parent collection info
     selectedCollectionItem.value = {
       ...token,
-      // Preserve parent collection's collectionMint for fetching all NFTs
-      parentCollectionMint: selectedCollection.value.collectionMint
+      parentCollectionMint: token.mint
     }
     showNFTSelector.value = true
     return
   }
   
-  // Otherwise, select the token directly
   await selectToken(token)
 }
 
@@ -616,10 +651,38 @@ const selectToken = async (token) => {
   emit('close')
 }
 
-// Preload registry on mount
+// Preload registry on mount and preload collection images
 watch(() => props.show, (isShowing) => {
   if (isShowing) {
     preloadRegistry()
+    
+    // Preload images for collection items and currencies
+    if (selectedCollection.value) {
+      const itemsToPreload = [...collectionMintsAsTokens.value, ...allowedCurrenciesAsTokens.value]
+      
+      // Preload images in background
+      for (const item of itemsToPreload) {
+        if (item.mint && !item.image) {
+          // Check cache first
+          const cached = tokenStore.getCachedTokenInfo(item.mint)
+          if (!cached || !cached.image) {
+            // Fetch in background
+            tokenStore.fetchTokenInfo(item.mint).catch(() => {
+              // Silently fail - images are optional
+            })
+          }
+        }
+      }
+      
+      // Ensure collection NFTs are preloaded
+      const cachedNFTs = collectionMetadataStore.getCachedNFTs(selectedCollection.value.id)
+      if (cachedNFTs.length === 0 && !collectionMetadataStore.isLoading(selectedCollection.value.id)) {
+        // Trigger preload if not already loading
+        collectionMetadataStore.preloadCollectionNFTs(selectedCollection.value).catch(() => {
+          // Silently fail
+        })
+      }
+    }
   }
 }, { immediate: true })
 
@@ -631,4 +694,6 @@ watch(() => props.show, (isShowing) => {
     localSearchResults.value = []
   }
 })
+
+const formatBalance = (balance, decimals) => formatBalanceUtil(balance, decimals ?? 9, false)
 </script>

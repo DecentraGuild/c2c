@@ -76,15 +76,14 @@ export const useTokenStore = defineStore('token', () => {
   }
   
   /**
-   * Save metadata to cache
+   * Save metadata to cache (in-memory + localStorage).
+   * Cache is reused across pages/sections so we don't re-fetch metadata when the user navigates.
    */
   function cacheMetadata(mint, metadata) {
     tokenMetadataCache.value.set(mint, {
       ...metadata,
       cachedAt: Date.now()
     })
-    
-    // Save to localStorage (limit to configured max entries to avoid storage issues)
     try {
       const cacheArray = Array.from(tokenMetadataCache.value.entries())
       const limitedCache = limitCacheEntries(cacheArray, CACHE_CONFIG.MAX_METADATA_ENTRIES)

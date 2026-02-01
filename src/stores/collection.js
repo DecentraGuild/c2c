@@ -8,6 +8,7 @@ import { ref, computed, watch } from 'vue'
 import { logError, logDebug } from '../utils/logger'
 import { useThemeStore } from './theme'
 import { filterEscrowsByCollection, filterActiveEscrows } from '../utils/marketplaceHelpers'
+import { useCollectionMetadataStore } from './collectionMetadata'
 
 export const useCollectionStore = defineStore('collection', () => {
   // Registered collections (would come from backend API in production)
@@ -77,10 +78,14 @@ export const useCollectionStore = defineStore('collection', () => {
     collections.value = collections.value.filter(c => c.id !== collectionId)
   }
 
+  // Track if preloading is in progress to prevent duplicates
+  const preloadingCollections = ref(new Set())
+  
   const setSelectedCollection = (collectionId) => {
     selectedCollectionId.value = collectionId
     
     // Load theme from collection if available
+    // Note: Theme loading is also handled by watcher, but we do it here for immediate effect
     const collection = collections.value.find(c => c.id === collectionId)
     if (collection && collection.colors) {
       loadCollectionTheme(collection)
@@ -88,6 +93,36 @@ export const useCollectionStore = defineStore('collection', () => {
       // Reset to default theme if no collection selected or no colors
       const themeStore = useThemeStore()
       themeStore.resetToDefault()
+    }
+    
+    // Preload collection NFTs when marketplace is selected (only if not already loading)
+    if (collection && !preloadingCollections.value.has(collection.id)) {
+      const collectionMetadataStore = useCollectionMetadataStore()
+      
+      // Check if already cached or loading
+      if (collectionMetadataStore.isLoading(collection.id)) {
+        logDebug(`Collection ${collection.id} NFTs already loading, skipping duplicate preload`)
+        return
+      }
+      
+      const cachedNFTs = collectionMetadataStore.getCachedNFTs(collection.id)
+      if (cachedNFTs.length > 0) {
+        logDebug(`Collection ${collection.id} NFTs already cached (${cachedNFTs.length} NFTs), skipping preload`)
+        return
+      }
+      
+      // Mark as preloading
+      preloadingCollections.value.add(collection.id)
+      
+      // Preload in background (don't await - let it happen async)
+      collectionMetadataStore.preloadCollectionNFTs(collection)
+        .then(() => {
+          preloadingCollections.value.delete(collection.id)
+        })
+        .catch(err => {
+          logError('Failed to preload collection NFTs:', err)
+          preloadingCollections.value.delete(collection.id)
+        })
     }
   }
   
@@ -406,14 +441,20 @@ export const useCollectionStore = defineStore('collection', () => {
     }
   }
 
+  // Track last loaded theme to prevent duplicate loading
+  let lastLoadedThemeId = null
+  
   // Watch for collection changes and load theme
-  watch(selectedCollection, (newCollection) => {
-    if (newCollection && newCollection.colors) {
+  watch(selectedCollection, (newCollection, oldCollection) => {
+    // Only load theme if it actually changed (prevent duplicate loading)
+    if (newCollection && newCollection.colors && newCollection.id !== lastLoadedThemeId) {
       loadCollectionTheme(newCollection)
-    } else if (!newCollection) {
+      lastLoadedThemeId = newCollection.id
+    } else if (!newCollection && lastLoadedThemeId !== null) {
       // Reset to default theme when no collection selected
       const themeStore = useThemeStore()
       themeStore.resetToDefault()
+      lastLoadedThemeId = null
     }
   })
 
