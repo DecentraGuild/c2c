@@ -142,7 +142,9 @@ export default defineConfig(({ mode }) => {
           'solana': ['@solana/web3.js', '@solana/spl-token'],
           'anchor': ['@coral-xyz/anchor'],
           'wallet': ['solana-wallets-vue', '@solana/wallet-adapter-base', '@solana/wallet-adapter-wallets'],
-          'vue': ['vue', 'vue-router', 'pinia']
+          'vue': ['vue', 'vue-router', 'pinia'],
+          'vendor-datepicker': ['@vuepic/vue-datepicker'],
+          'vendor-qrcode': ['qrcode']
         }
       }
     },

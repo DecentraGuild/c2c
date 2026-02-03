@@ -247,8 +247,7 @@ export function useCollectionNFTs(collection) {
       const creatorAddress = collectionValue.creatorAddress
       if (creatorAddress) {
         try {
-          const { fetchCollectionNFTsFromHelius } = await import('../utils/heliusNFTs')
-          // Use creator address with byCreator option
+          // Use creator address with byCreator option (same module as top-level import)
           const creatorNFTs = await fetchCollectionNFTsFromHelius(creatorAddress, { byCreator: true })
           nfts.value = creatorNFTs
           loading.value = false

@@ -28,7 +28,7 @@ import {
 import { toPublicKey, toBN } from './solanaUtils'
 import { Program, AnchorProvider, BN } from '@coral-xyz/anchor'
 import { ESCROW_PROGRAM_ID, CONTRACT_FEE_ACCOUNT, WHITELIST_PROGRAM_ID } from './constants'
-import { FEE_CONFIG, FUND_TAKER_COSTS, TRANSACTION_COSTS } from './constants/fees'
+import { FEE_CONFIG, TRANSACTION_COSTS } from './constants/fees'
 import { addMakerFeeInstructions, calculateTakerFee } from './marketplaceFees'
 import { checkAtaExists, makeAtaInstruction } from './ataUtils'
 import { createMemoInstruction } from './memo'

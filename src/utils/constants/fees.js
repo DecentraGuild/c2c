@@ -23,6 +23,3 @@ export const TRANSACTION_COSTS = {
   ATA_CREATION: 0.0022, // Cost to create an Associated Token Account (recoverable)
   TRANSACTION_FEE: 0.0006 // Estimated transaction fee for exchange (includes base fee + overhead)
 }
-
-// Option to fund taker's transaction costs from platform wallet
-export const FUND_TAKER_COSTS = true // Set to true to cover taker's costs from collected fees
