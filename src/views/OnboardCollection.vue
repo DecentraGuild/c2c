@@ -42,12 +42,36 @@
         </div>
       </div>
 
+      <!-- Billing toggle -->
+      <div class="flex flex-col items-center gap-3">
+        <span class="text-sm text-text-secondary">Billing</span>
+        <div class="inline-flex rounded-lg border border-border-color bg-card-bg p-0.5">
+          <button
+            type="button"
+            :class="billingInterval === 'monthly' ? 'bg-primary-color text-white' : 'text-text-secondary hover:text-text-primary'"
+            class="rounded-md px-4 py-2 text-sm font-medium transition-colors"
+            @click="billingInterval = 'monthly'"
+          >
+            Monthly
+          </button>
+          <button
+            type="button"
+            :class="billingInterval === 'yearly' ? 'bg-primary-color text-white' : 'text-text-secondary hover:text-text-primary'"
+            class="rounded-md px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2"
+            @click="billingInterval = 'yearly'"
+          >
+            Yearly
+            <span class="inline-flex items-center gap-0.5 rounded bg-primary-color/20 text-primary-color text-xs font-bold px-1.5 py-0.5">50% off</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Store Types Comparison -->
       <div class="space-y-6">
         <div class="text-center space-y-2">
           <h2 class="text-xl sm:text-2xl font-bold text-text-primary">Start with Community Store</h2>
           <p class="text-base text-text-secondary max-w-2xl mx-auto">
-            All stores start at ${{ SUBSCRIPTION_PRICING.BASE_MONTHLY_USD }}/month (${{ SUBSCRIPTION_PRICING.BASE_YEARLY_USD }}/year). Verify your collection ownership on-chain to unlock 
+            All stores start at {{ billingSummary }}. Verify your collection ownership on-chain to unlock
             Official Store features at no extra cost.
           </p>
         </div>
@@ -103,7 +127,10 @@
 
             <div class="pt-4 border-t border-border-color mt-auto">
               <div class="text-center">
-                <p class="text-2xl font-bold text-text-primary mb-0.5">${{ SUBSCRIPTION_PRICING.BASE_MONTHLY_USD }}<span class="text-base text-text-secondary font-normal">/month</span> <span class="text-base text-text-secondary font-normal">${{ SUBSCRIPTION_PRICING.BASE_YEARLY_USD }}/year</span></p>
+                <p class="text-2xl font-bold text-text-primary mb-0.5">
+                  ${{ displayPrice }}<span class="text-base text-text-secondary font-normal">/{{ billingInterval === 'monthly' ? 'month' : 'year' }}</span>
+                  <span v-if="billingInterval === 'yearly'" class="ml-2 inline-flex items-center rounded bg-primary-color/20 text-primary-color text-xs font-bold px-1.5 py-0.5">50% off</span>
+                </p>
                 <p class="text-xs text-text-secondary">Base subscription</p>
               </div>
             </div>
@@ -175,22 +202,50 @@
             <p class="text-base text-text-secondary">No hidden fees. No surprises. Just straightforward pricing that scales with your needs.</p>
           </div>
 
+          <div class="flex flex-col items-center gap-3 mb-6">
+            <span class="text-sm text-text-secondary">Billing</span>
+            <div class="inline-flex rounded-lg border border-border-color bg-secondary-bg p-0.5">
+              <button
+                type="button"
+                :class="billingInterval === 'monthly' ? 'bg-primary-color text-white' : 'text-text-secondary hover:text-text-primary'"
+                class="rounded-md px-4 py-2 text-sm font-medium transition-colors"
+                @click="billingInterval = 'monthly'"
+              >
+                Monthly
+              </button>
+              <button
+                type="button"
+                :class="billingInterval === 'yearly' ? 'bg-primary-color text-white' : 'text-text-secondary hover:text-text-primary'"
+                class="rounded-md px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2"
+                @click="billingInterval = 'yearly'"
+              >
+                Yearly
+                <span class="inline-flex items-center gap-0.5 rounded bg-primary-color/20 text-primary-color text-xs font-bold px-1.5 py-0.5">50% off</span>
+              </button>
+            </div>
+          </div>
+
           <div class="grid md:grid-cols-3 gap-4 mb-6">
             <div class="text-center py-4 px-3 rounded-lg bg-secondary-bg">
-              <div class="text-3xl font-bold text-text-primary mb-1.5">${{ SUBSCRIPTION_PRICING.BASE_MONTHLY_USD }}</div>
-              <div class="text-sm text-text-secondary mb-1">Base Monthly Fee</div>
-              <div class="text-sm text-text-secondary mb-2">or ${{ SUBSCRIPTION_PRICING.BASE_YEARLY_USD }}/year</div>
+              <div class="text-3xl font-bold text-text-primary mb-1.5">${{ displayPrice }}</div>
+              <div class="text-sm text-text-secondary mb-1">{{ billingInterval === 'monthly' ? 'Base Monthly Fee' : 'Base Yearly Fee' }}</div>
+              <div class="text-sm text-text-secondary mb-2">per {{ billingInterval === 'monthly' ? 'month' : 'year' }}</div>
+              <div v-if="billingInterval === 'yearly'" class="text-xs text-primary-color font-medium mb-1">50% off vs monthly</div>
               <div class="text-xs text-text-muted">Includes branded storefront + 250 mints</div>
             </div>
             <div class="text-center py-4 px-3 rounded-lg bg-secondary-bg">
-              <div class="text-3xl font-bold text-text-primary mb-1.5">$10</div>
+              <div class="text-3xl font-bold text-text-primary mb-1.5">${{ addonExtraMintsPrice }}</div>
               <div class="text-sm text-text-secondary mb-2">Per 50 Additional Mints</div>
-              <div class="text-xs text-text-muted">per month - 250 mints included in base</div>
+              <div class="text-sm text-text-secondary mb-1">per {{ billingInterval === 'monthly' ? 'month' : 'year' }}</div>
+              <div v-if="billingInterval === 'yearly'" class="text-xs text-primary-color font-medium mb-1">50% off vs monthly</div>
+              <div class="text-xs text-text-muted">250 mints included in base</div>
             </div>
             <div class="text-center py-4 px-3 rounded-lg bg-secondary-bg">
-              <div class="text-3xl font-bold text-text-primary mb-1.5">$5</div>
+              <div class="text-3xl font-bold text-text-primary mb-1.5">${{ addonCustomCurrencyPrice }}</div>
               <div class="text-sm text-text-secondary mb-2">Custom Currency Add-on</div>
-              <div class="text-xs text-text-muted">per month - first free with verification</div>
+              <div class="text-sm text-text-secondary mb-1">per {{ billingInterval === 'monthly' ? 'month' : 'year' }}</div>
+              <div v-if="billingInterval === 'yearly'" class="text-xs text-primary-color font-medium mb-1">50% off vs monthly</div>
+              <div class="text-xs text-text-muted">first free with verification</div>
             </div>
           </div>
 
@@ -248,7 +303,34 @@
 </template>
 
 <script setup>
+import { ref, computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import { TRANSACTION_COSTS } from '@/utils/constants/fees'
 import { SUBSCRIPTION_PRICING } from '@/utils/constants/ui'
+
+const billingInterval = ref('monthly')
+
+const displayPrice = computed(() =>
+  billingInterval.value === 'monthly'
+    ? SUBSCRIPTION_PRICING.BASE_MONTHLY_USD
+    : SUBSCRIPTION_PRICING.BASE_YEARLY_USD
+)
+
+const billingSummary = computed(() =>
+  billingInterval.value === 'monthly'
+    ? `$${SUBSCRIPTION_PRICING.BASE_MONTHLY_USD}/month ($${SUBSCRIPTION_PRICING.BASE_YEARLY_USD}/year at 50% off)`
+    : `$${SUBSCRIPTION_PRICING.BASE_YEARLY_USD}/year (50% off)`
+)
+
+const addonExtraMintsPrice = computed(() =>
+  billingInterval.value === 'monthly'
+    ? SUBSCRIPTION_PRICING.ADDON_EXTRA_MINTS_MONTHLY
+    : Math.round(SUBSCRIPTION_PRICING.ADDON_EXTRA_MINTS_MONTHLY * 12 * (1 - SUBSCRIPTION_PRICING.YEARLY_DISCOUNT))
+)
+
+const addonCustomCurrencyPrice = computed(() =>
+  billingInterval.value === 'monthly'
+    ? SUBSCRIPTION_PRICING.ADDON_CUSTOM_CURRENCY_MONTHLY
+    : Math.round(SUBSCRIPTION_PRICING.ADDON_CUSTOM_CURRENCY_MONTHLY * 12 * (1 - SUBSCRIPTION_PRICING.YEARLY_DISCOUNT))
+)
 </script>

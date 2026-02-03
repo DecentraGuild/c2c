@@ -81,9 +81,13 @@ export const BATCH_SIZES = {
 }
 
 // Subscription pricing (onboard / shopowner agreement display)
+// Yearly = 12 * monthly * (1 - YEARLY_DISCOUNT); 50% off => 300
 export const SUBSCRIPTION_PRICING = {
   BASE_MONTHLY_USD: 50,
-  BASE_YEARLY_USD: 300
+  YEARLY_DISCOUNT: 0.5, // 50% off when billing yearly
+  BASE_YEARLY_USD: 300,
+  ADDON_EXTRA_MINTS_MONTHLY: 10, // per 50 additional mints
+  ADDON_CUSTOM_CURRENCY_MONTHLY: 5 // custom currency add-on
 }
 
 // Search and pagination limits
