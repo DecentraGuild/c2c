@@ -107,7 +107,7 @@
         <Icon icon="mdi:image-outline" class="w-8 h-8 inline-block mb-2" />
         <p class="text-sm">No NFTs found</p>
         <p class="text-xs mt-1">{{ source === 'wallet' ? 'No NFTs from this collection in your wallet' : 'No NFTs found in this collection' }}</p>
-        <p v-if="source === 'collection' && !discoveredCollectionMint && !selectedCollection?.collectionMint" class="text-xs mt-2 text-text-muted">
+        <p v-if="source === 'collection' && !discoveredCollectionMint && !selectedStorefront?.collectionMint" class="text-xs mt-2 text-text-muted">
           Could not discover collection mint. The NFT may not belong to a Metaplex collection.
         </p>
       </div>
@@ -186,7 +186,7 @@ import { ref, watch, computed, onUnmounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useCollectionNFTs } from '@/composables/useCollectionNFTs'
 import { useWalletNFTs } from '@/composables/useWalletNFTs'
-import { useCollectionStore } from '@/stores/collection'
+import { useStorefrontStore } from '@/stores/storefront'
 import { useDebouncedSearch } from '@/composables/useDebouncedSearch'
 import { DEBOUNCE_DELAYS } from '@/utils/constants'
 import { filterNFTsBySearch, filterNFTsByTraits, getUniqueTraits, normaliseAttributes } from '@/utils/nftFilterHelpers'
@@ -215,8 +215,8 @@ const props = defineProps({
 
 const emit = defineEmits(['select', 'close'])
 
-const collectionStore = useCollectionStore()
-const selectedCollection = computed(() => collectionStore.selectedCollection)
+const storefrontStore = useStorefrontStore()
+const selectedStorefront = computed(() => storefrontStore.selectedStorefront)
 
 const searchQuery = ref('')
 const { debouncedQuery } = useDebouncedSearch(searchQuery, { delay: DEBOUNCE_DELAYS.MEDIUM })
@@ -232,7 +232,7 @@ const discovering = ref(false)
 const discoveredCollectionMint = ref(null)
 
 const mockCollection = computed(() => {
-  const baseCollection = selectedCollection.value || {}
+  const baseCollection = selectedStorefront.value || {}
   const collectionMintToUse = props.collectionItem?.parentCollectionMint ?? discoveredCollectionMint.value
   return {
     ...baseCollection,

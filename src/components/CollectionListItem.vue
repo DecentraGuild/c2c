@@ -16,7 +16,7 @@
         <div class="flex items-center gap-3">
           <!-- Collection Image -->
           <router-link
-            :to="`/marketplace?collection=${collection.id}`"
+            :to="`/marketplace?storefront=${collection.id}`"
             class="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-secondary-bg flex items-center justify-center flex-shrink-0 cursor-pointer"
           >
             <img
@@ -37,7 +37,7 @@
           <div class="flex-1 min-w-0">
             <!-- Title and Description -->
             <router-link
-              :to="`/marketplace?collection=${collection.id}`"
+              :to="`/marketplace?storefront=${collection.id}`"
               class="cursor-pointer block mb-2"
             >
               <h3 class="text-sm sm:text-base font-bold text-text-primary group-hover:text-primary-color transition-colors mb-0.5">
@@ -70,7 +70,7 @@
 
           <!-- Arrow Icon -->
           <router-link
-            :to="`/marketplace?collection=${collection.id}`"
+            :to="`/marketplace?storefront=${collection.id}`"
             class="flex-shrink-0 text-text-muted group-hover:text-primary-color transition-colors hidden sm:block cursor-pointer"
           >
             <Icon icon="mdi:chevron-right" class="w-6 h-6" />

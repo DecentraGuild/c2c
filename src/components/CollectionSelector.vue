@@ -15,19 +15,19 @@
 
     <!-- Dropdown -->
     <div
-      v-if="showDropdown && filteredCollections.length > 0"
+      v-if="showDropdown && filteredStorefronts.length > 0"
       class="absolute z-50 w-full mt-2 bg-secondary-bg border border-border-color rounded-lg shadow-lg max-h-64 overflow-y-auto"
     >
       <div
-        v-for="collection in filteredCollections"
-        :key="collection.id"
-        @mousedown.prevent="selectCollection(collection)"
+        v-for="storefront in filteredStorefronts"
+        :key="storefront.id"
+        @mousedown.prevent="selectStorefront(storefront)"
         class="px-4 py-3 hover:bg-primary-color/10 cursor-pointer transition-colors flex items-center gap-3"
       >
         <img
-          v-if="collection.logo"
-          :src="collection.logo"
-          :alt="collection.name"
+          v-if="storefront.logo"
+          :src="storefront.logo"
+          :alt="storefront.name"
           class="w-8 h-8 object-contain rounded"
         />
         <Icon
@@ -36,29 +36,29 @@
           class="w-8 h-8 text-text-muted"
         />
         <div class="flex-1 min-w-0">
-          <div class="font-semibold text-text-primary truncate">{{ collection.name }}</div>
-          <div v-if="collection.description" class="text-xs text-text-secondary truncate">
-            {{ collection.description }}
+          <div class="font-semibold text-text-primary truncate">{{ storefront.name }}</div>
+          <div v-if="storefront.description" class="text-xs text-text-secondary truncate">
+            {{ storefront.description }}
           </div>
         </div>
         <Icon
-          v-if="modelValue === collection.id"
+          v-if="modelValue === storefront.id"
           icon="mdi:check"
           class="w-5 h-5 text-primary-color flex-shrink-0"
         />
       </div>
     </div>
 
-    <!-- Selected Collection Display (when dropdown closed) -->
+    <!-- Selected storefront display (when dropdown closed) -->
     <div
-      v-if="!showDropdown && selectedCollection"
+      v-if="!showDropdown && selectedStorefront"
       @click="showDropdown = true"
       class="mt-2 p-3 bg-secondary-bg border border-border-color rounded-lg cursor-pointer hover:border-primary-color/50 transition-colors flex items-center gap-3"
     >
       <img
-        v-if="selectedCollection.logo"
-        :src="selectedCollection.logo"
-        :alt="selectedCollection.name"
+        v-if="selectedStorefront.logo"
+        :src="selectedStorefront.logo"
+        :alt="selectedStorefront.name"
         class="w-10 h-10 object-contain rounded"
       />
       <Icon
@@ -67,9 +67,9 @@
         class="w-10 h-10 text-text-muted"
       />
       <div class="flex-1 min-w-0">
-        <div class="font-semibold text-text-primary">{{ selectedCollection.name }}</div>
-        <div v-if="selectedCollection.description" class="text-xs text-text-secondary truncate">
-          {{ selectedCollection.description }}
+        <div class="font-semibold text-text-primary">{{ selectedStorefront.name }}</div>
+        <div v-if="selectedStorefront.description" class="text-xs text-text-secondary truncate">
+          {{ selectedStorefront.description }}
         </div>
       </div>
       <Icon icon="mdi:chevron-down" class="w-5 h-5 text-text-muted" />
@@ -80,7 +80,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { Icon } from '@iconify/vue'
-import { filterCollectionsByQuery } from '@/utils/collectionHelpers'
+import { filterStorefrontsByQuery } from '@/utils/collectionHelpers'
 import { UI_CONSTANTS } from '@/utils/constants/ui'
 
 const props = defineProps({
@@ -99,17 +99,17 @@ const emit = defineEmits(['update:modelValue'])
 const searchQuery = ref('')
 const showDropdown = ref(false)
 
-const selectedCollection = computed(() => {
+const selectedStorefront = computed(() => {
   if (!props.modelValue) return null
   return props.collections.find(c => c.id === props.modelValue)
 })
 
-const filteredCollections = computed(() =>
-  filterCollectionsByQuery(props.collections, searchQuery.value)
+const filteredStorefronts = computed(() =>
+  filterStorefrontsByQuery(props.collections, searchQuery.value)
 )
 
-const selectCollection = (collection) => {
-  emit('update:modelValue', collection.id)
+const selectStorefront = (storefront) => {
+  emit('update:modelValue', storefront.id)
   showDropdown.value = false
   searchQuery.value = ''
 }

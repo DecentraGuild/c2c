@@ -56,9 +56,18 @@ export function getBaseCurrencyBySymbol(symbol) {
 }
 
 /**
- * Get all currency info for a collection
- * Combines baseCurrency and customCurrencies from collection config
- * @param {Object} collection - Collection object with baseCurrency (string or array) and customCurrencies
+ * Get all currency info for a storefront
+ * Combines baseCurrency and customCurrencies from storefront config
+ * @param {Object} storefront - Storefront object with baseCurrency (string or array) and customCurrencies
+ * @returns {Array} Array of currency objects with mint, name, symbol
+ */
+export function getStorefrontCurrencies(storefront) {
+  return getCollectionCurrencies(storefront)
+}
+
+/**
+ * Get all currency info for a collection/storefront (legacy name)
+ * @param {Object} collection - Storefront/collection object with baseCurrency and customCurrencies
  * @returns {Array} Array of currency objects with mint, name, symbol
  */
 export function getCollectionCurrencies(collection) {

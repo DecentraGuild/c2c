@@ -140,7 +140,7 @@ import AdditionalSettings from '../components/AdditionalSettings.vue'
 import PricingModal from '../components/PricingModal.vue'
 import { useEscrowStore } from '../stores/escrow'
 import { useEscrowFormStore } from '../stores/escrowForm'
-import { useCollectionStore } from '../stores/collection'
+import { useStorefrontStore } from '../stores/storefront'
 import { useEscrowTransactions } from '../composables/useEscrowTransactions'
 import { useSolanaConnection } from '../composables/useSolanaConnection'
 import { useErrorDisplay } from '../composables/useErrorDisplay'
@@ -160,7 +160,7 @@ import { logError } from '../utils/logger'
 const router = useRouter()
 const escrowStore = useEscrowStore()
 const formStore = useEscrowFormStore()
-const collectionStore = useCollectionStore()
+const storefrontStore = useStorefrontStore()
 const walletAdapter = useWallet()
 const anchorWallet = useAnchorWallet() // Get Anchor-compatible wallet
 const { publicKey, connected } = walletAdapter
@@ -170,12 +170,12 @@ const { validateWallet: validateWalletReady } = useWalletValidation()
 const { displayError } = useErrorDisplay({ txError, errorTypes: ['transaction', 'form'] })
 
 // Get selected collection for marketplace fee calculation
-const selectedCollection = computed(() => collectionStore.selectedCollection)
+const selectedStorefront = computed(() => storefrontStore.selectedStorefront)
 
 // When landing on /create directly, ensure collections load so last storefront can be restored
 onMounted(async () => {
-  if (collectionStore.collections.length === 0) {
-    await collectionStore.loadCollections()
+  if (storefrontStore.storefronts.length === 0) {
+    await storefrontStore.loadStorefronts()
   }
 })
 
@@ -263,8 +263,8 @@ const { costBreakdown, loadingCosts, calculateCosts } = useTransactionCosts({
     
     // Get shop fee configuration from selected collection
     let shopFee = null
-    if (selectedCollection.value && selectedCollection.value.shopFee) {
-      shopFee = selectedCollection.value.shopFee
+    if (selectedStorefront.value && selectedStorefront.value.shopFee) {
+      shopFee = selectedStorefront.value.shopFee
     }
     
     // Calculate trade value for percentage fees (optional, can be 0 if not available)
@@ -282,7 +282,7 @@ const { costBreakdown, loadingCosts, calculateCosts } = useTransactionCosts({
 })
 
 // Watch for token changes and collection changes to update costs (debounced)
-watch([() => formStore.offerToken, () => formStore.requestToken, () => formStore.offerAmount, () => selectedCollection.value, connected, publicKey], () => {
+watch([() => formStore.offerToken, () => formStore.requestToken, () => formStore.offerAmount, () => selectedStorefront.value, connected, publicKey], () => {
   calculateCosts()
 }, { immediate: true })
 
@@ -328,18 +328,18 @@ const handleCreateEscrow = async () => {
     }
     
     // Resolve decimals from collection config (blockchain truth: wrong decimals = wrong on-chain price).
-    // Use full collections list; if empty (e.g. direct /create), ensure loaded and fall back to selectedCollection.
-    let collectionsForDecimals = collectionStore.collections || []
-    if (collectionsForDecimals.length === 0) {
-      await collectionStore.loadCollections()
-      collectionsForDecimals = collectionStore.collections || []
+    // Use full storefronts list; if empty (e.g. direct /create), ensure loaded and fall back to selectedStorefront.
+    let storefrontsForDecimals = storefrontStore.storefronts || []
+    if (storefrontsForDecimals.length === 0) {
+      await storefrontStore.loadStorefronts()
+      storefrontsForDecimals = storefrontStore.storefronts || []
     }
-    if (collectionsForDecimals.length === 0 && selectedCollection.value) {
-      collectionsForDecimals = [selectedCollection.value]
+    if (storefrontsForDecimals.length === 0 && selectedStorefront.value) {
+      storefrontsForDecimals = [selectedStorefront.value]
     }
-    const depositDecimals = getDecimalsForMintFromCollections(formStore.offerToken.mint, collectionsForDecimals) ??
+    const depositDecimals = getDecimalsForMintFromCollections(formStore.offerToken.mint, storefrontsForDecimals) ??
       formStore.offerToken?.decimals ?? 9
-    const requestDecimals = getDecimalsForMintFromCollections(formStore.requestToken.mint, collectionsForDecimals) ??
+    const requestDecimals = getDecimalsForMintFromCollections(formStore.requestToken.mint, storefrontsForDecimals) ??
       formStore.requestToken?.decimals ?? 9
 
     // Convert amounts to smallest units (must match chain expectation: raw units per token decimals)
@@ -369,8 +369,8 @@ const handleCreateEscrow = async () => {
 
     // Get shop fee configuration from selected collection
     let shopFee = null
-    if (selectedCollection.value && selectedCollection.value.shopFee) {
-      shopFee = selectedCollection.value.shopFee
+    if (selectedStorefront.value && selectedStorefront.value.shopFee) {
+      shopFee = selectedStorefront.value.shopFee
     }
     
     // Calculate trade value for percentage fees (optional, can be 0 if not available)

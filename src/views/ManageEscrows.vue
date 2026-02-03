@@ -13,8 +13,8 @@
       </div>
 
       <!-- Loading State -->
-      <div v-if="loadingEscrows || loadingCollections" class="card">
-        <BaseLoading :message="loadingEscrows ? 'Loading escrows...' : 'Loading collections...'" />
+      <div v-if="loadingEscrows || loadingStorefronts" class="card">
+        <BaseLoading :message="loadingEscrows ? 'Loading escrows...' : 'Loading storefronts...'" />
       </div>
 
       <!-- Empty State -->
@@ -31,10 +31,10 @@
         <div v-for="group in escrowGroups" :key="group.id" class="card">
           <!-- Group Header -->
           <div class="flex items-center gap-2.5 mb-3 pb-3 border-b border-border-color/50">
-            <div v-if="group.collection && group.collection.logo" class="flex-shrink-0">
+            <div v-if="group.storefront && group.storefront.logo" class="flex-shrink-0">
               <img 
-                :src="group.collection.logo" 
-                :alt="group.collection.name"
+                :src="group.storefront.logo" 
+                :alt="group.storefront.name"
                 class="w-8 h-8 object-contain"
               />
             </div>
@@ -95,7 +95,7 @@ import ConfirmModal from '../components/ConfirmModal.vue'
 import BaseShareModal from '../components/BaseShareModal.vue'
 import EscrowCard from '../components/EscrowCard.vue'
 import { useEscrowStore } from '../stores/escrow'
-import { useCollectionStore } from '../stores/collection'
+import { useStorefrontStore } from '../stores/storefront'
 import { useEscrowTransactions } from '../composables/useEscrowTransactions'
 import { useErrorDisplay } from '../composables/useErrorDisplay'
 import { useWalletValidation } from '../composables/useWalletValidation'
@@ -104,10 +104,10 @@ import { useShareModal } from '../composables/useShareModal'
 import { useToast } from '../composables/useToast'
 import { formatUserFriendlyError } from '../utils/errorMessages'
 import { logError } from '../utils/logger'
-import { groupEscrowsByCollection } from '../utils/marketplaceHelpers'
+import { groupEscrowsByStorefront } from '../utils/marketplaceHelpers'
 
 const escrowStore = useEscrowStore()
-const collectionStore = useCollectionStore()
+const storefrontStore = useStorefrontStore()
 const { cancelEscrow: cancelEscrowTx, loading: txLoading, error: txError } = useEscrowTransactions()
 const { validateWallet: validateWalletReady, publicKey, connected } = useWalletValidation()
 const { displayError } = useErrorDisplay({ txError, errorTypes: ['transaction', 'escrows'] })
@@ -138,23 +138,19 @@ const activeEscrows = computed(() => {
   return escrowStore.activeEscrows.filter(e => e.maker === publicKey.value.toString())
 })
 const loadingEscrows = computed(() => escrowStore.loadingEscrows)
-const loadingCollections = computed(() => collectionStore.loadingCollections)
-const collections = computed(() => collectionStore.collections)
+const loadingStorefronts = computed(() => storefrontStore.loadingStorefronts)
+const storefronts = computed(() => storefrontStore.storefronts)
 
-// Group escrows by collection
+// Group escrows by storefront
 const escrowGroups = computed(() => {
   if (activeEscrows.value.length === 0) return []
-  return groupEscrowsByCollection(activeEscrows.value, collections.value)
+  return groupEscrowsByStorefront(activeEscrows.value, storefronts.value)
 })
 
-// Load collections and escrows when component mounts
 onMounted(async () => {
-  // Load collections first
-  if (collections.value.length === 0) {
-    await collectionStore.loadCollections()
+  if (storefronts.value.length === 0) {
+    await storefrontStore.loadStorefronts()
   }
-  
-  // Then load escrows if wallet is connected
   if (connected.value && publicKey.value) {
     escrowStore.loadEscrows(publicKey.value)
   }

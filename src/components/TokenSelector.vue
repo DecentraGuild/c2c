@@ -28,7 +28,7 @@
         <div v-else-if="displayBalances.length === 0 && !loadingNFTs" class="p-4 text-center text-text-muted">
           <Icon icon="mdi:wallet-outline" class="w-8 h-8 inline-block mb-2" />
           <p class="text-sm">No tokens found</p>
-          <p v-if="selectedCollection" class="text-xs mt-1">No matching tokens or NFTs in your wallet for this collection</p>
+          <p v-if="selectedStorefront" class="text-xs mt-1">No matching tokens or NFTs in your wallet for this storefront</p>
         </div>
 
         <!-- Token List -->
@@ -60,8 +60,8 @@
 import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { useTokenStore } from '@/stores/token'
-import { useCollectionStore } from '@/stores/collection'
-import { useCollectionMetadataStore } from '@/stores/collectionMetadata'
+import { useStorefrontStore } from '@/stores/storefront'
+import { useStorefrontMetadataStore } from '@/stores/storefrontMetadata'
 import { useWallet } from 'solana-wallets-vue'
 import { useDebounce } from '@/composables/useDebounce'
 import { formatBalance as formatBalanceUtil } from '@/utils/formatters'
@@ -82,22 +82,22 @@ const emit = defineEmits(['select', 'close'])
 
 const { connected, publicKey } = useWallet()
 const tokenStore = useTokenStore()
-const collectionStore = useCollectionStore()
-const collectionMetadataStore = useCollectionMetadataStore()
+const storefrontStore = useStorefrontStore()
+const storefrontMetadataStore = useStorefrontMetadataStore()
 
 // Get selected collection
-const selectedCollection = computed(() => collectionStore.selectedCollection)
+const selectedStorefront = computed(() => storefrontStore.selectedStorefront)
 
 // Get allowed mints for the selected collection
 const allowedMints = computed(() => {
-  if (!selectedCollection.value) return { currencyMints: [], tokenMints: [], nftCollectionMints: [], allMints: [] }
-  return getAllowedMints(selectedCollection.value)
+  if (!selectedStorefront.value) return { currencyMints: [], tokenMints: [], nftCollectionMints: [], allMints: [] }
+  return getAllowedMints(selectedStorefront.value)
 })
 
 // Get cached collection NFTs for the selected marketplace
 const cachedCollectionNFTs = computed(() => {
-  if (!selectedCollection.value) return []
-  return collectionMetadataStore.getCachedNFTs(selectedCollection.value.id)
+  if (!selectedStorefront.value) return []
+  return storefrontMetadataStore.getCachedNFTs(selectedStorefront.value.id)
 })
 
 // Filter balances based on selected collection
@@ -107,7 +107,7 @@ const balances = computed(() => {
   const all = allBalances.value || []
   
   // If no collection is selected, show all balances
-  if (!selectedCollection.value) {
+  if (!selectedStorefront.value) {
     return all
   }
   
@@ -145,9 +145,9 @@ const loadingNFTs = ref(false)
 // Process balances when they change or collection changes
 const processBalances = async () => {
   const balanceList = balances.value || []
-  const collection = selectedCollection.value
+  const storefront = selectedStorefront.value
   
-  if (!collection || balanceList.length === 0) {
+  if (!storefront || balanceList.length === 0) {
     processedBalances.value = balanceList
     return
   }
@@ -238,7 +238,7 @@ const processBalances = async () => {
 
 const debouncedProcessBalances = useDebounce(processBalances, UI_CONSTANTS.METADATA_LOADING_DELAY)
 
-watch([balances, selectedCollection], debouncedProcessBalances, { immediate: true })
+watch([balances, selectedStorefront], debouncedProcessBalances, { immediate: true })
 
 // Also process when dropdown opens (only if not already processing)
 watch(() => props.show, (isShowing) => {

@@ -154,28 +154,26 @@ export function getTradeType(escrow, collectionMints = [], allowedCurrencies = [
 }
 
 /**
- * Filter escrows by collection (storefront)
- * Only show trades where BOTH deposit and request are from the shop (collection mints, cached NFT mints, or shop currencies)
+ * Filter escrows by storefront (tenant with collectionMints + currencies)
+ * Only show trades where BOTH deposit and request are from the storefront
  * @param {Array} escrows - Array of formatted escrow objects
- * @param {Object} collection - Collection object with collectionMints and baseCurrency/customCurrencies
- * @param {{ cachedCollectionMints?: Set<string>|Array<string> }} [options] - Optional cached NFT mints from collection metadata
- * @returns {Array} Filtered escrows that match the collection
+ * @param {Object} storefront - Storefront object with collectionMints and baseCurrency/customCurrencies
+ * @param {{ cachedCollectionMints?: Set<string>|Array<string> }} [options] - Optional cached NFT mints from storefront metadata
+ * @returns {Array} Filtered escrows that match the storefront
  */
-export function filterEscrowsByCollection(escrows, collection, options = {}) {
-  if (!escrows || !collection) {
-    return []
-  }
-
+export function filterEscrowsByStorefront(escrows, storefront, options = {}) {
+  if (!escrows || !storefront) return []
   return escrows.filter(escrow => {
-    if (!escrow.depositToken || !escrow.requestToken) {
-      return false
-    }
-
+    if (!escrow.depositToken || !escrow.requestToken) return false
     const depositMint = escrow.depositToken.mint
     const requestMint = escrow.requestToken.mint
-
-    return belongsToShop(depositMint, collection, options) && belongsToShop(requestMint, collection, options)
+    return belongsToShop(depositMint, storefront, options) && belongsToShop(requestMint, storefront, options)
   })
+}
+
+/** @deprecated Use filterEscrowsByStorefront */
+export function filterEscrowsByCollection(escrows, collection, options = {}) {
+  return filterEscrowsByStorefront(escrows, collection, options)
 }
 
 /**
@@ -304,90 +302,78 @@ export function filterActiveEscrows(escrows) {
 }
 
 /**
- * Group escrows by collection
+ * Group escrows by storefront
  * @param {Array} escrows - Array of formatted escrow objects
- * @param {Array} collections - Array of collection objects
- * @returns {Array} Array of groups: [{ collection: Object|null, escrows: Array, label: string }, ...]
+ * @param {Array} storefronts - Array of storefront objects
+ * @returns {Array} Array of groups: [{ storefront: Object|null, escrows: Array, label: string, id: string }, ...]
  */
-export function groupEscrowsByCollection(escrows, collections = []) {
-  if (!escrows || escrows.length === 0) {
-    return []
-  }
-  
-  // Map to track which escrows belong to which collection
-  const escrowToCollection = new Map()
+export function groupEscrowsByStorefront(escrows, storefronts = []) {
+  if (!escrows || escrows.length === 0) return []
+  const escrowToStorefront = new Map()
   const p2pEscrows = []
-  
-  // Check each escrow against all collections
   escrows.forEach(escrow => {
     let matched = false
-    
-    for (const collection of collections) {
-      const matchedEscrows = filterEscrowsByCollection([escrow], collection)
+    for (const storefront of storefronts) {
+      const matchedEscrows = filterEscrowsByStorefront([escrow], storefront)
       if (matchedEscrows.length > 0) {
-        const collectionId = collection.id || collection.collectionMint
-        if (!escrowToCollection.has(collectionId)) {
-          escrowToCollection.set(collectionId, {
-            collection,
-            escrows: []
-          })
+        const storefrontId = storefront.id || storefront.collectionMint
+        if (!escrowToStorefront.has(storefrontId)) {
+          escrowToStorefront.set(storefrontId, { storefront, escrows: [] })
         }
-        escrowToCollection.get(collectionId).escrows.push(escrow)
+        escrowToStorefront.get(storefrontId).escrows.push(escrow)
         matched = true
-        break // Escrow can only belong to one collection
+        break
       }
     }
-    
-    // If no collection matched, it's a P2P trade
-    if (!matched) {
-      p2pEscrows.push(escrow)
-    }
+    if (!matched) p2pEscrows.push(escrow)
   })
-  
-  // Build result array
   const groups = []
-  
-  // Add P2P trades first
   if (p2pEscrows.length > 0) {
-    groups.push({
-      collection: null,
-      escrows: p2pEscrows,
-      label: 'P2P Trades',
-      id: 'p2p'
-    })
+    groups.push({ storefront: null, escrows: p2pEscrows, label: 'P2P Trades', id: 'p2p' })
   }
-  
-  // Add collection groups
-  escrowToCollection.forEach((group, collectionId) => {
+  escrowToStorefront.forEach((group, storefrontId) => {
     groups.push({
-      collection: group.collection,
+      storefront: group.storefront,
       escrows: group.escrows,
-      label: group.collection.name || 'Unknown Collection',
-      id: collectionId
+      label: group.storefront.name || 'Unknown Storefront',
+      id: storefrontId
     })
   })
-  
   return groups
 }
 
+/** @deprecated Use groupEscrowsByStorefront; returns groups with .collection (same object as storefront) */
+export function groupEscrowsByCollection(escrows, collections = []) {
+  const storefrontGroups = groupEscrowsByStorefront(escrows, collections)
+  return storefrontGroups.map(g => ({
+    collection: g.storefront,
+    escrows: g.escrows,
+    label: g.label,
+    id: g.id
+  }))
+}
+
 /**
- * Get the collection an escrow belongs to (for navbar/storefront context)
+ * Get the storefront an escrow belongs to (for navbar context)
  * @param {Object} escrow - Formatted escrow object
- * @param {Array} collections - Array of collection objects
- * @param {Object} [metadataStore] - Optional collection metadata store (useCollectionMetadataStore()) for cached NFT mints
- * @returns {Object|null} First matching collection or null
+ * @param {Array} storefronts - Array of storefront objects
+ * @param {Object} [metadataStore] - Optional storefront metadata store for cached NFT mints
+ * @returns {Object|null} First matching storefront or null
  */
-export function getCollectionForEscrow(escrow, collections = [], metadataStore = null) {
-  if (!escrow || !collections || collections.length === 0) return null
-  for (const collection of collections) {
-    const cachedNFTs = metadataStore?.getCachedNFTs?.(collection.id) || []
+export function getStorefrontForEscrow(escrow, storefronts = [], metadataStore = null) {
+  if (!escrow || !storefronts || storefronts.length === 0) return null
+  for (const storefront of storefronts) {
+    const cachedNFTs = metadataStore?.getCachedNFTs?.(storefront.id) || []
     const cachedMints = new Set(
       cachedNFTs.map(n => (n?.mint && String(n.mint).toLowerCase()) || null).filter(Boolean)
     )
-    const matched = filterEscrowsByCollection([escrow], collection, {
-      cachedCollectionMints: cachedMints
-    })
-    if (matched.length > 0) return collection
+    const matched = filterEscrowsByStorefront([escrow], storefront, { cachedCollectionMints: cachedMints })
+    if (matched.length > 0) return storefront
   }
   return null
+}
+
+/** @deprecated Use getStorefrontForEscrow */
+export function getCollectionForEscrow(escrow, collections = [], metadataStore = null) {
+  return getStorefrontForEscrow(escrow, collections, metadataStore)
 }

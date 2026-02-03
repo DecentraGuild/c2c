@@ -34,7 +34,7 @@
           <!-- Collection Selector -->
           <div class="px-4 py-2 border-b border-border-color mb-2">
             <NavBarCollectionSelector
-              v-model="selectedCollectionId"
+              v-model="selectedStorefrontId"
               @update:modelValue="handleCollectionChange"
             />
           </div>
@@ -104,7 +104,7 @@
       <!-- Desktop Layout - Single Adaptive Layer -->
       <div class="hidden md:flex items-center h-12 transition-all duration-300">
         <!-- Platform Context: Show when on platform routes OR when no collection selected -->
-        <template v-if="isPlatformRoute || !selectedCollectionId">
+        <template v-if="isPlatformRoute || !selectedStorefrontId">
           <!-- Logo/Brand - Left -->
           <div class="flex items-center gap-2 flex-shrink-0">
             <router-link to="/" class="flex items-center hover:opacity-80 transition-opacity">
@@ -141,13 +141,13 @@
         </template>
 
         <!-- Collection Context: Show when collection selected AND on collection routes -->
-        <template v-else-if="selectedCollectionId && isCollectionRoute">
+        <template v-else-if="selectedStorefrontId && isCollectionRoute">
           <!-- Collection Logo - Left (fit height, auto width) -->
           <div class="flex items-center gap-2 flex-shrink-0 h-7">
             <img
-              v-if="selectedCollection?.logo"
-              :src="selectedCollection.logo"
-              :alt="selectedCollection.name"
+              v-if="selectedStorefront?.logo"
+:src="selectedStorefront.logo"
+            :alt="selectedStorefront.name"
               class="h-full w-auto object-contain rounded hover:opacity-80 transition-opacity"
             />
             <Icon
@@ -160,7 +160,7 @@
           <!-- Collection Selector - Next to Logo (with spacing) -->
           <div class="flex items-center gap-2 flex-shrink-0 ml-2">
             <NavBarCollectionSelector
-              v-model="selectedCollectionId"
+              v-model="selectedStorefrontId"
               hide-logo
               @update:modelValue="handleCollectionChange"
             />
@@ -250,19 +250,19 @@ import { useRoute, useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 import { WalletMultiButton } from 'solana-wallets-vue'
 import NavBarCollectionSelector from './NavBarCollectionSelector.vue'
-import { useCollectionStore } from '../stores/collection'
+import { useStorefrontStore } from '../stores/storefront'
 
 const route = useRoute()
 const router = useRouter()
-const collectionStore = useCollectionStore()
+const storefrontStore = useStorefrontStore()
 const mobileMenuOpen = ref(false)
 
-const selectedCollectionId = computed({
-  get: () => collectionStore.selectedCollectionId,
-  set: (value) => collectionStore.setSelectedCollection(value)
+const selectedStorefrontId = computed({
+  get: () => storefrontStore.selectedStorefrontId,
+  set: (value) => storefrontStore.setSelectedStorefront(value)
 })
 
-const selectedCollection = computed(() => collectionStore.selectedCollection)
+const selectedStorefront = computed(() => storefrontStore.selectedStorefront)
 
 const isActive = (path) => {
   return route.path === path
@@ -287,7 +287,7 @@ const handleCollectionChange = (collectionId) => {
   
   // Update URL if on marketplace page
   if (route.path === '/marketplace') {
-    router.replace({ query: { collection: collectionId } })
+    router.replace({ query: { storefront: collectionId } })
   }
 }
 
@@ -296,10 +296,9 @@ watch(() => route.path, () => {
   mobileMenuOpen.value = false
 })
 
-// Load collections on mount
 onMounted(async () => {
-  if (collectionStore.collections.length === 0) {
-    await collectionStore.loadCollections()
+  if (storefrontStore.storefronts.length === 0) {
+    await storefrontStore.loadStorefronts()
   }
 })
 </script>

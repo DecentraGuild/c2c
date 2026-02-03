@@ -147,15 +147,15 @@ import { formatEscrowData } from '../utils/escrowHelpers'
 import { calculateDepositAmountToExchange, prepareExchangeAmounts } from '../utils/exchangeHelpers'
 import { formatUserFriendlyError } from '../utils/errorMessages'
 import { logError } from '../utils/logger'
-import { getCollectionForEscrow } from '../utils/marketplaceHelpers'
+import { getStorefrontForEscrow } from '../utils/marketplaceHelpers'
 import { getDecimalsForMintFromCollections } from '../utils/collectionHelpers'
-import { useCollectionStore } from '../stores/collection'
-import { useCollectionMetadataStore } from '../stores/collectionMetadata'
+import { useStorefrontStore } from '../stores/storefront'
+import { useStorefrontMetadataStore } from '../stores/storefrontMetadata'
 
 const route = useRoute()
 const router = useRouter()
-const collectionStore = useCollectionStore()
-const collectionMetadataStore = useCollectionMetadataStore()
+const storefrontStore = useStorefrontStore()
+const storefrontMetadataStore = useStorefrontMetadataStore()
 const walletAdapter = useWallet()
 const anchorWallet = useAnchorWallet()
 const { publicKey, connected } = walletAdapter
@@ -531,9 +531,9 @@ const loadEscrow = async () => {
       tokenRegistry.fetchTokenInfo(requestMint)
     ])
 
-    const collections = collectionStore.collections || []
-    const depositDecimalsFromCollection = getDecimalsForMintFromCollections(depositMint, collections)
-    const requestDecimalsFromCollection = getDecimalsForMintFromCollections(requestMint, collections)
+    const storefronts = storefrontStore.storefronts || []
+    const depositDecimalsFromCollection = getDecimalsForMintFromCollections(depositMint, storefronts)
+    const requestDecimalsFromCollection = getDecimalsForMintFromCollections(requestMint, storefronts)
     // Prefer collection decimals (e.g. RACE PASS = 0); blockchain amounts are in raw units per these decimals
     const depositDecimals = depositDecimalsFromCollection ?? depositTokenInfo?.decimals ?? 9
     const requestDecimals = requestDecimalsFromCollection ?? requestTokenInfo?.decimals ?? 9
@@ -559,13 +559,13 @@ const loadEscrow = async () => {
       requestTokenInfo
     )
 
-    // Set storefront (collection) so navbar shows 2nd level when viewing this offer
-    if (collectionStore.collections.length === 0) {
-      await collectionStore.loadCollections()
+    // Set storefront so navbar shows 2nd level when viewing this offer
+    if (storefrontStore.storefronts.length === 0) {
+      await storefrontStore.loadStorefronts()
     }
-    const collection = getCollectionForEscrow(escrow.value, collectionStore.collections, collectionMetadataStore)
-    if (collection) {
-      collectionStore.setSelectedCollection(collection.id)
+    const storefront = getStorefrontForEscrow(escrow.value, storefrontStore.storefronts, storefrontMetadataStore)
+    if (storefront) {
+      storefrontStore.setSelectedStorefront(storefront.id)
     }
 
     // Auto-open share modal if share query parameter is present

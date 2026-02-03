@@ -61,7 +61,7 @@
         <!-- Empty: no marketplace selected or no options -->
         <div v-else-if="!searchQuery && displayTokens.length === 0 && !walletBalancesLoading" class="p-4 text-center text-text-muted">
           <Icon icon="mdi:store-outline" class="w-8 h-8 inline-block mb-2" />
-          <p class="text-sm">{{ selectedCollection ? 'No options for this marketplace' : 'Select a marketplace to see options' }}</p>
+          <p class="text-sm">{{ selectedStorefront ? 'No options for this storefront' : 'Select a storefront to see options' }}</p>
           <p class="text-xs mt-1">Search by name, symbol, or token ID</p>
         </div>
 
@@ -110,13 +110,13 @@
 import { ref, watch, computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useTokenStore } from '../stores/token'
-import { useCollectionStore } from '../stores/collection'
-import { useCollectionMetadataStore } from '../stores/collectionMetadata'
+import { useStorefrontStore } from '../stores/storefront'
+import { useStorefrontMetadataStore } from '../stores/storefrontMetadata'
 import { storeToRefs } from 'pinia'
 import { useWallet } from 'solana-wallets-vue'
 import { useDebounce, DEBOUNCE_DELAYS } from '@/composables/useDebounce'
 import { getAllowedMints } from '@/utils/collectionHelpers'
-import { getCollectionCurrencies } from '../utils/constants/baseCurrencies'
+import { getStorefrontCurrencies } from '../utils/constants/baseCurrencies'
 import BaseDropdown from './BaseDropdown.vue'
 import TokenDisplay from './TokenDisplay.vue'
 import NFTInstanceSelector from './NFTInstanceSelector.vue'
@@ -134,15 +134,15 @@ const emit = defineEmits(['select', 'close'])
 
 const { connected } = useWallet()
 const tokenStore = useTokenStore()
-const collectionStore = useCollectionStore()
-const collectionMetadataStore = useCollectionMetadataStore()
+const storefrontStore = useStorefrontStore()
+const storefrontMetadataStore = useStorefrontMetadataStore()
 
 // Get selected collection
-const selectedCollection = computed(() => collectionStore.selectedCollection)
+const selectedStorefront = computed(() => storefrontStore.selectedStorefront)
 
 // Check if we should filter tokens based on collection
 const shouldFilterByCollection = computed(() => {
-  if (!selectedCollection.value) return false
+  if (!selectedStorefront.value) return false
   
   const { allMints } = allowedMints.value
   return allMints.length > 0
@@ -150,17 +150,17 @@ const shouldFilterByCollection = computed(() => {
 
 // Get allowed mints from collection
 const allowedMints = computed(() => {
-  if (!selectedCollection.value) return { currencyMints: [], tokenMints: [], nftCollectionMints: [], allMints: [] }
-  return getAllowedMints(selectedCollection.value)
+  if (!selectedStorefront.value) return { currencyMints: [], tokenMints: [], nftCollectionMints: [], allMints: [] }
+  return getAllowedMints(selectedStorefront.value)
 })
 
 // Convert collectionMints items to token-like objects for display
 // These represent collection categories/types, not individual NFTs
 // Enrich with images from token store cache
 const collectionMintsAsTokens = computed(() => {
-  if (!selectedCollection.value) return []
+  if (!selectedStorefront.value) return []
   
-  const collectionMints = selectedCollection.value.collectionMints || []
+  const collectionMints = selectedStorefront.value.collectionMints || []
   
   // Convert collection items to token-like objects for display
   return collectionMints
@@ -168,7 +168,7 @@ const collectionMintsAsTokens = computed(() => {
     .map(item => {
       // Try to get image from token store cache
       const cachedTokenInfo = tokenStore.getCachedTokenInfo(item.mint)
-      const cachedMetadata = collectionMetadataStore.getCachedTokenMetadata(item.mint)
+      const cachedMetadata = storefrontMetadataStore.getCachedTokenMetadata(item.mint)
       
       // Prefer cached image, then collection item image, then null
       const image = cachedTokenInfo?.image || cachedMetadata?.image || item.image || null
@@ -191,9 +191,9 @@ const collectionMintsAsTokens = computed(() => {
 // Get allowed currencies as token-like objects for display
 // Enrich with images from token store cache
 const allowedCurrenciesAsTokens = computed(() => {
-  if (!selectedCollection.value) return []
+  if (!selectedStorefront.value) return []
   
-  const collectionCurrencies = getCollectionCurrencies(selectedCollection.value)
+  const collectionCurrencies = getStorefrontCurrencies(selectedStorefront.value)
   
   return collectionCurrencies.map(currency => {
     // Try to get image from token store cache
@@ -325,7 +325,7 @@ const performSearch = async (query) => {
     }
 
     // Search in collectionMints by name (if collection is selected)
-    if (selectedCollection.value && collectionMintsAsTokens.value.length > 0) {
+    if (selectedStorefront.value && collectionMintsAsTokens.value.length > 0) {
       collectionMintsAsTokens.value.forEach(collectionToken => {
         const tokenName = (collectionToken.name || '').toLowerCase()
         const tokenMint = collectionToken.mint.toLowerCase()
@@ -548,7 +548,7 @@ const filterTokensByCollection = (tokens) => {
 function mergeBalanceIntoToken(item, walletBalancesList, collectionId) {
   const isNFTCollectionItem = item.fetchingType === 'NFT' && item.isCollectionItem
   if (isNFTCollectionItem) {
-    const cachedNFTs = collectionMetadataStore.getCachedNFTs(collectionId) || []
+    const cachedNFTs = storefrontMetadataStore.getCachedNFTs(collectionId) || []
     const nftMintsInThisCollection = cachedNFTs
       .filter(nft => (nft.collectionMint || nft.collection) === item.mint)
       .map(nft => nft.mint)
@@ -575,14 +575,14 @@ const displayTokens = computed(() => {
   if (searchQuery.value && searchQuery.value.trim()) {
     // When searching, show search results filtered by collection (no balance needed for request)
     const filtered = filterTokensByCollection(localSearchResults.value)
-    const collectionId = selectedCollection.value?.id
+    const collectionId = selectedStorefront.value?.id
     tokens = filtered.map(t => mergeBalanceIntoToken(t, [], collectionId))
   } else {
     // Default view: shop options only (collection items + currencies), no wallet balance
-    if (selectedCollection.value) {
+    if (selectedStorefront.value) {
       const collectionItems = collectionMintsAsTokens.value || []
       const currencies = allowedCurrenciesAsTokens.value || []
-      const collectionId = selectedCollection.value.id
+      const collectionId = selectedStorefront.value.id
       const existingMints = new Set()
       tokens = []
       const addItem = (item) => {
@@ -611,7 +611,7 @@ const error = computed(() => {
 
 const handleTokenClick = async (token) => {
   // If it's an NFT collection type (request "which NFT from this collection"), open instance selector to pick one from the collection
-  if (token.fetchingType === 'NFT' && token.isCollectionItem && selectedCollection.value) {
+  if (token.fetchingType === 'NFT' && token.isCollectionItem && selectedStorefront.value) {
     selectedCollectionItem.value = {
       ...token,
       parentCollectionMint: token.mint
@@ -660,7 +660,7 @@ watch(() => props.show, (isShowing) => {
     preloadRegistry()
     
     // Preload images for collection items and currencies
-    if (selectedCollection.value) {
+    if (selectedStorefront.value) {
       const itemsToPreload = [...collectionMintsAsTokens.value, ...allowedCurrenciesAsTokens.value]
       
       // Preload images in background
@@ -678,10 +678,10 @@ watch(() => props.show, (isShowing) => {
       }
       
       // Ensure collection NFTs are preloaded
-      const cachedNFTs = collectionMetadataStore.getCachedNFTs(selectedCollection.value.id)
-      if (cachedNFTs.length === 0 && !collectionMetadataStore.isLoading(selectedCollection.value.id)) {
+      const cachedNFTs = storefrontMetadataStore.getCachedNFTs(selectedStorefront.value.id)
+      if (cachedNFTs.length === 0 && !storefrontMetadataStore.isLoading(selectedStorefront.value.id)) {
         // Trigger preload if not already loading
-        collectionMetadataStore.preloadCollectionNFTs(selectedCollection.value).catch(() => {
+        storefrontMetadataStore.preloadStorefrontNFTs(selectedStorefront.value).catch(() => {
           // Silently fail
         })
       }

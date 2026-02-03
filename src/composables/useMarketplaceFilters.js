@@ -6,7 +6,7 @@
 import { computed } from 'vue'
 import { useDebouncedSearch } from './useDebouncedSearch'
 import {
-  filterEscrowsByCollection,
+  filterEscrowsByStorefront,
   filterEscrowsByTradeType,
   filterActiveEscrows,
   sortEscrowsByUserBalance,
@@ -16,7 +16,7 @@ import {
   getShopCurrencyMints
 } from '../utils/marketplaceHelpers'
 import { getEscrowItemMetadata } from './useCollectionMetadata'
-import { useCollectionMetadataStore } from '../stores/collectionMetadata'
+import { useStorefrontMetadataStore } from '../stores/storefrontMetadata'
 
 /**
  * Composable for marketplace filtering - optimized single-pass filtering
@@ -38,7 +38,7 @@ function useMarketplaceFilters({
   searchQuery
 }) {
   const { debouncedQuery: debouncedSearchQuery } = useDebouncedSearch(searchQuery)
-  const collectionMetadataStore = useCollectionMetadataStore()
+  const storefrontMetadataStore = useStorefrontMetadataStore()
 
   /**
    * Cached NFT mints for the selected collection (individual NFTs from metadata)
@@ -47,7 +47,7 @@ function useMarketplaceFilters({
   const cachedCollectionMintSet = computed(() => {
     const coll = selectedCollection.value
     if (!coll?.id) return new Set()
-    const nfts = collectionMetadataStore.getCachedNFTs(coll.id)
+    const nfts = storefrontMetadataStore.getCachedNFTs(coll.id)
     return new Set(
       (nfts || [])
         .map(n => (n?.mint && String(n.mint).toLowerCase()) || null)

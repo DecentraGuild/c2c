@@ -43,36 +43,35 @@
         </div>
 
         <!-- Loading State -->
-        <BaseLoading v-if="collectionStore.loadingCollections" message="Loading marketplaces..." />
+        <BaseLoading v-if="storefrontStore.loadingStorefronts" message="Loading marketplaces..." />
 
         <!-- Error State -->
         <BaseEmptyState
-          v-else-if="collectionStore.error"
+          v-else-if="storefrontStore.error"
           icon="mdi:alert-circle"
-          :title="collectionStore.error"
+          :title="storefrontStore.error"
           title-class="text-status-error"
         />
 
         <!-- Marketplaces Grid/List -->
-        <div v-else-if="filteredCollections.length > 0">
+        <div v-else-if="filteredStorefronts.length > 0">
           <!-- Tile View -->
           <div v-if="viewMode === 'tile'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-            <!-- Cards will auto-size based on grid, max ~280-320px each -->
             <CollectionCard
-              v-for="collection in filteredCollections"
-              :key="collection.id"
-              :collection="collection"
-              :open-trades="collectionStore.getOpenTradesCount(collection.id)"
+              v-for="storefront in filteredStorefronts"
+              :key="storefront.id"
+              :collection="storefront"
+              :open-trades="storefrontStore.getOpenTradesCount(storefront.id)"
             />
           </div>
 
           <!-- List View -->
           <div v-else class="space-y-3">
             <CollectionListItem
-              v-for="collection in filteredCollections"
-              :key="collection.id"
-              :collection="collection"
-              :open-trades="collectionStore.getOpenTradesCount(collection.id)"
+              v-for="storefront in filteredStorefronts"
+              :key="storefront.id"
+              :collection="storefront"
+              :open-trades="storefrontStore.getOpenTradesCount(storefront.id)"
             />
           </div>
         </div>
@@ -97,13 +96,13 @@ import BaseViewModeToggle from '../components/BaseViewModeToggle.vue'
 import BaseEmptyState from '../components/BaseEmptyState.vue'
 import CollectionCard from '../components/CollectionCard.vue'
 import CollectionListItem from '../components/CollectionListItem.vue'
-import { useCollectionStore } from '@/stores/collection'
+import { useStorefrontStore } from '@/stores/storefront'
 import { useEscrowStore } from '@/stores/escrow'
 import { useViewMode } from '@/composables/useViewMode'
 import { useDebouncedSearch } from '@/composables/useDebouncedSearch'
-import { filterCollectionsByQuery } from '@/utils/collectionHelpers'
+import { filterStorefrontsByQuery } from '@/utils/collectionHelpers'
 
-const collectionStore = useCollectionStore()
+const storefrontStore = useStorefrontStore()
 const escrowStore = useEscrowStore()
 const { viewMode } = useViewMode('dashboard-view-mode', 'tile')
 const searchQuery = ref('')
@@ -114,21 +113,16 @@ const viewModes = [
   { value: 'list', label: 'List view', icon: 'mdi:view-list' }
 ]
 
-const filteredCollections = computed(() => {
-  const collections = collectionStore.collections || []
-  return filterCollectionsByQuery(collections, debouncedSearchQuery.value, { includeId: true })
+const filteredStorefronts = computed(() => {
+  const storefronts = storefrontStore.storefronts || []
+  return filterStorefrontsByQuery(storefronts, debouncedSearchQuery.value, { includeId: true })
 })
 
 onMounted(async () => {
-  // Load collections if not already loaded
-  if (collectionStore.collections.length === 0) {
-    await collectionStore.loadCollections()
+  if (storefrontStore.storefronts.length === 0) {
+    await storefrontStore.loadStorefronts()
   }
-  
-  // Load all escrows from blockchain via escrow store
   await escrowStore.loadAllEscrows()
-  
-  // Calculate open trades counts from loaded escrows (pass escrows directly)
-  collectionStore.refreshOpenTradesCounts(escrowStore.escrows)
+  storefrontStore.refreshOpenTradesCounts(escrowStore.escrows)
 })
 </script>

@@ -201,6 +201,6 @@ const {
 
 const marketplaceRoute = computed(() => {
   if (!props.collection?.id) return '/marketplace'
-  return { path: '/marketplace', query: { collection: props.collection.id } }
+  return { path: '/marketplace', query: { storefront: props.collection.id } }
 })
 </script>

@@ -6,20 +6,20 @@
         <div class="flex items-center gap-2 mb-1">
           <h1 class="text-base sm:text-lg font-bold text-text-primary">Marketplace</h1>
           <CollectionBadge
-            v-if="selectedCollection"
-            :verification-status="selectedCollection.verification_status || (selectedCollection.verified ? 'verified' : 'community')"
+            v-if="selectedStorefront"
+            :verification-status="selectedStorefront.verification_status || (selectedStorefront.verified ? 'verified' : 'community')"
           />
         </div>
-        <p v-if="selectedCollection" class="text-xs sm:text-sm text-text-secondary mt-0.5">
-          Viewing trades for <span class="font-semibold">{{ selectedCollection.name }}</span>
+        <p v-if="selectedStorefront" class="text-xs sm:text-sm text-text-secondary mt-0.5">
+          Viewing trades for <span class="font-semibold">{{ selectedStorefront.name }}</span>
         </p>
         <p v-else class="text-xs sm:text-sm text-text-muted mt-0.5">
-          Select a collection from the navbar to view marketplace trades
+          Select a storefront from the navbar to view marketplace trades
         </p>
       </div>
 
       <!-- Main Content with Sidebar -->
-      <div v-if="selectedCollection" class="flex gap-4">
+      <div v-if="selectedStorefront" class="flex gap-4">
         <!-- Sidebar -->
         <aside class="hidden lg:block w-56 flex-shrink-0 space-y-3">
           <!-- Search Bar -->
@@ -32,7 +32,7 @@
           
           <!-- Filters -->
           <MarketplaceFilters
-            :collection="selectedCollection"
+            :collection="selectedStorefront"
             :escrows="allEscrows"
             @update:activeFilters="handleActiveFiltersUpdate"
           />
@@ -97,7 +97,7 @@
               icon="mdi:star"
               icon-class="text-primary-color"
               :view-mode="viewMode"
-              :collection="selectedCollection"
+              :collection="selectedStorefront"
               :user-balances="userBalances"
               section-class="mb-4"
             />
@@ -107,14 +107,14 @@
               :escrows="otherEscrows"
               :title="userFillableEscrows.length > 0 ? 'All Open Trades' : null"
               :view-mode="viewMode"
-              :collection="selectedCollection"
+              :collection="selectedStorefront"
               :user-balances="userBalances"
             />
           </div>
 
           <!-- Empty State -->
           <BaseEmptyState
-            v-else-if="selectedCollection"
+            v-else-if="selectedStorefront"
             title="No open trades found"
             :message="selectedTradeType === 'all' 
               ? 'There are no active trades for this collection' 
@@ -144,7 +144,7 @@ import BaseEmptyState from '../components/BaseEmptyState.vue'
 import MarketplaceEscrowSection from '../components/MarketplaceEscrowSection.vue'
 import MarketplaceFilters from '../components/MarketplaceFilters.vue'
 import CollectionBadge from '../components/CollectionBadge.vue'
-import { useCollectionStore } from '../stores/collection'
+import { useStorefrontStore } from '../stores/storefront'
 import { useEscrowStore } from '../stores/escrow'
 import { useWalletBalances } from '../composables/useWalletBalances'
 import { useViewMode } from '../composables/useViewMode'
@@ -153,7 +153,7 @@ import { logDebug } from '../utils/logger'
 
 const route = useRoute()
 const router = useRouter()
-const collectionStore = useCollectionStore()
+const storefrontStore = useStorefrontStore()
 const escrowStore = useEscrowStore()
 const { balances, fetchBalances } = useWalletBalances({ autoFetch: true })
 const { viewMode } = useViewMode('marketplace-view-mode', 'list')
@@ -183,12 +183,12 @@ const tradeTypes = [
 ]
 
 // Computed
-const collections = computed(() => collectionStore.collections || [])
+const storefronts = computed(() => storefrontStore.storefronts || [])
 
-const selectedCollection = computed(() => {
-  const selectedId = collectionStore.selectedCollectionId
+const selectedStorefront = computed(() => {
+  const selectedId = storefrontStore.selectedStorefrontId
   if (!selectedId) return null
-  return collections.value.find(c => c.id === selectedId)
+  return storefronts.value.find(s => s.id === selectedId)
 })
 
 // User balances as a map for quick lookup
@@ -209,7 +209,7 @@ const {
   otherEscrows
 } = useMarketplaceFilters({
   allEscrows,
-  selectedCollection,
+  selectedCollection: selectedStorefront,
   selectedTradeType,
   userBalances,
   activeFilters,
@@ -230,61 +230,43 @@ const clearFilters = () => {
 let isLoadingEscrowsFlag = false
 
 const loadEscrows = async () => {
-  if (!selectedCollection.value) {
-    return
-  }
-  
-  // Prevent duplicate simultaneous calls
+  if (!selectedStorefront.value) return
   if (isLoadingEscrowsFlag) {
     logDebug('Escrows already loading, skipping duplicate call')
     return
   }
-
   isLoadingEscrowsFlag = true
   try {
-    // Load all escrows from blockchain via escrow store
     await escrowStore.loadAllEscrows()
-    
-    // Update collection counts after loading (pass escrows directly)
-    collectionStore.refreshOpenTradesCounts(escrowStore.escrows)
-    
+    storefrontStore.refreshOpenTradesCounts(escrowStore.escrows)
     logDebug(`Loaded ${escrowStore.escrows.length} escrows for marketplace`)
   } finally {
     isLoadingEscrowsFlag = false
   }
 }
 
-// Track last loaded collection to prevent duplicate loads
-let lastLoadedCollectionId = null
+let lastLoadedStorefrontId = null
 
-// Watch for collection changes from store
-watch(() => collectionStore.selectedCollectionId, (newCollectionId) => {
-  if (newCollectionId && route.path === '/marketplace') {
-    // Only update URL if it's different (prevent circular updates)
-    if (route.query.collection !== newCollectionId) {
-      router.replace({ query: { collection: newCollectionId } })
+watch(() => storefrontStore.selectedStorefrontId, (newStorefrontId) => {
+  if (newStorefrontId && route.path === '/marketplace') {
+    if (route.query.storefront !== newStorefrontId) {
+      router.replace({ query: { storefront: newStorefrontId } })
     }
-    
-    // Only load escrows if collection actually changed
-    if (newCollectionId !== lastLoadedCollectionId) {
-      // Clear filters and search when collection changes
+    if (newStorefrontId !== lastLoadedStorefrontId) {
       clearFilters()
       loadEscrows()
-      lastLoadedCollectionId = newCollectionId
+      lastLoadedStorefrontId = newStorefrontId
     }
   }
 })
 
-// Watch for collection changes from URL
-watch(() => route.query.collection, (newCollectionId) => {
-  if (newCollectionId && newCollectionId !== collectionStore.selectedCollectionId) {
-    collectionStore.setSelectedCollection(newCollectionId)
-    // Clear filters and search when collection changes
+watch(() => route.query.storefront, (newStorefrontId) => {
+  if (newStorefrontId && newStorefrontId !== storefrontStore.selectedStorefrontId) {
+    storefrontStore.setSelectedStorefront(newStorefrontId)
     clearFilters()
-    // Only load if not already loading for this collection
-    if (newCollectionId !== lastLoadedCollectionId) {
+    if (newStorefrontId !== lastLoadedStorefrontId) {
       loadEscrows()
-      lastLoadedCollectionId = newCollectionId
+      lastLoadedStorefrontId = newStorefrontId
     }
   }
 }, { immediate: true })
@@ -294,29 +276,21 @@ watch(() => balances.value, () => {
   // Balances updated, escrows will automatically re-sort via computed
 }, { deep: true })
 
-// Load collections on mount
 onMounted(async () => {
-  // Load collections if not already loaded
-  if (collections.value.length === 0) {
-    await collectionStore.loadCollections()
+  if (storefronts.value.length === 0) {
+    await storefrontStore.loadStorefronts()
   }
-  
-  // Set initial collection from URL or store
-  if (route.query.collection) {
-    collectionStore.setSelectedCollection(route.query.collection)
+  if (route.query.storefront) {
+    storefrontStore.setSelectedStorefront(route.query.storefront)
     loadEscrows()
-  } else if (collectionStore.selectedCollectionId) {
-    // Use store selection
-    router.replace({ query: { collection: collectionStore.selectedCollectionId } })
+  } else if (storefrontStore.selectedStorefrontId) {
+    router.replace({ query: { storefront: storefrontStore.selectedStorefrontId } })
     loadEscrows()
-  } else if (collections.value.length > 0) {
-    // Auto-select first collection
-    collectionStore.setSelectedCollection(collections.value[0].id)
-    router.replace({ query: { collection: collections.value[0].id } })
+  } else if (storefronts.value.length > 0) {
+    storefrontStore.setSelectedStorefront(storefronts.value[0].id)
+    router.replace({ query: { storefront: storefronts.value[0].id } })
     loadEscrows()
   }
-  
-  // Fetch user balances
   await fetchBalances()
 })
 </script>

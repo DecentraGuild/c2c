@@ -63,8 +63,20 @@ export function isMintAllowed(mintAddress, collection) {
 }
 
 /**
- * Filter collections by search query (name, description, and optionally id)
- * @param {Array} collections - Array of collection objects
+ * Filter storefronts by search query (name, description, and optionally id)
+ * @param {Array} storefronts - Array of storefront objects
+ * @param {string} query - Search query (trimmed; empty returns all)
+ * @param {Object} options - Options
+ * @param {boolean} options.includeId - If true, also match storefront.id (default: false for selectors, true for dashboard)
+ * @returns {Array} Filtered storefronts
+ */
+export function filterStorefrontsByQuery(storefronts, query, { includeId = false } = {}) {
+  return filterCollectionsByQuery(storefronts, query, { includeId })
+}
+
+/**
+ * Filter collections/storefronts by search query (legacy name)
+ * @param {Array} collections - Array of storefront/collection objects
  * @param {string} query - Search query (trimmed; empty returns all)
  * @param {Object} options - Options
  * @param {boolean} options.includeId - If true, also match collection.id (default: false for selectors, true for dashboard)

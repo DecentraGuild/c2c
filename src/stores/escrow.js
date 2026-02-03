@@ -9,7 +9,7 @@ import { ref, computed } from 'vue'
 import { fetchAllEscrows } from '../utils/escrowTransactions'
 import { useSolanaConnection } from '../composables/useSolanaConnection'
 import { useTokenStore } from './token'
-import { useCollectionStore } from './collection'
+import { useStorefrontStore } from './storefront'
 import { formatEscrowData } from '../utils/escrowHelpers'
 import { getDecimalsForMintFromCollections } from '../utils/collectionHelpers'
 import { toPublicKey } from '../utils/solanaUtils'
@@ -61,8 +61,8 @@ export const useEscrowStore = defineStore('escrow', () => {
     try {
       const connection = useSolanaConnection()
       const tokenStore = useTokenStore()
-      const collectionStore = useCollectionStore()
-      const collections = collectionStore.collections || []
+      const storefrontStore = useStorefrontStore()
+      const storefronts = storefrontStore.storefronts || []
 
       // Convert makerPublicKey to PublicKey if it's a string
       const makerFilter = makerPublicKey 
@@ -106,8 +106,8 @@ export const useEscrowStore = defineStore('escrow', () => {
               ])
 
               // Prefer collection decimals (e.g. RACE PASS = 0); blockchain amounts are in raw units per these decimals
-              const depositDecimalsFromCollection = getDecimalsForMintFromCollections(depositMint, collections)
-              const requestDecimalsFromCollection = getDecimalsForMintFromCollections(requestMint, collections)
+              const depositDecimalsFromCollection = getDecimalsForMintFromCollections(depositMint, storefronts)
+              const requestDecimalsFromCollection = getDecimalsForMintFromCollections(requestMint, storefronts)
               const depositDecimals = depositDecimalsFromCollection ?? depositTokenInfo?.decimals ?? 9
               const requestDecimals = requestDecimalsFromCollection ?? requestTokenInfo?.decimals ?? 9
               depositTokenInfo = {

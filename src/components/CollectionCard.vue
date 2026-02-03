@@ -13,7 +13,7 @@
 
       <!-- Collection Image -->
       <router-link
-        :to="`/marketplace?collection=${collection.id}`"
+        :to="`/marketplace?storefront=${collection.id}`"
         class="relative w-full aspect-square mb-2 rounded-lg overflow-hidden bg-secondary-bg flex items-center justify-center cursor-pointer"
       >
         <img
@@ -33,7 +33,7 @@
       <!-- Collection Info -->
       <div class="flex-1 flex flex-col min-h-0">
         <router-link
-          :to="`/marketplace?collection=${collection.id}`"
+          :to="`/marketplace?storefront=${collection.id}`"
           class="cursor-pointer flex-shrink-0"
         >
           <h3 class="text-sm font-bold text-text-primary group-hover:text-primary-color transition-colors mb-1">

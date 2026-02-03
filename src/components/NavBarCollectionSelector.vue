@@ -8,13 +8,13 @@
       >
         <template v-if="!hideLogo">
           <img
-            v-if="selectedCollection?.logo"
+            v-if="selectedStorefront?.logo"
             :src="selectedCollection.logo"
             :alt="selectedCollection.name"
             class="w-5 h-5 object-contain rounded flex-shrink-0"
           />
           <Icon
-            v-else-if="selectedCollection"
+            v-else-if="selectedStorefront"
             icon="mdi:image-off"
             class="w-5 h-5 text-text-muted flex-shrink-0"
           />
@@ -25,7 +25,7 @@
           />
         </template>
         <span class="text-sm font-semibold text-text-primary truncate flex-1 text-left">
-          {{ selectedCollection?.name || 'Select Collection' }}
+          {{ selectedStorefront?.name || 'Select Storefront' }}
         </span>
         <Icon icon="mdi:chevron-down" class="w-4 h-4 text-text-muted flex-shrink-0" />
       </button>
@@ -78,15 +78,15 @@
         </div>
 
         <div
-          v-for="collection in filteredCollections"
-          :key="collection.id"
-          @click="selectCollection(collection)"
+          v-for="storefront in filteredStorefronts"
+          :key="storefront.id"
+          @click="selectStorefront(storefront)"
           class="px-4 py-3 hover:bg-primary-color/10 cursor-pointer transition-colors flex items-center gap-3"
         >
           <img
-            v-if="collection.logo"
-            :src="collection.logo"
-            :alt="collection.name"
+            v-if="storefront.logo"
+            :src="storefront.logo"
+            :alt="storefront.name"
             class="w-8 h-8 object-contain rounded flex-shrink-0"
           />
           <Icon
@@ -96,24 +96,24 @@
           />
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1">
-              <div class="font-semibold text-text-primary truncate">{{ collection.name }}</div>
+              <div class="font-semibold text-text-primary truncate">{{ storefront.name }}</div>
               <CollectionBadge
-                :verification-status="collection.verification_status || (collection.verified ? 'verified' : 'community')"
+                :verification-status="storefront.verification_status || (storefront.verified ? 'verified' : 'community')"
               />
             </div>
-            <div v-if="collection.description" class="text-xs text-text-secondary truncate">
-              {{ collection.description }}
+            <div v-if="storefront.description" class="text-xs text-text-secondary truncate">
+              {{ storefront.description }}
             </div>
           </div>
           <Icon
-            v-if="modelValue === collection.id"
+            v-if="modelValue === storefront.id"
             icon="mdi:check"
             class="w-5 h-5 text-primary-color flex-shrink-0"
           />
         </div>
         
-        <div v-if="filteredCollections.length === 0" class="px-4 py-6 text-center text-sm text-text-muted">
-          No collections found
+        <div v-if="filteredStorefronts.length === 0" class="px-4 py-6 text-center text-sm text-text-muted">
+          No storefronts found
         </div>
       </BaseScrollArea>
     </div>
@@ -123,8 +123,8 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { Icon } from '@iconify/vue'
-import { useCollectionStore } from '@/stores/collection'
-import { filterCollectionsByQuery } from '@/utils/collectionHelpers'
+import { useStorefrontStore } from '@/stores/storefront'
+import { filterStorefrontsByQuery } from '@/utils/collectionHelpers'
 import BaseScrollArea from './BaseScrollArea.vue'
 import CollectionBadge from './CollectionBadge.vue'
 
@@ -141,33 +141,33 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-const collectionStore = useCollectionStore()
+const storefrontStore = useStorefrontStore()
 const searchQuery = ref('')
 const showDropdown = ref(false)
 const dropdownRef = ref(null)
 const containerRef = ref(null)
 
-const collections = computed(() => collectionStore.collections || [])
+const storefronts = computed(() => storefrontStore.storefronts || [])
 
-const selectedCollection = computed(() => {
+const selectedStorefront = computed(() => {
   if (!props.modelValue) return null
-  return collections.value.find(c => c.id === props.modelValue)
+  return storefronts.value.find(s => s.id === props.modelValue)
 })
 
-const filteredCollections = computed(() =>
-  filterCollectionsByQuery(collections.value, searchQuery.value)
+const filteredStorefronts = computed(() =>
+  filterStorefrontsByQuery(storefronts.value, searchQuery.value)
 )
 
-const selectCollection = (collection) => {
-  emit('update:modelValue', collection.id)
-  collectionStore.setSelectedCollection(collection.id)
+const selectStorefront = (storefront) => {
+  emit('update:modelValue', storefront.id)
+  storefrontStore.setSelectedStorefront(storefront.id)
   showDropdown.value = false
   searchQuery.value = ''
 }
 
 const clearSelection = () => {
   emit('update:modelValue', null)
-  collectionStore.clearSelectedCollection()
+  storefrontStore.clearSelectedStorefront()
   showDropdown.value = false
   searchQuery.value = ''
 }

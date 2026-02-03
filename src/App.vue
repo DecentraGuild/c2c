@@ -7,17 +7,45 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { RouterView } from 'vue-router'
 import NavBar from './components/NavBar.vue'
 import ToastContainer from './components/ToastContainer.vue'
 import { useTokenStore } from './stores/token'
 import { useThemeStore } from './stores/theme'
+import { useStorefrontStore } from './stores/storefront'
 import { isMobileDevice, waitForWalletStandard } from './utils/walletDetection'
 import { useNetworkStatus } from './composables/useNetworkStatus'
 
-// Theme store is already initialized in main.js before app mount
-// This ensures CSS variables are available immediately for all components
+const route = useRoute()
+const themeStore = useThemeStore()
+const storefrontStore = useStorefrontStore()
+
+// Theming only on storefront (2nd layer) routes; Explore (/) and Host (/onboard) always use default theme
+const STOREFRONT_ROUTE_PATHS = ['/marketplace', '/create', '/manage']
+const isStorefrontRoute = (path) =>
+  STOREFRONT_ROUTE_PATHS.includes(path) || path.startsWith('/escrow/')
+
+watch(
+  () => ({ path: route.path, storefront: storefrontStore.selectedStorefront }),
+  ({ path, storefront }) => {
+    if (path === '/' || path === '/onboard') {
+      themeStore.resetToDefault()
+      return
+    }
+    if (isStorefrontRoute(path)) {
+      if (storefront?.colors) {
+        storefrontStore.loadStorefrontTheme(storefront)
+      } else {
+        themeStore.resetToDefault()
+      }
+    } else {
+      themeStore.resetToDefault()
+    }
+  },
+  { immediate: true }
+)
 
 // Initialize network status monitoring (for mobile)
 useNetworkStatus()
