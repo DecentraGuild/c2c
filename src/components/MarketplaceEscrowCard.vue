@@ -190,16 +190,16 @@
 <script setup>
 import { computed } from 'vue'
 import { Icon } from '@iconify/vue'
-import { formatDecimals } from '../utils/formatters'
-import { getTradeType, getShopCurrencyMints, canUserFillEscrow } from '../utils/marketplaceHelpers'
-import { useCollectionMetadata } from '../composables/useCollectionMetadata'
+import { formatDecimals } from '@/utils/formatters'
+import { getTradeType, getShopCurrencyMints, canUserFillEscrow } from '@/utils/marketplaceHelpers'
+import { useCollectionMetadata } from '@/composables/useCollectionMetadata'
 
 const props = defineProps({
   escrow: {
     type: Object,
     required: true
   },
-  collection: {
+  storefront: {
     type: Object,
     default: null
   },
@@ -213,15 +213,15 @@ const props = defineProps({
   }
 })
 
-// Use collection metadata composable
-const collectionMetadata = useCollectionMetadata(computed(() => props.collection))
+// Use collection metadata composable (storefront has collectionMints etc.)
+const collectionMetadata = useCollectionMetadata(computed(() => props.storefront))
 
-// Get display name for token (prefer collection item name, fallback to token name/symbol)
+// Get display name for token (prefer storefront item name, fallback to token name/symbol)
 const getTokenDisplayName = (token) => {
   return collectionMetadata.getTokenDisplayName(token)
 }
 
-// Get token image (prefer collection item image, fallback to token image)
+// Get token image (prefer storefront item image, fallback to token image)
 const getTokenImage = (token) => {
   return collectionMetadata.getTokenImage(token)
 }
@@ -244,10 +244,10 @@ const requestTokenImage = computed(() => {
 })
 
 const tradeType = computed(() => {
-  if (!props.collection) return null
+  if (!props.storefront) return null
 
   // Extract mint addresses from collectionMints (handle both old and new format)
-  let collectionMints = props.collection.collectionMints || []
+  let collectionMints = props.storefront.collectionMints || []
   if (Array.isArray(collectionMints) && collectionMints.length > 0) {
     if (typeof collectionMints[0] === 'object' && collectionMints[0].mint) {
       // New format: array of objects with mint property
@@ -256,7 +256,7 @@ const tradeType = computed(() => {
   }
 
   // Use shop currency mints (baseCurrency + customCurrencies) for trade type; fallback to allowedCurrencies
-  const shopCurrencyMints = getShopCurrencyMints(props.collection) || props.collection.allowedCurrencies || []
+  const shopCurrencyMints = getShopCurrencyMints(props.storefront) || props.storefront.allowedCurrencies || []
   return getTradeType(
     props.escrow,
     collectionMints,

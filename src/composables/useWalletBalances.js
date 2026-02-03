@@ -3,23 +3,25 @@
  */
 
 import { ref, computed, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { PublicKey } from '@solana/web3.js'
-import { useWallet } from 'solana-wallets-vue'
-import { NATIVE_SOL } from '../utils/constants'
-import { fetchTokenMetadata } from '../utils/metaplex'
+import { useWalletStore } from '@/stores/wallet'
+import { NATIVE_SOL } from '@/utils/constants'
+import { fetchTokenMetadata } from '@/utils/metaplex'
 import { useSolanaConnection } from './useSolanaConnection'
-import { metadataRateLimiter } from '../utils/rateLimiter'
-import { cleanTokenString } from '../utils/formatters'
-import { useTokenStore } from '../stores/token'
-import { logError, logDebug, logWarning } from '../utils/logger'
-import { fetchAllTokenBalancesFromDAS } from '../utils/heliusDAS'
-import { UI_CONSTANTS } from '../utils/constants/ui.js'
+import { metadataRateLimiter } from '@/utils/rateLimiter'
+import { cleanTokenString } from '@/utils/formatters'
+import { useTokenStore } from '@/stores/token'
+import { logError, logDebug, logWarning } from '@/utils/logger'
+import { fetchAllTokenBalancesFromDAS } from '@/utils/heliusDAS'
+import { UI_CONSTANTS } from '@/utils/constants/ui'
 
 const BALANCE_CACHE_TTL_MS = 60 * 1000 // 60 seconds – avoid refetching too often
 
 export function useWalletBalances(options = {}) {
   const { autoFetch = true } = options
-  const { publicKey, connected } = useWallet()
+  const walletStore = useWalletStore()
+  const { publicKey, connected } = storeToRefs(walletStore)
   const balances = ref([])
   const loading = ref(false)
   const error = ref(null)
@@ -464,50 +466,26 @@ export function useWalletBalances(options = {}) {
   }
 
   /**
-   * DEBUG: Inspect what data is available from a mint account
-   * This can help identify if metadata is already available without fetching
+   * DEBUG: Inspect what data is available from a mint account. Use only when debugging.
    */
   const inspectMintAccount = async (mintAddress) => {
     try {
-      console.group(`🔍 Inspecting Mint Account: ${mintAddress}`)
-      
       const mintPublicKey = new PublicKey(mintAddress)
-      
-      // Get parsed account info for the mint
       const accountInfo = await connection.getParsedAccountInfo(mintPublicKey)
-      
-        logDebug('Account Info Structure:', {
+
+      logDebug('[WalletBalances] Inspect mint:', mintAddress, {
         exists: !!accountInfo.value,
         owner: accountInfo.value?.owner?.toString(),
-        executable: accountInfo.value?.executable,
         lamports: accountInfo.value?.lamports,
-        dataType: accountInfo.value?.data ? (typeof accountInfo.value.data === 'string' ? 'string' : 'parsed' ? 'parsed' : 'buffer') : null,
         dataKeys: accountInfo.value?.data && typeof accountInfo.value.data === 'object' ? Object.keys(accountInfo.value.data) : null
       })
-      
-      if (accountInfo.value?.data && 'parsed' in accountInfo.value.data) {
-          logDebug('Parsed Data:', accountInfo.value.data.parsed)
-          logDebug('Parsed Info Keys:', Object.keys(accountInfo.value.data.parsed.info || {}))
-          logDebug('Full Parsed Info:', JSON.stringify(accountInfo.value.data.parsed.info, null, 2))
-      } else if (accountInfo.value?.data) {
-          logDebug('Raw Data (not parsed):', accountInfo.value.data)
+      if (accountInfo.value?.data && typeof accountInfo.value.data === 'object' && 'parsed' in accountInfo.value.data) {
+        logDebug('[WalletBalances] Parsed info:', accountInfo.value.data.parsed?.info)
       }
-      
-      // Also check what getParsedTokenAccountsByOwner returns for this specific mint
       if (connected.value && publicKey.value) {
-        const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
-          publicKey.value,
-          { mint: mintPublicKey }
-        )
-        
-        logDebug('Token Accounts for this mint:', tokenAccounts.value.length)
-        if (tokenAccounts.value.length > 0) {
-          logDebug('Token Account Structure:', JSON.stringify(tokenAccounts.value[0], null, 2))
-        }
+        const tokenAccounts = await connection.getParsedTokenAccountsByOwner(publicKey.value, { mint: mintPublicKey })
+        logDebug('[WalletBalances] Token accounts for mint:', tokenAccounts.value.length)
       }
-      
-      console.groupEnd()
-      
       return accountInfo
     } catch (err) {
       logError('Error inspecting mint account:', err)
@@ -515,10 +493,9 @@ export function useWalletBalances(options = {}) {
     }
   }
 
-  // Expose debug function to window for easy console access
-  if (typeof window !== 'undefined') {
+  // Debug API only when window.__DEBUG_WALLET_BALANCES__ is set (e.g. in console before loading)
+  if (typeof window !== 'undefined' && window.__DEBUG_WALLET_BALANCES__) {
     window.debugWalletBalances = {
-      debugMode: false, // Set to true to enable verbose logging
       inspectMintAccount,
       inspectRawResponse: async () => {
         if (connected.value && publicKey.value) {
@@ -527,14 +504,6 @@ export function useWalletBalances(options = {}) {
         } else {
           logWarning('Wallet not connected')
         }
-      },
-      enableDebug: () => {
-        window.debugWalletBalances.debugMode = true
-        logDebug('✅ Debug mode enabled. Balance fetches will show detailed logs.')
-      },
-      disableDebug: () => {
-        window.debugWalletBalances.debugMode = false
-        logDebug('❌ Debug mode disabled.')
       }
     }
   }

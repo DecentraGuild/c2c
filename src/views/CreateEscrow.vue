@@ -133,40 +133,36 @@
 import { computed, ref, watch, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useRouter } from 'vue-router'
-import { useWallet, useAnchorWallet } from 'solana-wallets-vue'
-import TokenAmountSelector from '../components/TokenAmountSelector.vue'
-import PriceDisplay from '../components/PriceDisplay.vue'
-import AdditionalSettings from '../components/AdditionalSettings.vue'
-import PricingModal from '../components/PricingModal.vue'
-import { useEscrowStore } from '../stores/escrow'
-import { useEscrowFormStore } from '../stores/escrowForm'
-import { useStorefrontStore } from '../stores/storefront'
-import { useEscrowTransactions } from '../composables/useEscrowTransactions'
-import { useSolanaConnection } from '../composables/useSolanaConnection'
-import { useErrorDisplay } from '../composables/useErrorDisplay'
-import { toSmallestUnits, formatDecimals } from '../utils/formatters'
-import { getDecimalsForMintFromCollections } from '../utils/collectionHelpers'
-import { CONTRACT_FEE_ACCOUNT } from '../utils/constants'
-import { ESCROW_PROGRAM_ID, SLIPPAGE_DIVISOR } from '../utils/constants/escrow'
-import { calculateEscrowCreationCosts } from '../utils/transactionCosts'
-import { useTransactionCosts } from '../composables/useTransactionCosts'
-import { deriveEscrowAccounts } from '../utils/escrowTransactions'
-import { validateRecipientAddress } from '../utils/recipientValidation'
-import { toBN, toPublicKey } from '../utils/solanaUtils'
-import { useWalletValidation } from '../composables/useWalletValidation'
-import { formatUserFriendlyError } from '../utils/errorMessages'
-import { logError } from '../utils/logger'
+import { useWalletContext } from '@/composables/useWalletContext'
+import TokenAmountSelector from '@/components/TokenAmountSelector.vue'
+import PriceDisplay from '@/components/PriceDisplay.vue'
+import AdditionalSettings from '@/components/AdditionalSettings.vue'
+import PricingModal from '@/components/PricingModal.vue'
+import { useEscrowStore } from '@/stores/escrow'
+import { useEscrowFormStore } from '@/stores/escrowForm'
+import { useStorefrontStore } from '@/stores/storefront'
+import { useEscrowTransactions } from '@/composables/useEscrowTransactions'
+import { useSolanaConnection } from '@/composables/useSolanaConnection'
+import { useErrorDisplay } from '@/composables/useErrorDisplay'
+import { toSmallestUnits, formatDecimals } from '@/utils/formatters'
+import { getDecimalsForMintFromCollections } from '@/utils/collectionHelpers'
+import { CONTRACT_FEE_ACCOUNT } from '@/utils/constants'
+import { ESCROW_PROGRAM_ID, SLIPPAGE_DIVISOR } from '@/utils/constants/escrow'
+import { calculateEscrowCreationCosts } from '@/utils/transactionCosts'
+import { useTransactionCosts } from '@/composables/useTransactionCosts'
+import { deriveEscrowAccounts } from '@/utils/escrowTransactions'
+import { validateRecipientAddress } from '@/utils/recipientValidation'
+import { toBN, toPublicKey } from '@/utils/solanaUtils'
+import { formatUserFriendlyError } from '@/utils/errorMessages'
+import { logError } from '@/utils/logger'
 
 const router = useRouter()
 const escrowStore = useEscrowStore()
 const formStore = useEscrowFormStore()
 const storefrontStore = useStorefrontStore()
-const walletAdapter = useWallet()
-const anchorWallet = useAnchorWallet() // Get Anchor-compatible wallet
-const { publicKey, connected } = walletAdapter
+const { publicKey, connected, anchorWallet, validateWallet: validateWalletReady } = useWalletContext()
 const connection = useSolanaConnection()
 const { initializeEscrow, loading: txLoading, error: txError } = useEscrowTransactions()
-const { validateWallet: validateWalletReady } = useWalletValidation()
 const { displayError } = useErrorDisplay({ txError, errorTypes: ['transaction', 'form'] })
 
 // Get selected collection for marketplace fee calculation

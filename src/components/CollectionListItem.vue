@@ -6,7 +6,7 @@
       <!-- Badge at Top (Mobile) / Left Side (Desktop) -->
       <div class="flex justify-center sm:justify-start sm:w-28 flex-shrink-0">
         <CollectionBadge
-          :verification-status="collection.verification_status || (collection.verified ? 'verified' : 'community')"
+          :verification-status="storefront.verification_status || (storefront.verified ? 'verified' : 'community')"
           size="sm"
         />
       </div>
@@ -14,15 +14,15 @@
       <!-- Main Content Area -->
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-3">
-          <!-- Collection Image -->
+          <!-- Storefront image -->
           <router-link
-            :to="`/marketplace?storefront=${collection.id}`"
+            :to="`/marketplace?storefront=${storefront.id}`"
             class="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-secondary-bg flex items-center justify-center flex-shrink-0 cursor-pointer"
           >
             <img
-              v-if="collection.logo && !imageError"
-              :src="collection.logo"
-              :alt="collection.name"
+              v-if="storefront.logo && !imageError"
+              :src="storefront.logo"
+              :alt="storefront.name"
               class="w-full h-full object-contain p-1.5 group-hover:scale-105 transition-transform duration-200"
               @error="handleImageError"
             />
@@ -33,18 +33,18 @@
             />
           </router-link>
 
-          <!-- Collection Info -->
+          <!-- Storefront info -->
           <div class="flex-1 min-w-0">
             <!-- Title and Description -->
             <router-link
-              :to="`/marketplace?storefront=${collection.id}`"
+              :to="`/marketplace?storefront=${storefront.id}`"
               class="cursor-pointer block mb-2"
             >
               <h3 class="text-sm sm:text-base font-bold text-text-primary group-hover:text-primary-color transition-colors mb-0.5">
-                {{ collection.name }}
+                {{ storefront.name }}
               </h3>
-              <p v-if="collection.description" class="text-xs text-text-secondary line-clamp-2">
-                {{ collection.description }}
+              <p v-if="storefront.description" class="text-xs text-text-secondary line-clamp-2">
+                {{ storefront.description }}
               </p>
             </router-link>
 
@@ -70,7 +70,7 @@
 
           <!-- Arrow Icon -->
           <router-link
-            :to="`/marketplace?storefront=${collection.id}`"
+            :to="`/marketplace?storefront=${storefront.id}`"
             class="flex-shrink-0 text-text-muted group-hover:text-primary-color transition-colors hidden sm:block cursor-pointer"
           >
             <Icon icon="mdi:chevron-right" class="w-6 h-6" />
@@ -81,7 +81,7 @@
 
     <CollectionDetailsModal
       v-model:show="showDetailsModal"
-      :collection="collection"
+      :storefront="storefront"
       :open-trades="openTrades"
     />
   </div>
@@ -94,7 +94,7 @@ import CollectionBadge from './CollectionBadge.vue'
 import CollectionDetailsModal from './CollectionDetailsModal.vue'
 
 const props = defineProps({
-  collection: {
+  storefront: {
     type: Object,
     required: true
   },

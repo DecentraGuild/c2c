@@ -2,7 +2,7 @@
  * Composable for blockchain explorer URLs
  */
 
-import { RPC_ENDPOINTS, NETWORKS } from '../utils/constants'
+import { RPC_ENDPOINTS, NETWORKS } from '@/utils/constants'
 
 export function useExplorer(network = NETWORKS.MAINNET) {
   const getSolscanUrl = (address, type = 'account') => {

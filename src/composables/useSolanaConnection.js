@@ -10,8 +10,8 @@
  */
 
 import { Connection } from '@solana/web3.js'
-import { RPC_ENDPOINTS, NETWORKS } from '../utils/constants'
-import { logWarning, logDebug } from '../utils/logger'
+import { RPC_ENDPOINTS, NETWORKS, ACTIVE_NETWORK } from '@/utils/constants'
+import { logWarning, logDebug } from '@/utils/logger'
 
 // Singleton connection instance with network tracking
 let connectionInstance = null
@@ -25,7 +25,7 @@ let currentNetwork = null
  * @param {string} commitment - Commitment level (default: 'confirmed')
  * @returns {Connection} Solana Connection instance configured for the specified network cluster
  */
-export function useSolanaConnection(network = NETWORKS.MAINNET, commitment = 'confirmed') {
+export function useSolanaConnection(network = ACTIVE_NETWORK, commitment = 'confirmed') {
   // Reset connection if network changed
   if (connectionInstance && currentNetwork !== network) {
     connectionInstance = null

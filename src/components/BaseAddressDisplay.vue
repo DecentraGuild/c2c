@@ -45,10 +45,10 @@
 <script setup>
 import { computed } from 'vue'
 import { Icon } from '@iconify/vue'
-import { useClipboard } from '../composables/useClipboard'
-import { useExplorer } from '../composables/useExplorer'
-import { useToast } from '../composables/useToast'
-import { truncateAddress } from '../utils/formatters'
+import { useClipboard } from '@/composables/useClipboard'
+import { useExplorer } from '@/composables/useExplorer'
+import { useToast } from '@/composables/useToast'
+import { truncateAddress } from '@/utils/formatters'
 
 const props = defineProps({
   address: {

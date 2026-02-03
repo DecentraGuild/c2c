@@ -49,12 +49,12 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { Icon } from '@iconify/vue'
-import { getEscrowItemMetadata } from '../composables/useCollectionMetadata'
-import { filterEscrowsByCollection, filterActiveEscrows } from '../utils/marketplaceHelpers'
-import { useStorefrontMetadataStore } from '../stores/storefrontMetadata'
+import { getEscrowItemMetadata } from '@/composables/useCollectionMetadata'
+import { filterEscrowsByStorefront, filterActiveEscrows } from '@/utils/marketplaceHelpers'
+import { useStorefrontMetadataStore } from '@/stores/storefrontMetadata'
 
 const props = defineProps({
-  collection: {
+  storefront: {
     type: Object,
     default: null
   },
@@ -71,25 +71,25 @@ const expandedItemTypes = ref(new Set())
 
 const storefrontMetadataStore = useStorefrontMetadataStore()
 
-// Build grouped filters from escrows (include cached NFT mints so individual NFTs from collection show)
+// Build grouped filters from escrows (include cached NFT mints so individual NFTs from storefront show)
 const groupedFilters = computed(() => {
-  if (!props.collection || props.escrows.length === 0) {
+  if (!props.storefront || props.escrows.length === 0) {
     return {}
   }
 
-  const cachedNFTs = storefrontMetadataStore.getCachedNFTs(props.collection.id) || []
+  const cachedNFTs = storefrontMetadataStore.getCachedNFTs(props.storefront.id) || []
   const cachedMints = new Set(
     cachedNFTs.map(n => (n?.mint && String(n.mint).toLowerCase()) || null).filter(Boolean)
   )
-  const collectionEscrows = filterEscrowsByCollection(props.escrows, props.collection, {
+  const storefrontEscrows = filterEscrowsByStorefront(props.escrows, props.storefront, {
     cachedCollectionMints: cachedMints
   })
-  const activeEscrows = filterActiveEscrows(collectionEscrows)
+  const activeEscrows = filterActiveEscrows(storefrontEscrows)
   
   const groups = {}
   
   activeEscrows.forEach(escrow => {
-    const metadata = getEscrowItemMetadata(props.collection, escrow)
+    const metadata = getEscrowItemMetadata(props.storefront, escrow)
     if (!metadata) return
     
     const itemType = metadata.itemType || 'unknown'

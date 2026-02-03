@@ -119,7 +119,7 @@
 import { Icon } from '@iconify/vue'
 import BaseAddressDisplay from './BaseAddressDisplay.vue'
 import TokenAmountDisplay from './TokenAmountDisplay.vue'
-import { formatTimestamp } from '../utils/formatters'
+import { formatTimestamp } from '@/utils/formatters'
 import { computed } from 'vue'
 
 const props = defineProps({

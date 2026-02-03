@@ -4,7 +4,7 @@
  */
 
 import { computed } from 'vue'
-import { useEscrowStore } from '../stores/escrow'
+import { useEscrowStore } from '@/stores/escrow'
 
 /**
  * Composable for unified error display

@@ -79,7 +79,7 @@
 
 <script setup>
 import { Icon } from '@iconify/vue'
-import { TRANSACTION_COSTS } from '../utils/constants/fees'
+import { TRANSACTION_COSTS } from '@/utils/constants/fees'
 
 const props = defineProps({
   show: {

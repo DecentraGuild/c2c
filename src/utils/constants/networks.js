@@ -1,12 +1,16 @@
 /**
  * Network configuration constants
+ * App supports Solana mainnet only. Single source of truth for RPC and wallet adapter network.
  */
 
-// Network types
+// Network types (mainnet is the only supported network in this app)
 export const NETWORKS = {
   MAINNET: 'mainnet',
   DEVNET: 'devnet'
 }
+
+/** Active network for the app. Use this for RPC and wallet adapter so they never mismatch. */
+export const ACTIVE_NETWORK = NETWORKS.MAINNET
 
 // Helper function to get Helius API key (lazy evaluation to ensure env vars are loaded)
 function getHeliusApiKey() {

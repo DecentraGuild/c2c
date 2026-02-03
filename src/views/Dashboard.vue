@@ -60,7 +60,7 @@
             <CollectionCard
               v-for="storefront in filteredStorefronts"
               :key="storefront.id"
-              :collection="storefront"
+              :storefront="storefront"
               :open-trades="storefrontStore.getOpenTradesCount(storefront.id)"
             />
           </div>
@@ -70,7 +70,7 @@
             <CollectionListItem
               v-for="storefront in filteredStorefronts"
               :key="storefront.id"
-              :collection="storefront"
+              :storefront="storefront"
               :open-trades="storefrontStore.getOpenTradesCount(storefront.id)"
             />
           </div>
@@ -90,12 +90,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
-import BaseLoading from '../components/BaseLoading.vue'
-import BaseSearchInput from '../components/BaseSearchInput.vue'
-import BaseViewModeToggle from '../components/BaseViewModeToggle.vue'
-import BaseEmptyState from '../components/BaseEmptyState.vue'
-import CollectionCard from '../components/CollectionCard.vue'
-import CollectionListItem from '../components/CollectionListItem.vue'
+import BaseLoading from '@/components/BaseLoading.vue'
+import BaseSearchInput from '@/components/BaseSearchInput.vue'
+import BaseViewModeToggle from '@/components/BaseViewModeToggle.vue'
+import BaseEmptyState from '@/components/BaseEmptyState.vue'
+import CollectionCard from '@/components/CollectionCard.vue'
+import CollectionListItem from '@/components/CollectionListItem.vue'
 import { useStorefrontStore } from '@/stores/storefront'
 import { useEscrowStore } from '@/stores/escrow'
 import { useViewMode } from '@/composables/useViewMode'

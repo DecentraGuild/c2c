@@ -80,30 +80,15 @@ export const BATCH_SIZES = {
   METADATA_FETCH: 10 // General metadata fetching batch size
 }
 
+// Subscription pricing (onboard / shopowner agreement display)
+export const SUBSCRIPTION_PRICING = {
+  BASE_MONTHLY_USD: 50,
+  BASE_YEARLY_USD: 300
+}
+
 // Search and pagination limits
 export const SEARCH_LIMITS = {
   TOKEN_SEARCH_RESULTS: 100, // Maximum token search results to return
   TOKEN_SEARCH_DISPLAY: 50, // Maximum tokens to display in UI
   NFT_FETCH_LIMIT: 10000 // Safety limit for NFT fetching
-}
-
-// Error messages
-export const ERROR_MESSAGES = {
-  WALLET_NOT_CONNECTED: 'Please connect your wallet first',
-  INSUFFICIENT_BALANCE: 'Insufficient token balance',
-  INVALID_ADDRESS: 'Invalid Solana address',
-  INVALID_AMOUNT: 'Invalid amount entered',
-  TRANSACTION_FAILED: 'Transaction failed. Please try again',
-  NETWORK_ERROR: 'Network error. Please check your connection',
-  TOKEN_NOT_FOUND: 'Token not found',
-  EXPIRED_ESCROW: 'This escrow has expired'
-}
-
-// Success messages
-export const SUCCESS_MESSAGES = {
-  WALLET_CONNECTED: 'Wallet connected successfully',
-  ESCROW_CREATED: 'Escrow created successfully',
-  ESCROW_FILLED: 'Escrow filled successfully',
-  ESCROW_CLOSED: 'Escrow closed successfully',
-  LINK_COPIED: 'Link copied to clipboard'
 }

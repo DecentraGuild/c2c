@@ -4,7 +4,7 @@
  */
 
 import { computed } from 'vue'
-import { formatDecimals } from '../utils/formatters'
+import { formatDecimals } from '@/utils/formatters'
 
 export function usePercentageButtons(options = {}) {
   const {

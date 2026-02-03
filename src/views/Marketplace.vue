@@ -32,7 +32,7 @@
           
           <!-- Filters -->
           <MarketplaceFilters
-            :collection="selectedStorefront"
+            :storefront="selectedStorefront"
             :escrows="allEscrows"
             @update:activeFilters="handleActiveFiltersUpdate"
           />
@@ -97,7 +97,7 @@
               icon="mdi:star"
               icon-class="text-primary-color"
               :view-mode="viewMode"
-              :collection="selectedStorefront"
+              :storefront="selectedStorefront"
               :user-balances="userBalances"
               section-class="mb-4"
             />
@@ -107,7 +107,7 @@
               :escrows="otherEscrows"
               :title="userFillableEscrows.length > 0 ? 'All Open Trades' : null"
               :view-mode="viewMode"
-              :collection="selectedStorefront"
+              :storefront="selectedStorefront"
               :user-balances="userBalances"
             />
           </div>
@@ -117,18 +117,18 @@
             v-else-if="selectedStorefront"
             title="No open trades found"
             :message="selectedTradeType === 'all' 
-              ? 'There are no active trades for this collection' 
-              : `There are no ${tradeTypes.find(t => t.value === selectedTradeType)?.label.toLowerCase()} orders for this collection`"
+              ? 'There are no active trades for this storefront' 
+              : `There are no ${tradeTypes.find(t => t.value === selectedTradeType)?.label.toLowerCase()} orders for this storefront`"
           />
         </div>
       </div>
 
-      <!-- No Collection Selected -->
+      <!-- No storefront selected -->
       <BaseEmptyState
         v-else
         icon="mdi:store-outline"
-        title="Select a collection to view marketplace"
-        message="Choose a collection from the dropdown above to see available trades"
+        title="Select a storefront to view trades"
+        message="Choose a storefront from the navbar to see available trades"
       />
     </div>
   </div>
@@ -137,19 +137,19 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import BaseLoading from '../components/BaseLoading.vue'
-import BaseSearchInput from '../components/BaseSearchInput.vue'
-import BaseViewModeToggle from '../components/BaseViewModeToggle.vue'
-import BaseEmptyState from '../components/BaseEmptyState.vue'
-import MarketplaceEscrowSection from '../components/MarketplaceEscrowSection.vue'
-import MarketplaceFilters from '../components/MarketplaceFilters.vue'
-import CollectionBadge from '../components/CollectionBadge.vue'
-import { useStorefrontStore } from '../stores/storefront'
-import { useEscrowStore } from '../stores/escrow'
-import { useWalletBalances } from '../composables/useWalletBalances'
-import { useViewMode } from '../composables/useViewMode'
-import useMarketplaceFilters from '../composables/useMarketplaceFilters'
-import { logDebug } from '../utils/logger'
+import BaseLoading from '@/components/BaseLoading.vue'
+import BaseSearchInput from '@/components/BaseSearchInput.vue'
+import BaseViewModeToggle from '@/components/BaseViewModeToggle.vue'
+import BaseEmptyState from '@/components/BaseEmptyState.vue'
+import MarketplaceEscrowSection from '@/components/MarketplaceEscrowSection.vue'
+import MarketplaceFilters from '@/components/MarketplaceFilters.vue'
+import CollectionBadge from '@/components/CollectionBadge.vue'
+import { useStorefrontStore } from '@/stores/storefront'
+import { useEscrowStore } from '@/stores/escrow'
+import { useWalletBalances } from '@/composables/useWalletBalances'
+import { useViewMode } from '@/composables/useViewMode'
+import useMarketplaceFilters from '@/composables/useMarketplaceFilters'
+import { logDebug } from '@/utils/logger'
 
 const route = useRoute()
 const router = useRouter()
@@ -209,7 +209,7 @@ const {
   otherEscrows
 } = useMarketplaceFilters({
   allEscrows,
-  selectedCollection: selectedStorefront,
+  selectedStorefront,
   selectedTradeType,
   userBalances,
   activeFilters,

@@ -23,9 +23,9 @@
         </button>
       </div>
 
-      <!-- Error Message -->
-      <div v-if="error" class="mb-4 p-3 bg-status-error/10 border border-status-error/20 rounded-lg text-sm text-status-error">
-        {{ error }}
+      <!-- Error Message (load/validate + transaction from store) -->
+      <div v-if="error || displayError" class="mb-4 p-3 bg-status-error/10 border border-status-error/20 rounded-lg text-sm text-status-error">
+        {{ error || displayError }}
       </div>
 
       <!-- Loading State -->
@@ -119,50 +119,50 @@
 import { onMounted, computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
-import { useWallet, useAnchorWallet } from 'solana-wallets-vue'
-import { useEscrowTransactions } from '../composables/useEscrowTransactions'
-import { useSolanaConnection } from '../composables/useSolanaConnection'
-import { useTokenRegistry } from '../composables/useTokenRegistry'
-import { useWalletBalances } from '../composables/useWalletBalances'
-import { truncateAddress, formatDecimals } from '../utils/formatters'
-import { fetchEscrowByAddress } from '../utils/escrowTransactions'
-import { calculateExchangeCosts } from '../utils/transactionCosts'
-import { useTransactionCosts } from '../composables/useTransactionCosts'
-import ConfirmModal from '../components/ConfirmModal.vue'
-import BaseShareModal from '../components/BaseShareModal.vue'
-import BaseLoading from '../components/BaseLoading.vue'
-import EscrowPriceDisplay from '../components/EscrowPriceDisplay.vue'
-import EscrowFillSection from '../components/EscrowFillSection.vue'
-import EscrowDetailsSection from '../components/EscrowDetailsSection.vue'
-import EscrowStatusMessage from '../components/EscrowStatusMessage.vue'
-import { useToast } from '../composables/useToast'
-import { useDecimalHandling } from '../composables/useDecimalHandling'
-import { useConfirmationModal } from '../composables/useConfirmationModal'
-import { useShareModal } from '../composables/useShareModal'
-import { canUserExchangeEscrow } from '../utils/escrowValidation'
-import { processAmountInput, shouldPreventKeydown } from '../utils/inputHandling'
-import { canTakerExchange } from '../utils/recipientValidation'
-import { toPublicKey, toBN } from '../utils/solanaUtils'
-import { formatEscrowData } from '../utils/escrowHelpers'
-import { calculateDepositAmountToExchange, prepareExchangeAmounts } from '../utils/exchangeHelpers'
-import { formatUserFriendlyError } from '../utils/errorMessages'
-import { logError } from '../utils/logger'
-import { getStorefrontForEscrow } from '../utils/marketplaceHelpers'
-import { getDecimalsForMintFromCollections } from '../utils/collectionHelpers'
-import { useStorefrontStore } from '../stores/storefront'
-import { useStorefrontMetadataStore } from '../stores/storefrontMetadata'
+import { useWalletContext } from '@/composables/useWalletContext'
+import { useEscrowTransactions } from '@/composables/useEscrowTransactions'
+import { useSolanaConnection } from '@/composables/useSolanaConnection'
+import { useTokenRegistry } from '@/composables/useTokenRegistry'
+import { useWalletBalances } from '@/composables/useWalletBalances'
+import { useErrorDisplay } from '@/composables/useErrorDisplay'
+import { truncateAddress, formatDecimals } from '@/utils/formatters'
+import { fetchEscrowByAddress } from '@/utils/escrowTransactions'
+import { calculateExchangeCosts } from '@/utils/transactionCosts'
+import { useTransactionCosts } from '@/composables/useTransactionCosts'
+import ConfirmModal from '@/components/ConfirmModal.vue'
+import BaseShareModal from '@/components/BaseShareModal.vue'
+import BaseLoading from '@/components/BaseLoading.vue'
+import EscrowPriceDisplay from '@/components/EscrowPriceDisplay.vue'
+import EscrowFillSection from '@/components/EscrowFillSection.vue'
+import EscrowDetailsSection from '@/components/EscrowDetailsSection.vue'
+import EscrowStatusMessage from '@/components/EscrowStatusMessage.vue'
+import { useToast } from '@/composables/useToast'
+import { useDecimalHandling } from '@/composables/useDecimalHandling'
+import { useConfirmationModal } from '@/composables/useConfirmationModal'
+import { useShareModal } from '@/composables/useShareModal'
+import { canUserExchangeEscrow } from '@/utils/escrowValidation'
+import { processAmountInput, shouldPreventKeydown } from '@/utils/inputHandling'
+import { canTakerExchange } from '@/utils/recipientValidation'
+import { toPublicKey, toBN } from '@/utils/solanaUtils'
+import { formatEscrowData } from '@/utils/escrowHelpers'
+import { calculateDepositAmountToExchange, prepareExchangeAmounts } from '@/utils/exchangeHelpers'
+import { formatUserFriendlyError } from '@/utils/errorMessages'
+import { logError } from '@/utils/logger'
+import { getStorefrontForEscrow } from '@/utils/marketplaceHelpers'
+import { getDecimalsForMintFromCollections } from '@/utils/collectionHelpers'
+import { useStorefrontStore } from '@/stores/storefront'
+import { useStorefrontMetadataStore } from '@/stores/storefrontMetadata'
 
 const route = useRoute()
 const router = useRouter()
 const storefrontStore = useStorefrontStore()
 const storefrontMetadataStore = useStorefrontMetadataStore()
-const walletAdapter = useWallet()
-const anchorWallet = useAnchorWallet()
-const { publicKey, connected } = walletAdapter
+const { publicKey, connected, anchorWallet } = useWalletContext()
 const connection = useSolanaConnection()
 const tokenRegistry = useTokenRegistry()
 const { fetchSingleTokenBalance } = useWalletBalances({ autoFetch: false })
 const { cancelEscrow: cancelEscrowTx, exchangeEscrow: exchangeEscrowTx } = useEscrowTransactions()
+const { displayError } = useErrorDisplay({ errorTypes: ['transaction'] })
 const { success, error: showError, warning } = useToast()
 
 // Use composables for modal management

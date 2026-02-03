@@ -32,7 +32,7 @@ import { FEE_CONFIG, FUND_TAKER_COSTS, TRANSACTION_COSTS } from './constants/fee
 import { addMakerFeeInstructions, calculateTakerFee } from './marketplaceFees'
 import { checkAtaExists, makeAtaInstruction } from './ataUtils'
 import { createMemoInstruction } from './memo'
-import idl from '../idl/escrow_service.json'
+import idl from '@/idl/escrow_service.json'
 import { logDebug, logError } from './logger'
 import { UI_CONSTANTS } from './constants/ui.js'
 

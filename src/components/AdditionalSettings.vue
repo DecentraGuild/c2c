@@ -97,7 +97,7 @@
 import { ref, computed, defineAsyncComponent } from 'vue'
 import { Icon } from '@iconify/vue'
 import ToggleSwitch from './ToggleSwitch.vue'
-import { useVModel } from '../composables/useVModel'
+import { useVModel } from '@/composables/useVModel'
 
 // Lazy load date picker - only loads when expire toggle is enabled
 // This saves ~200-300 KB from initial bundle

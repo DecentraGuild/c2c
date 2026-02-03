@@ -102,11 +102,11 @@ import { Icon } from '@iconify/vue'
 import TokenSelector from './TokenSelector.vue'
 import RequestTokenSelector from './RequestTokenSelector.vue'
 import BaseTokenImage from './BaseTokenImage.vue'
-import { useWalletBalances } from '../composables/useWalletBalances'
-import { usePercentageButtons } from '../composables/usePercentageButtons'
-import { useDecimalHandling } from '../composables/useDecimalHandling'
-import { formatBalance as formatBalanceUtil, truncateAddress, formatDecimals } from '../utils/formatters'
-import { processAmountInput, shouldPreventKeydown } from '../utils/inputHandling'
+import { useWalletBalances } from '@/composables/useWalletBalances'
+import { usePercentageButtons } from '@/composables/usePercentageButtons'
+import { useDecimalHandling } from '@/composables/useDecimalHandling'
+import { formatBalance as formatBalanceUtil, truncateAddress, formatDecimals } from '@/utils/formatters'
+import { processAmountInput, shouldPreventKeydown } from '@/utils/inputHandling'
 
 const props = defineProps({
   type: {

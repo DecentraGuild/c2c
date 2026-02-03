@@ -9,8 +9,8 @@
         <template v-if="!hideLogo">
           <img
             v-if="selectedStorefront?.logo"
-            :src="selectedCollection.logo"
-            :alt="selectedCollection.name"
+            :src="selectedStorefront.logo"
+            :alt="selectedStorefront.name"
             class="w-5 h-5 object-contain rounded flex-shrink-0"
           />
           <Icon

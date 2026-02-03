@@ -6,8 +6,8 @@
 
 import { computed } from 'vue'
 import { useCollectionMetadata } from './useCollectionMetadata'
-import { getCollectionCurrencies } from '../utils/constants/baseCurrencies'
-import { getTotalMakerFee, getTotalTakerFee, formatShopFeeDisplay } from '../utils/marketplaceFees'
+import { getCollectionCurrencies } from '@/utils/constants/baseCurrencies'
+import { getTotalMakerFee, getTotalTakerFee, formatShopFeeDisplay } from '@/utils/marketplaceFees'
 
 /**
  * Composable for collection display logic

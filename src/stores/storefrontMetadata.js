@@ -7,8 +7,8 @@
 
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { fetchNFTsFromCollection } from '../composables/useCollectionNFTs'
-import { logDebug, logError } from '../utils/logger'
+import { fetchNFTsFromCollection } from '@/composables/useCollectionNFTs'
+import { logDebug, logError } from '@/utils/logger'
 
 export const useStorefrontMetadataStore = defineStore('storefrontMetadata', () => {
   const storefrontNFTsCache = ref(new Map())

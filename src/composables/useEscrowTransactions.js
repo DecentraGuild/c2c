@@ -4,41 +4,27 @@
  */
 
 import { ref, computed } from 'vue'
-import { useWallet, useAnchorWallet } from 'solana-wallets-vue'
-import { useWalletValidation } from './useWalletValidation'
-import { 
+import { useWalletContext } from './useWalletContext'
+import {
   buildInitializeTransaction,
   buildExchangeTransaction,
   buildCancelTransaction
-} from '../utils/escrowTransactions'
+} from '@/utils/escrowTransactions'
 import { useSolanaConnection } from './useSolanaConnection'
-import { useEscrowStore } from '../stores/escrow'
-import { PublicKey } from '@solana/web3.js'
-import { formatError } from '../utils/errorHandler'
+import { useEscrowStore } from '@/stores/escrow'
+import { formatError } from '@/utils/errorHandler'
 
 /**
  * Composable for escrow transaction operations
  * @returns {Object} Transaction functions and state
  */
 export function useEscrowTransactions() {
-  const walletAdapter = useWallet()
-  const anchorWallet = useAnchorWallet()
-  const { publicKey, sendTransaction, connected } = walletAdapter
+  const { walletAdapter, anchorWallet, publicKey, validateWallet: validateWalletReady } = useWalletContext()
   const connection = useSolanaConnection()
   const loading = ref(false)
   const error = ref(null)
-  
-  // Use store for centralized error handling
   const escrowStore = useEscrowStore()
-  
-  // Use centralized wallet validation
-  const { validateWallet: validateWalletReady } = useWalletValidation()
-  
-  /**
-   * Validate wallet is ready for transactions
-   * @returns {Object} Wallet object
-   * @throws {Error} If wallet is not ready
-   */
+
   const validateWallet = () => {
     const { anchorWallet: wallet } = validateWalletReady('perform this transaction')
     return wallet
@@ -48,8 +34,8 @@ export function useEscrowTransactions() {
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
     transaction.recentBlockhash = blockhash
     transaction.feePayer = publicKey.value
-    
-    const signature = await sendTransaction(transaction, connection, {
+
+    const signature = await walletAdapter.sendTransaction(transaction, connection, {
       skipPreflight: false,
       maxRetries: 3
     })

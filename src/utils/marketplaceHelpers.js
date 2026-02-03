@@ -171,11 +171,6 @@ export function filterEscrowsByStorefront(escrows, storefront, options = {}) {
   })
 }
 
-/** @deprecated Use filterEscrowsByStorefront */
-export function filterEscrowsByCollection(escrows, collection, options = {}) {
-  return filterEscrowsByStorefront(escrows, collection, options)
-}
-
 /**
  * Sort escrows: user's fillable trades first, then others
  * @param {Array} escrows - Array of formatted escrow objects
@@ -342,17 +337,6 @@ export function groupEscrowsByStorefront(escrows, storefronts = []) {
   return groups
 }
 
-/** @deprecated Use groupEscrowsByStorefront; returns groups with .collection (same object as storefront) */
-export function groupEscrowsByCollection(escrows, collections = []) {
-  const storefrontGroups = groupEscrowsByStorefront(escrows, collections)
-  return storefrontGroups.map(g => ({
-    collection: g.storefront,
-    escrows: g.escrows,
-    label: g.label,
-    id: g.id
-  }))
-}
-
 /**
  * Get the storefront an escrow belongs to (for navbar context)
  * @param {Object} escrow - Formatted escrow object
@@ -371,9 +355,4 @@ export function getStorefrontForEscrow(escrow, storefronts = [], metadataStore =
     if (matched.length > 0) return storefront
   }
   return null
-}
-
-/** @deprecated Use getStorefrontForEscrow */
-export function getCollectionForEscrow(escrow, collections = [], metadataStore = null) {
-  return getStorefrontForEscrow(escrow, collections, metadataStore)
 }

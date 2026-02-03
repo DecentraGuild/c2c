@@ -6,20 +6,20 @@
       <!-- Badge at Top of Card - Full Width, Centered -->
       <div class="mb-2 flex justify-center">
         <CollectionBadge
-          :verification-status="collection.verification_status || (collection.verified ? 'verified' : 'community')"
+          :verification-status="storefront.verification_status || (storefront.verified ? 'verified' : 'community')"
           size="md"
         />
       </div>
 
-      <!-- Collection Image -->
+      <!-- Storefront image -->
       <router-link
-        :to="`/marketplace?storefront=${collection.id}`"
+        :to="`/marketplace?storefront=${storefront.id}`"
         class="relative w-full aspect-square mb-2 rounded-lg overflow-hidden bg-secondary-bg flex items-center justify-center cursor-pointer"
       >
         <img
-          v-if="collection.logo"
-          :src="collection.logo"
-          :alt="collection.name"
+          v-if="storefront.logo"
+          :src="storefront.logo"
+          :alt="storefront.name"
           class="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-200"
           @error="handleImageError"
         />
@@ -30,18 +30,18 @@
         />
       </router-link>
 
-      <!-- Collection Info -->
+      <!-- Storefront info -->
       <div class="flex-1 flex flex-col min-h-0">
         <router-link
-          :to="`/marketplace?storefront=${collection.id}`"
+          :to="`/marketplace?storefront=${storefront.id}`"
           class="cursor-pointer flex-shrink-0"
         >
           <h3 class="text-sm font-bold text-text-primary group-hover:text-primary-color transition-colors mb-1">
-            {{ collection.name }}
+            {{ storefront.name }}
           </h3>
           
-          <p v-if="collection.description" class="text-xs text-text-secondary mb-2 line-clamp-2">
-            {{ collection.description }}
+          <p v-if="storefront.description" class="text-xs text-text-secondary mb-2 line-clamp-2">
+            {{ storefront.description }}
           </p>
         </router-link>
 
@@ -70,7 +70,7 @@
 
     <CollectionDetailsModal
       v-model:show="showDetailsModal"
-      :collection="collection"
+      :storefront="storefront"
       :open-trades="openTrades"
     />
   </div>
@@ -83,7 +83,7 @@ import CollectionBadge from './CollectionBadge.vue'
 import CollectionDetailsModal from './CollectionDetailsModal.vue'
 
 const props = defineProps({
-  collection: {
+  storefront: {
     type: Object,
     required: true
   },

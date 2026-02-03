@@ -6,7 +6,7 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
-import { logError, logWarning } from '../utils/logger'
+import { logError, logWarning } from '@/utils/logger'
 
 // Default theme configuration (green primary, red secondary theme)
 const defaultTheme = {

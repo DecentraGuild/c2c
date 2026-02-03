@@ -131,7 +131,7 @@
 import { Icon } from '@iconify/vue'
 import TokenAmountDisplay from './TokenAmountDisplay.vue'
 import BaseAddressDisplay from './BaseAddressDisplay.vue'
-import { formatTimestamp, formatDecimals } from '../utils/formatters'
+import { formatTimestamp, formatDecimals } from '@/utils/formatters'
 
 defineProps({
   escrow: {

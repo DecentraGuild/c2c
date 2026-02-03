@@ -16,7 +16,7 @@
 </template>
 
 <script setup>
-import { truncateAddress } from '../utils/formatters'
+import { truncateAddress } from '@/utils/formatters'
 import BaseTokenImage from './BaseTokenImage.vue'
 
 const props = defineProps({

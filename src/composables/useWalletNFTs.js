@@ -4,12 +4,13 @@
  */
 
 import { ref, computed } from 'vue'
+import { storeToRefs } from 'pinia'
 import { PublicKey } from '@solana/web3.js'
-import { useWallet } from 'solana-wallets-vue'
+import { useWalletStore } from '@/stores/wallet'
 import { useSolanaConnection } from './useSolanaConnection'
-import { fetchTokenMetadata } from '../utils/metaplex'
-import { fetchWalletNFTsFromHelius } from '../utils/heliusNFTs'
-import { logError, logDebug } from '../utils/logger'
+import { fetchTokenMetadata } from '@/utils/metaplex'
+import { fetchWalletNFTsFromHelius } from '@/utils/heliusNFTs'
+import { logError, logDebug } from '@/utils/logger'
 
 // Metaplex Token Metadata Program ID
 const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s')
@@ -225,7 +226,7 @@ export function useWalletNFTs(collection) {
   const nfts = ref([])
   const loading = ref(false)
   const error = ref(null)
-  const { publicKey, connected } = useWallet()
+  const { publicKey, connected } = storeToRefs(useWalletStore())
 
   /**
    * Fetch NFTs from wallet that match collection mints with fetchingType === 'NFT'

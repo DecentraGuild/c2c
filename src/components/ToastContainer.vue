@@ -32,7 +32,7 @@
 
 <script setup>
 import { Icon } from '@iconify/vue'
-import { useToast } from '../composables/useToast'
+import { useToast } from '@/composables/useToast'
 
 const { toasts, removeToast } = useToast()
 

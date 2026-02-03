@@ -3,7 +3,7 @@
  * Provides functions for calculating input steps and placeholders based on token decimals
  */
 
-import { DECIMAL_CONSTANTS } from '../utils/constants/ui'
+import { DECIMAL_CONSTANTS } from '@/utils/constants/ui'
 
 /**
  * Get the step value for a number input based on token decimals

@@ -4,7 +4,7 @@
  */
 
 import { computed } from 'vue'
-import { useThemeStore } from '../stores/theme'
+import { useThemeStore } from '@/stores/theme'
 
 export function useTheme() {
   const themeStore = useThemeStore()

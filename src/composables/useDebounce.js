@@ -9,7 +9,7 @@
  */
 
 import { onUnmounted } from 'vue'
-import { debounce, DEBOUNCE_DELAYS } from '../utils/debounce'
+import { debounce, DEBOUNCE_DELAYS } from '@/utils/debounce'
 
 /**
  * Create a debounced function that is automatically cancelled on component unmount

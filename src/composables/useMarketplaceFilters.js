@@ -14,15 +14,15 @@ import {
   belongsToShop,
   getTradeType,
   getShopCurrencyMints
-} from '../utils/marketplaceHelpers'
+} from '@/utils/marketplaceHelpers'
 import { getEscrowItemMetadata } from './useCollectionMetadata'
-import { useStorefrontMetadataStore } from '../stores/storefrontMetadata'
+import { useStorefrontMetadataStore } from '@/stores/storefrontMetadata'
 
 /**
  * Composable for marketplace filtering - optimized single-pass filtering
  * @param {Object} options - Configuration options
  * @param {import('vue').Ref<Array>} options.allEscrows - All escrows to filter
- * @param {import('vue').Ref<Object>} options.selectedCollection - Currently selected collection
+ * @param {import('vue').Ref<Object>} options.selectedStorefront - Currently selected storefront (tenant)
  * @param {import('vue').Ref<string>} options.selectedTradeType - Selected trade type filter ('all'|'nft-to-token'|'token-to-nft'|'nft-to-nft')
  * @param {import('vue').Ref<Object>} options.userBalances - User token balances map (mint -> balance)
  * @param {import('vue').Ref<Set>} options.activeFilters - Active itemType/class filters (Set of 'itemType:class' strings)
@@ -31,7 +31,7 @@ import { useStorefrontMetadataStore } from '../stores/storefrontMetadata'
  */
 function useMarketplaceFilters({
   allEscrows,
-  selectedCollection,
+  selectedStorefront,
   selectedTradeType,
   userBalances,
   activeFilters,
@@ -41,13 +41,13 @@ function useMarketplaceFilters({
   const storefrontMetadataStore = useStorefrontMetadataStore()
 
   /**
-   * Cached NFT mints for the selected collection (individual NFTs from metadata)
-   * So escrows that use any NFT from the collection show up, not only those in collectionMints
+   * Cached NFT mints for the selected storefront (individual NFTs from metadata)
+   * So escrows that use any NFT from the storefront show up, not only those in collectionMints
    */
   const cachedCollectionMintSet = computed(() => {
-    const coll = selectedCollection.value
-    if (!coll?.id) return new Set()
-    const nfts = storefrontMetadataStore.getCachedNFTs(coll.id)
+    const storefront = selectedStorefront.value
+    if (!storefront?.id) return new Set()
+    const nfts = storefrontMetadataStore.getCachedNFTs(storefront.id)
     return new Set(
       (nfts || [])
         .map(n => (n?.mint && String(n.mint).toLowerCase()) || null)
@@ -57,11 +57,11 @@ function useMarketplaceFilters({
 
   /**
    * Combined filtering logic - single pass for better performance
-   * Applies all filters (collection, trade type, itemType/class, search) in one iteration
+   * Applies all filters (storefront, trade type, itemType/class, search) in one iteration
    */
   const filteredAndSortedEscrows = computed(() => {
-    // Early return if no collection or escrows
-    if (!selectedCollection.value || !allEscrows.value || allEscrows.value.length === 0) {
+    // Early return if no storefront or escrows
+    if (!selectedStorefront.value || !allEscrows.value || allEscrows.value.length === 0) {
       return []
     }
 
@@ -69,19 +69,19 @@ function useMarketplaceFilters({
     const lowerQuery = query ? query.toLowerCase() : null
     const hasActiveFilters = activeFilters.value && activeFilters.value.size > 0
 
-    const collection = selectedCollection.value
-    const shopCurrencyMints = getShopCurrencyMints(collection) || []
-    const collectionMints = collection.collectionMints || []
+    const storefront = selectedStorefront.value
+    const shopCurrencyMints = getShopCurrencyMints(storefront) || []
+    const collectionMints = storefront.collectionMints || []
     const cachedMints = cachedCollectionMintSet.value
 
     // Single pass filter - combines all filter conditions
     const filtered = allEscrows.value.filter(escrow => {
-      // Filter 1: Both sides must belong to the shop (collection mints, cached NFT mints, or shop currencies)
+      // Filter 1: Both sides must belong to the shop (storefront mints, cached NFT mints, or shop currencies)
       const depositMint = escrow.depositToken?.mint
       const requestMint = escrow.requestToken?.mint
       if (!depositMint || !requestMint) return false
       const shopOptions = { cachedCollectionMints: cachedMints }
-      if (!belongsToShop(depositMint, collection, shopOptions) || !belongsToShop(requestMint, collection, shopOptions)) {
+      if (!belongsToShop(depositMint, storefront, shopOptions) || !belongsToShop(requestMint, storefront, shopOptions)) {
         return false
       }
 
@@ -101,7 +101,7 @@ function useMarketplaceFilters({
       
       // Filter 4: ItemType/class filters
       if (hasActiveFilters) {
-        const metadata = getEscrowItemMetadata(selectedCollection.value, escrow)
+        const metadata = getEscrowItemMetadata(selectedStorefront.value, escrow)
         if (!metadata) return false
         
         const itemType = metadata.itemType || 'unknown'
@@ -139,12 +139,12 @@ function useMarketplaceFilters({
           return true
         }
         
-        // Check collection metadata (more expensive, only if text search fails)
-        const depositMetadata = getEscrowItemMetadata(selectedCollection.value, {
+        // Check storefront metadata (more expensive, only if text search fails)
+        const depositMetadata = getEscrowItemMetadata(selectedStorefront.value, {
           depositToken: escrow.depositToken,
           requestToken: escrow.requestToken
         })
-        const requestMetadata = getEscrowItemMetadata(selectedCollection.value, escrow)
+        const requestMetadata = getEscrowItemMetadata(selectedStorefront.value, escrow)
         
         const matchesMetadata = 
           depositMetadata?.name?.toLowerCase().includes(lowerQuery) ||

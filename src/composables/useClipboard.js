@@ -3,7 +3,7 @@
  */
 
 import { ref, computed } from 'vue'
-import { logError } from '../utils/logger'
+import { logError } from '@/utils/logger'
 
 export function useClipboard() {
   const isCopying = ref(false)

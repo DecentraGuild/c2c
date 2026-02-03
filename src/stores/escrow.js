@@ -1,31 +1,32 @@
 /**
  * Escrow Store
- * Manages escrow data from blockchain (CRUD operations)
- * Form state has been moved to escrowForm.js for better separation of concerns
+ * Manages escrow data from blockchain (load only; list is replaced on each load).
+ * Form state is in escrowForm.js.
  */
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { fetchAllEscrows } from '../utils/escrowTransactions'
-import { useSolanaConnection } from '../composables/useSolanaConnection'
-import { useTokenStore } from './token'
-import { useStorefrontStore } from './storefront'
-import { formatEscrowData } from '../utils/escrowHelpers'
-import { getDecimalsForMintFromCollections } from '../utils/collectionHelpers'
-import { toPublicKey } from '../utils/solanaUtils'
-import { logError } from '../utils/logger'
-import { BATCH_SIZES } from '../utils/constants'
+import { fetchAllEscrows } from '@/utils/escrowTransactions'
+import { useSolanaConnection } from '@/composables/useSolanaConnection'
+import { useTokenStore } from '@/stores/token'
+import { useStorefrontStore } from '@/stores/storefront'
+import { formatEscrowData } from '@/utils/escrowHelpers'
+import { getDecimalsForMintFromCollections } from '@/utils/collectionHelpers'
+import { toPublicKey } from '@/utils/solanaUtils'
+import { logError } from '@/utils/logger'
+import { BATCH_SIZES } from '@/utils/constants'
 
 export const useEscrowStore = defineStore('escrow', () => {
   // Escrows list (from blockchain)
   const escrows = ref([])
   const loadingEscrows = ref(false)
   
-  // Error handling for data operations
+  // Error handling for data operations and create-form (useErrorDisplay reads these)
   const errors = ref({
     transaction: null,
     network: null,
-    escrows: null
+    escrows: null,
+    form: null // { general?: string, ... } when set by CreateEscrow
   })
   
   // Computed
@@ -34,21 +35,6 @@ export const useEscrowStore = defineStore('escrow', () => {
   })
   
   // Actions
-  
-  const addEscrow = (escrow) => {
-    escrows.value.unshift(escrow)
-  }
-  
-  const updateEscrow = (escrowId, updates) => {
-    const index = escrows.value.findIndex(e => e.id === escrowId)
-    if (index !== -1) {
-      escrows.value[index] = { ...escrows.value[index], ...updates }
-    }
-  }
-  
-  const removeEscrow = (escrowId) => {
-    escrows.value = escrows.value.filter(e => e.id !== escrowId)
-  }
   
   /**
    * Load escrows from blockchain (optionally filtered by maker)
@@ -184,14 +170,15 @@ export const useEscrowStore = defineStore('escrow', () => {
     errors.value = {
       transaction: null,
       network: null,
-      escrows: null
+      escrows: null,
+      form: null
     }
   }
   
   /**
    * Set a specific error
-   * @param {string} type - Error type ('transaction' | 'network' | 'escrows')
-   * @param {string|null} error - Error message
+   * @param {string} type - Error type ('transaction' | 'network' | 'escrows' | 'form')
+   * @param {string|Object|null} error - Error message, or for 'form': { general?: string, ... }
    */
   const setError = (type, error) => {
     errors.value[type] = error
@@ -207,9 +194,6 @@ export const useEscrowStore = defineStore('escrow', () => {
     activeEscrows,
     
     // Actions
-    addEscrow,
-    updateEscrow,
-    removeEscrow,
     loadEscrows,
     loadAllEscrows,
     clearErrors,

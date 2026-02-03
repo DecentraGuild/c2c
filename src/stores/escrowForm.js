@@ -6,8 +6,8 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { validateSolanaAddress, validateExpirationDate, validateSlippage, validateAmount } from '../utils/validators'
-import { useTokenStore } from './token'
+import { validateSolanaAddress, validateExpirationDate, validateSlippage, validateAmount } from '@/utils/validators'
+import { useTokenStore } from '@/stores/token'
 
 export const useEscrowFormStore = defineStore('escrowForm', () => {
   // Form state
@@ -211,7 +211,7 @@ export const useEscrowFormStore = defineStore('escrowForm', () => {
       whitelist: false,
       whitelistAddresses: [],
       partialFill: false,
-      slippage: 0,
+      slippage: 1,
       expire: false,
       expireDate: null
     }

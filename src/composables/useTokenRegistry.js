@@ -5,13 +5,13 @@
 
 import { ref, computed } from 'vue'
 import { useSolanaConnection } from './useSolanaConnection'
-import { fetchTokenMetadata } from '../utils/metaplex'
-import { metadataRateLimiter } from '../utils/rateLimiter'
-import { loadTokenRegistryList, preloadTokenRegistry as preloadSharedRegistry } from '../utils/tokenRegistry'
-import { cleanTokenString } from '../utils/formatters'
+import { fetchTokenMetadata } from '@/utils/metaplex'
+import { metadataRateLimiter } from '@/utils/rateLimiter'
+import { loadTokenRegistryList, preloadTokenRegistry as preloadSharedRegistry } from '@/utils/tokenRegistry'
+import { cleanTokenString } from '@/utils/formatters'
 import { getMint } from '@solana/spl-token'
-import { logDebug, logError } from '../utils/logger'
-import { SEARCH_LIMITS } from '../utils/constants/ui'
+import { logDebug, logError } from '@/utils/logger'
+import { SEARCH_LIMITS } from '@/utils/constants/ui'
 
 // Use shared connection
 const connection = useSolanaConnection()

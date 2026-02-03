@@ -109,19 +109,19 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { Icon } from '@iconify/vue'
-import { useTokenStore } from '../stores/token'
-import { useStorefrontStore } from '../stores/storefront'
-import { useStorefrontMetadataStore } from '../stores/storefrontMetadata'
+import { useTokenStore } from '@/stores/token'
+import { useStorefrontStore } from '@/stores/storefront'
+import { useStorefrontMetadataStore } from '@/stores/storefrontMetadata'
 import { storeToRefs } from 'pinia'
-import { useWallet } from 'solana-wallets-vue'
+import { useWalletStore } from '@/stores/wallet'
 import { useDebounce, DEBOUNCE_DELAYS } from '@/composables/useDebounce'
 import { getAllowedMints } from '@/utils/collectionHelpers'
-import { getStorefrontCurrencies } from '../utils/constants/baseCurrencies'
+import { getStorefrontCurrencies } from '@/utils/constants/baseCurrencies'
 import BaseDropdown from './BaseDropdown.vue'
 import TokenDisplay from './TokenDisplay.vue'
 import NFTInstanceSelector from './NFTInstanceSelector.vue'
-import { logError, logDebug } from '../utils/logger'
-import { formatBalance as formatBalanceUtil } from '../utils/formatters'
+import { logError, logDebug } from '@/utils/logger'
+import { formatBalance as formatBalanceUtil } from '@/utils/formatters'
 
 const props = defineProps({
   show: {
@@ -132,7 +132,7 @@ const props = defineProps({
 
 const emit = defineEmits(['select', 'close'])
 
-const { connected } = useWallet()
+const { connected } = storeToRefs(useWalletStore())
 const tokenStore = useTokenStore()
 const storefrontStore = useStorefrontStore()
 const storefrontMetadataStore = useStorefrontMetadataStore()

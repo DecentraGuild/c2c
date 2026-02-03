@@ -4,7 +4,7 @@
  */
 
 import { ref } from 'vue'
-import { UI_CONSTANTS } from '../utils/constants'
+import { UI_CONSTANTS } from '@/utils/constants'
 
 const toasts = ref([])
 let toastId = 0

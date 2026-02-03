@@ -4,12 +4,12 @@
  */
 
 import { ref, computed } from 'vue'
-import { useWallet } from 'solana-wallets-vue'
+import { useWalletStore } from '@/stores/wallet'
 import { useSolanaConnection } from './useSolanaConnection'
-import { calculateEscrowCreationCosts, calculateExchangeCosts, formatCostBreakdown } from '../utils/transactionCosts'
+import { calculateEscrowCreationCosts, calculateExchangeCosts, formatCostBreakdown } from '@/utils/transactionCosts'
 import { useDebounce } from './useDebounce'
-import { DEBOUNCE_DELAYS } from '../utils/constants/ui'
-import { logError } from '../utils/logger'
+import { DEBOUNCE_DELAYS } from '@/utils/constants/ui'
+import { logError } from '@/utils/logger'
 
 /**
  * Composable for transaction cost calculations
@@ -20,8 +20,7 @@ import { logError } from '../utils/logger'
  * @returns {Object} Cost state and functions
  */
 export function useTransactionCosts({ costCalculator, getParams, debounceDelay = DEBOUNCE_DELAYS.MEDIUM }) {
-  const walletAdapter = useWallet()
-  const { publicKey, connected } = walletAdapter
+  const walletStore = useWalletStore()
   const connection = useSolanaConnection()
 
   const costBreakdown = ref(null)
@@ -31,7 +30,7 @@ export function useTransactionCosts({ costCalculator, getParams, debounceDelay =
    * Calculate transaction costs
    */
   const calculateCosts = async () => {
-    if (!connected.value || !publicKey.value) {
+    if (!walletStore.connected?.value || !walletStore.publicKey?.value) {
       costBreakdown.value = null
       return
     }

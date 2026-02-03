@@ -90,26 +90,26 @@
 import { onMounted, computed, ref, watch } from 'vue'
 import { Icon } from '@iconify/vue'
 import { BN } from '@coral-xyz/anchor'
-import BaseLoading from '../components/BaseLoading.vue'
-import ConfirmModal from '../components/ConfirmModal.vue'
-import BaseShareModal from '../components/BaseShareModal.vue'
-import EscrowCard from '../components/EscrowCard.vue'
-import { useEscrowStore } from '../stores/escrow'
-import { useStorefrontStore } from '../stores/storefront'
-import { useEscrowTransactions } from '../composables/useEscrowTransactions'
-import { useErrorDisplay } from '../composables/useErrorDisplay'
-import { useWalletValidation } from '../composables/useWalletValidation'
-import { useConfirmationModal } from '../composables/useConfirmationModal'
-import { useShareModal } from '../composables/useShareModal'
-import { useToast } from '../composables/useToast'
-import { formatUserFriendlyError } from '../utils/errorMessages'
-import { logError } from '../utils/logger'
-import { groupEscrowsByStorefront } from '../utils/marketplaceHelpers'
+import BaseLoading from '@/components/BaseLoading.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
+import BaseShareModal from '@/components/BaseShareModal.vue'
+import EscrowCard from '@/components/EscrowCard.vue'
+import { useEscrowStore } from '@/stores/escrow'
+import { useStorefrontStore } from '@/stores/storefront'
+import { useEscrowTransactions } from '@/composables/useEscrowTransactions'
+import { useErrorDisplay } from '@/composables/useErrorDisplay'
+import { useWalletContext } from '@/composables/useWalletContext'
+import { useConfirmationModal } from '@/composables/useConfirmationModal'
+import { useShareModal } from '@/composables/useShareModal'
+import { useToast } from '@/composables/useToast'
+import { formatUserFriendlyError } from '@/utils/errorMessages'
+import { logError } from '@/utils/logger'
+import { groupEscrowsByStorefront } from '@/utils/marketplaceHelpers'
 
 const escrowStore = useEscrowStore()
 const storefrontStore = useStorefrontStore()
 const { cancelEscrow: cancelEscrowTx, loading: txLoading, error: txError } = useEscrowTransactions()
-const { validateWallet: validateWalletReady, publicKey, connected } = useWalletValidation()
+const { validateWallet: validateWalletReady, publicKey, connected } = useWalletContext()
 const { displayError } = useErrorDisplay({ txError, errorTypes: ['transaction', 'escrows'] })
 const { success, error: showError, warning } = useToast()
 

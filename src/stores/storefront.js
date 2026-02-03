@@ -6,10 +6,10 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { logError, logDebug } from '../utils/logger'
-import { useThemeStore } from './theme'
-import { filterEscrowsByStorefront, filterActiveEscrows } from '../utils/marketplaceHelpers'
-import { useStorefrontMetadataStore } from './storefrontMetadata'
+import { logError, logDebug } from '@/utils/logger'
+import { useThemeStore } from '@/stores/theme'
+import { filterEscrowsByStorefront, filterActiveEscrows } from '@/utils/marketplaceHelpers'
+import { useStorefrontMetadataStore } from '@/stores/storefrontMetadata'
 
 export const useStorefrontStore = defineStore('storefront', () => {
   const storefronts = ref([])
@@ -19,8 +19,10 @@ export const useStorefrontStore = defineStore('storefront', () => {
 
   /**
    * Storefront structure (from JSON):
-   * id, name, logo, description, collectionMints (NFT collections + tokens), baseCurrency, customCurrencies,
-   * colors (branding), shopFee, verification_status, subscriptionActive, etc.
+   * Required: id, name. Optional: logo, description, collectionMints, baseCurrency, customCurrencies,
+   * colors, shopFee, verification_status, subscriptionActive, tradeDiscount, etc.
+   * Visual tweaks (all optional; merged with theme default): colors, fontSize, spacing, borderRadius,
+   * borderWidth, shadows, gradients. See THEMING_GUIDE.md "Storefront JSON visual keys".
    */
 
   const activeStorefronts = computed(() => {
@@ -99,6 +101,12 @@ export const useStorefrontStore = defineStore('storefront', () => {
           loadedAt: new Date().toISOString(),
         }
       }
+      if (storefront.fontSize) themeData.fontSize = storefront.fontSize
+      if (storefront.spacing) themeData.spacing = storefront.spacing
+      if (storefront.borderRadius) themeData.borderRadius = storefront.borderRadius
+      if (storefront.borderWidth) themeData.borderWidth = storefront.borderWidth
+      if (storefront.shadows) themeData.shadows = storefront.shadows
+      if (storefront.gradients) themeData.gradients = storefront.gradients
       themeStore.loadTheme(themeData)
       logDebug(`Loaded theme for storefront: ${storefront.name}`)
     } catch (err) {

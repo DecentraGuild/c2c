@@ -62,7 +62,8 @@ import { computed, ref, watch } from 'vue'
 import { useTokenStore } from '@/stores/token'
 import { useStorefrontStore } from '@/stores/storefront'
 import { useStorefrontMetadataStore } from '@/stores/storefrontMetadata'
-import { useWallet } from 'solana-wallets-vue'
+import { storeToRefs } from 'pinia'
+import { useWalletStore } from '@/stores/wallet'
 import { useDebounce } from '@/composables/useDebounce'
 import { formatBalance as formatBalanceUtil } from '@/utils/formatters'
 import { getAllowedMints } from '@/utils/collectionHelpers'
@@ -80,7 +81,7 @@ const props = defineProps({
 
 const emit = defineEmits(['select', 'close'])
 
-const { connected, publicKey } = useWallet()
+const { connected, publicKey } = storeToRefs(useWalletStore())
 const tokenStore = useTokenStore()
 const storefrontStore = useStorefrontStore()
 const storefrontMetadataStore = useStorefrontMetadataStore()

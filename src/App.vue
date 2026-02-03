@@ -15,7 +15,6 @@ import ToastContainer from './components/ToastContainer.vue'
 import { useTokenStore } from './stores/token'
 import { useThemeStore } from './stores/theme'
 import { useStorefrontStore } from './stores/storefront'
-import { isMobileDevice, waitForWalletStandard } from './utils/walletDetection'
 import { useNetworkStatus } from './composables/useNetworkStatus'
 
 const route = useRoute()
@@ -50,25 +49,9 @@ watch(
 // Initialize network status monitoring (for mobile)
 useNetworkStatus()
 
-// Preload token registry in background (non-blocking, lazy loaded)
-// Registry will load on-demand when user searches tokens
-// This reduces initial bundle size by ~2-3 MB
+// Preload token registry in background (non-blocking). Wallet detection runs once in main.js.
 onMounted(() => {
   const tokenStore = useTokenStore()
-  // Preload in background - won't block initial load
-  // Registry will be lazy loaded when actually needed
-  tokenStore.preloadRegistry().catch(() => {
-    // Silently fail - registry will load on-demand when needed
-  })
-  
-  // On mobile, wait a bit longer for Wallet Standard wallets to be injected
-  // This is especially important for in-app browsers like Backpack
-  if (isMobileDevice()) {
-    // Wait for Wallet Standard after a short delay to allow wallets to inject
-    setTimeout(async () => {
-      await waitForWalletStandard(2000)
-      // Wallet detection happens silently - no logging needed
-    }, 500)
-  }
+  tokenStore.preloadRegistry().catch(() => {})
 })
 </script>

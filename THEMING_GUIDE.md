@@ -215,6 +215,23 @@ await themeStore.loadThemeFromNFT(nftMetadata)
 }
 ```
 
+### Storefront JSON visual keys
+
+Storefront configs (e.g. `public/Collections/YourStore/your-store.json`) are loaded by the storefront store. When a storefront is selected on marketplace/create/manage/escrow routes, `loadStorefrontTheme(storefront)` runs and passes the following into the theme store (all optional except id/name; missing keys fall back to default theme):
+
+| Key | Purpose |
+|-----|--------|
+| `colors` | Full or partial color overrides (primary, secondary, accent, background, text, border, status, trade, window). |
+| `logo` | Used for theme branding; NavBar and cards show this when storefront is selected. |
+| `fontSize` | Optional. Same shape as theme (xs, sm, base, lg, xl, 2xl, 3xl, 4xl, 5xl in rem). |
+| `spacing` | Optional. Same shape as theme (xs, sm, md, lg, xl, 2xl in rem). |
+| `borderRadius` | Optional. sm, md, lg, xl, full. |
+| `borderWidth` | Optional. thin, medium, thick. |
+| `shadows` | Optional. glow, glowHover, card. |
+| `gradients` | Optional. primary, secondary, accent (CSS linear-gradient strings). |
+
+You can add only the keys you want to tweak; the theme store merges with the default. Text/labels are not configurable via storefront JSON (platform copy remains fixed unless you opt for Custom UI/UX).
+
 ---
 
 ## Responsive Design Strategy

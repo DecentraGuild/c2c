@@ -4,7 +4,7 @@
  */
 
 import { ref, watch } from 'vue'
-import { logWarning } from '../utils/logger'
+import { logWarning } from '@/utils/logger'
 
 /**
  * @param {string} key - Storage key for persistence (e.g., 'dashboard-view-mode')

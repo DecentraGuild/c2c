@@ -29,65 +29,26 @@ import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
 } from '@solana/wallet-adapter-wallets'
+import { ACTIVE_NETWORK, NETWORKS } from './utils/constants/networks'
 import { initializeWalletDetection } from './utils/walletDetection'
 
-// Optimized wallet configuration for mobile support
-// solana-wallets-vue automatically includes:
-// - Mobile Wallet Adapter (MWA) for Android mobile connections via deep links
-// - Wallet Standard support for automatic wallet detection (includes Backpack)
-// 
-// Mobile Wallet Adapter is automatically enabled on Android devices
-// Wallet Standard wallets (like Backpack) are automatically discovered
-// 
-// Note: On mobile, especially in in-app browsers, Wallet Standard detection
-// may be delayed. We initialize wallet detection early to ensure wallets
-// are available when needed.
-//
-// IMPORTANT: Explicitly specifying the network cluster for all wallet adapters ensures
-// that wallets like Backpack on mobile know to use Solana mainnet-beta cluster. Without this,
-// some wallets may default to devnet or custom networks, causing "SVM network"
-// errors. This is especially critical for Wallet Standard wallets on mobile.
-//
-// Network Cluster Configuration:
-// - WalletAdapterNetwork.Mainnet = 'mainnet-beta' cluster
-// - WalletAdapterNetwork.Devnet = 'devnet' cluster
-// - WalletAdapterNetwork.Testnet = 'testnet' cluster
-//
-// By explicitly setting network: WalletAdapterNetwork.Mainnet, we ensure:
-// 1. All wallet adapters (Phantom, Solflare, Backpack, etc.) connect to mainnet-beta
-// 2. The Connection instance uses mainnet RPC endpoints
-// 3. Mobile wallets receive the correct network information during connection
+// Single source of truth: ACTIVE_NETWORK. Wallet adapters and RPC (useSolanaConnection) both use mainnet.
+const walletAdapterNetwork = ACTIVE_NETWORK === NETWORKS.MAINNET ? WalletAdapterNetwork.Mainnet : WalletAdapterNetwork.Devnet
+
+// Wallet config: mainnet-only, mobile-friendly (MWA + Wallet Standard). One early init in main.js only.
 const walletOptions = {
   wallets: [
-    // Explicitly specify mainnet-beta cluster for each wallet adapter
-    new PhantomWalletAdapter({ network: WalletAdapterNetwork.Mainnet }),
-    new SolflareWalletAdapter({ network: WalletAdapterNetwork.Mainnet }),
-    // Note: Backpack and other Wallet Standard wallets are automatically detected
-    // via the Wallet Standard integration in solana-wallets-vue
-    // No need to explicitly add BackpackWalletAdapter - it's auto-discovered
-    // 
-    // For mobile support, we initialize wallet detection early to ensure
-    // Wallet Standard wallets are detected even in in-app browsers
-    //
-    // The network specification above ensures Wallet Standard wallets (like Backpack)
-    // receive the correct network information during connection, preventing "SVM network"
-    // errors on mobile devices.
+    new PhantomWalletAdapter({ network: walletAdapterNetwork }),
+    new SolflareWalletAdapter({ network: walletAdapterNetwork }),
   ],
   autoConnect: true,
-  // localStorageKey is used to persist wallet selection across sessions
   localStorageKey: 'walletName',
-  // Explicitly set network cluster to mainnet-beta for all wallets
-  // This ensures mobile wallets (especially Backpack) know to use Solana mainnet-beta cluster
-  // This is critical for preventing "SVM network" errors on mobile devices
-  network: WalletAdapterNetwork.Mainnet, // Equivalent to 'mainnet-beta' cluster
+  network: walletAdapterNetwork,
 }
 
-// Initialize wallet detection early for mobile devices
-// This ensures Wallet Standard wallets (like Backpack) are detected
-// even in in-app browsers where detection might be delayed
+// Single predictable flow: init wallet detection once at bootstrap (important for mobile in-app browsers).
 if (typeof window !== 'undefined') {
   initializeWalletDetection().catch(err => {
-    // Silently fail - wallet detection is optional
     logWarning('[Wallet] Wallet detection initialization failed:', err)
   })
 }

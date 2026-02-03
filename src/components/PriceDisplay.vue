@@ -67,7 +67,7 @@
 import { computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import TokenAmountDisplay from './TokenAmountDisplay.vue'
-import { formatDecimals } from '../utils/formatters'
+import { formatDecimals } from '@/utils/formatters'
 
 const props = defineProps({
   offerToken: {

@@ -15,7 +15,7 @@
         v-for="escrow in escrows"
         :key="escrow.id"
         :escrow="escrow"
-        :collection="collection"
+        :storefront="storefront"
         :user-balances="userBalances"
         :view-mode="viewMode"
       />
@@ -27,7 +27,7 @@
         v-for="escrow in escrows"
         :key="escrow.id"
         :escrow="escrow"
-        :collection="collection"
+        :storefront="storefront"
         :user-balances="userBalances"
         :view-mode="viewMode"
       />
@@ -87,9 +87,9 @@ defineProps({
   },
   
   /**
-   * Collection object
+   * Storefront object (tenant)
    */
-  collection: {
+  storefront: {
     type: Object,
     required: true
   },

@@ -6,6 +6,9 @@ export default {
   ],
   theme: {
     extend: {
+      screens: {
+        'nav-compact': '800px', // below 800px = pictograms only; 800px+ = icon + text
+      },
       colors: {
         // Background colors
         'primary-bg': 'var(--theme-bg-primary, #0a0a0f)',
@@ -65,25 +68,6 @@ export default {
       fontFamily: {
         'primary': ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
         'mono': ['JetBrains Mono', 'Fira Code', 'monospace'],
-      },
-      fontSize: {
-        'theme-xs': 'var(--theme-font-xs, 0.75rem)',
-        'theme-sm': 'var(--theme-font-sm, 0.875rem)',
-        'theme-base': 'var(--theme-font-base, 1rem)',
-        'theme-lg': 'var(--theme-font-lg, 1.125rem)',
-        'theme-xl': 'var(--theme-font-xl, 1.25rem)',
-        'theme-2xl': 'var(--theme-font-2xl, 1.5rem)',
-        'theme-3xl': 'var(--theme-font-3xl, 1.875rem)',
-        'theme-4xl': 'var(--theme-font-4xl, 2.25rem)',
-        'theme-5xl': 'var(--theme-font-5xl, 3rem)',
-      },
-      spacing: {
-        'theme-xs': 'var(--theme-space-xs, 0.5rem)',
-        'theme-sm': 'var(--theme-space-sm, 0.75rem)',
-        'theme-md': 'var(--theme-space-md, 1rem)',
-        'theme-lg': 'var(--theme-space-lg, 1.5rem)',
-        'theme-xl': 'var(--theme-space-xl, 2rem)',
-        'theme-2xl': 'var(--theme-space-2xl, 3rem)',
       },
       fontSize: {
         'theme-xs': 'var(--theme-font-xs, 0.75rem)',

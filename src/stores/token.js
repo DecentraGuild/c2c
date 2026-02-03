@@ -6,16 +6,16 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { useWalletBalances } from '../composables/useWalletBalances'
-import { useTokenRegistry } from '../composables/useTokenRegistry'
-import { logDebug } from '../utils/logger'
-import { STORAGE_KEYS, CACHE_CONFIG } from '../utils/constants/ui'
-import { 
-  getCachedData, 
-  setCachedData, 
-  isCacheValid, 
-  limitCacheEntries 
-} from '../utils/cacheManager'
+import { useWalletBalances } from '@/composables/useWalletBalances'
+import { useTokenRegistry } from '@/composables/useTokenRegistry'
+import { logDebug } from '@/utils/logger'
+import { STORAGE_KEYS, CACHE_CONFIG } from '@/utils/constants/ui'
+import {
+  getCachedData,
+  setCachedData,
+  isCacheValid,
+  limitCacheEntries
+} from '@/utils/cacheManager'
 
 // Use constants for cache TTL
 const CACHE_TTL = {

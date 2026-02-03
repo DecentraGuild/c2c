@@ -13,8 +13,8 @@
 <script setup>
 import { computed } from 'vue'
 import BaseTokenImage from './BaseTokenImage.vue'
-import { formatBalance } from '../utils/formatters'
-import { truncateAddress } from '../utils/formatters'
+import { formatBalance } from '@/utils/formatters'
+import { truncateAddress } from '@/utils/formatters'
 
 const props = defineProps({
   token: {

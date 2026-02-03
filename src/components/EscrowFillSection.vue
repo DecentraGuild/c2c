@@ -152,9 +152,9 @@
 import { computed, ref, watch } from 'vue'
 import { Icon } from '@iconify/vue'
 import TokenAmountDisplay from './TokenAmountDisplay.vue'
-import { useDecimalHandling } from '../composables/useDecimalHandling'
-import { formatBalance, formatDecimals } from '../utils/formatters'
-import { processAmountInput, shouldPreventKeydown } from '../utils/inputHandling'
+import { useDecimalHandling } from '@/composables/useDecimalHandling'
+import { formatBalance, formatDecimals } from '@/utils/formatters'
+import { processAmountInput, shouldPreventKeydown } from '@/utils/inputHandling'
 
 const props = defineProps({
   escrow: {

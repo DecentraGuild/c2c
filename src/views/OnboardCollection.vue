@@ -47,7 +47,7 @@
         <div class="text-center space-y-2">
           <h2 class="text-xl sm:text-2xl font-bold text-text-primary">Start with Community Store</h2>
           <p class="text-base text-text-secondary max-w-2xl mx-auto">
-            All stores start at $50/month. Verify your collection ownership on-chain to unlock 
+            All stores start at ${{ SUBSCRIPTION_PRICING.BASE_MONTHLY_USD }}/month (${{ SUBSCRIPTION_PRICING.BASE_YEARLY_USD }}/year). Verify your collection ownership on-chain to unlock 
             Official Store features at no extra cost.
           </p>
         </div>
@@ -103,7 +103,7 @@
 
             <div class="pt-4 border-t border-border-color mt-auto">
               <div class="text-center">
-                <p class="text-2xl font-bold text-text-primary mb-0.5">$50<span class="text-base text-text-secondary font-normal">/month</span></p>
+                <p class="text-2xl font-bold text-text-primary mb-0.5">${{ SUBSCRIPTION_PRICING.BASE_MONTHLY_USD }}<span class="text-base text-text-secondary font-normal">/month</span> <span class="text-base text-text-secondary font-normal">${{ SUBSCRIPTION_PRICING.BASE_YEARLY_USD }}/year</span></p>
                 <p class="text-xs text-text-secondary">Base subscription</p>
               </div>
             </div>
@@ -177,8 +177,9 @@
 
           <div class="grid md:grid-cols-3 gap-4 mb-6">
             <div class="text-center py-4 px-3 rounded-lg bg-secondary-bg">
-              <div class="text-3xl font-bold text-text-primary mb-1.5">$50</div>
-              <div class="text-sm text-text-secondary mb-2">Base Monthly Fee</div>
+              <div class="text-3xl font-bold text-text-primary mb-1.5">${{ SUBSCRIPTION_PRICING.BASE_MONTHLY_USD }}</div>
+              <div class="text-sm text-text-secondary mb-1">Base Monthly Fee</div>
+              <div class="text-sm text-text-secondary mb-2">or ${{ SUBSCRIPTION_PRICING.BASE_YEARLY_USD }}/year</div>
               <div class="text-xs text-text-muted">Includes branded storefront + 250 mints</div>
             </div>
             <div class="text-center py-4 px-3 rounded-lg bg-secondary-bg">
@@ -248,5 +249,6 @@
 
 <script setup>
 import { Icon } from '@iconify/vue'
-import { TRANSACTION_COSTS } from '../utils/constants/fees'
+import { TRANSACTION_COSTS } from '@/utils/constants/fees'
+import { SUBSCRIPTION_PRICING } from '@/utils/constants/ui'
 </script>

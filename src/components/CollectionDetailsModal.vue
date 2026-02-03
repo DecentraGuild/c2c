@@ -1,20 +1,20 @@
 <template>
   <BaseModal
     :show="show"
-    :title="collection?.name || 'Marketplace details'"
+    :title="storefront?.name || 'Marketplace details'"
     :max-width="'max-w-lg'"
     @update:show="$emit('update:show', $event)"
   >
     <div class="space-y-4 text-sm">
-      <!-- Collection image -->
+      <!-- Storefront image -->
       <div class="flex justify-center">
         <div
           class="w-24 h-24 sm:w-28 sm:h-28 rounded-lg overflow-hidden bg-secondary-bg flex items-center justify-center flex-shrink-0"
         >
           <img
-            v-if="collection?.logo && !imageError"
-            :src="collection.logo"
-            :alt="collection?.name"
+            v-if="storefront?.logo && !imageError"
+            :src="storefront.logo"
+            :alt="storefront?.name"
             class="w-full h-full object-contain p-2"
             @error="imageError = true"
           />
@@ -26,8 +26,8 @@
         </div>
       </div>
 
-      <p v-if="collection?.description" class="text-text-secondary">
-        {{ collection.description }}
+      <p v-if="storefront?.description" class="text-text-secondary">
+        {{ storefront.description }}
       </p>
 
       <!-- Open Trades -->
@@ -83,7 +83,7 @@
             <span class="text-text-secondary">Max Royalty:</span>
             <span class="font-semibold text-primary-color">{{ maxRoyalty.toFixed(2) }}%</span>
           </div>
-          <div v-if="collection?.shopFee?.wallet" class="flex items-center justify-between">
+          <div v-if="storefront?.shopFee?.wallet" class="flex items-center justify-between">
             <span class="text-text-secondary">Shop Fee:</span>
             <span class="font-semibold text-primary-color">
               {{ shopFeeDisplay() }}
@@ -93,14 +93,14 @@
       </div>
 
       <!-- Fee Wallet -->
-      <div v-if="collection?.shopFee?.wallet">
+      <div v-if="storefront?.shopFee?.wallet">
         <div class="flex items-center gap-2 mb-2 text-text-primary font-semibold">
           <Icon icon="mdi:wallet-outline" class="w-4 h-4" />
           <span>Fee Wallet</span>
         </div>
         <div class="pl-6">
           <BaseAddressDisplay
-            :address="collection.shopFee.wallet"
+            :address="storefront.shopFee.wallet"
             :truncate="true"
             text-class="text-text-secondary text-xs"
             copy-title="Copy fee wallet address"
@@ -168,8 +168,8 @@ import { Icon } from '@iconify/vue'
 import BaseModal from './BaseModal.vue'
 import BaseScrollArea from './BaseScrollArea.vue'
 import BaseAddressDisplay from './BaseAddressDisplay.vue'
-import { useCollectionDisplay } from '../composables/useCollectionDisplay'
-import { truncateAddress } from '../utils/formatters'
+import { useCollectionDisplay } from '@/composables/useCollectionDisplay'
+import { truncateAddress } from '@/utils/formatters'
 
 const imageError = ref(false)
 
@@ -178,7 +178,7 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  collection: {
+  storefront: {
     type: Object,
     default: null
   },
@@ -197,10 +197,10 @@ const {
   collectionMintsList,
   maxRoyalty,
   acceptedCurrencies
-} = useCollectionDisplay(computed(() => props.collection))
+} = useCollectionDisplay(computed(() => props.storefront))
 
 const marketplaceRoute = computed(() => {
-  if (!props.collection?.id) return '/marketplace'
-  return { path: '/marketplace', query: { storefront: props.collection.id } }
+  if (!props.storefront?.id) return '/marketplace'
+  return { path: '/marketplace', query: { storefront: props.storefront.id } }
 })
 </script>

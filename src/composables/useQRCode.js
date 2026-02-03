@@ -3,7 +3,7 @@
  */
 
 import { ref, computed } from 'vue'
-import { logWarning, logError } from '../utils/logger'
+import { logWarning, logError } from '@/utils/logger'
 
 export function useQRCode() {
   const isGenerating = ref(false)

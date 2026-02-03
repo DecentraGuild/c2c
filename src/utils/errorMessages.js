@@ -1,6 +1,8 @@
 /**
- * Centralized error message formatting
- * Provides consistent error message formatting across the application
+ * Centralized error message formatting.
+ * Single place for user-facing error copy; use formatUserFriendlyError in catch blocks and toasts.
+ * For custom UI (e.g. per-storefront messages), this module is the extension point: add an optional
+ * message map or override layer here rather than scattering strings elsewhere.
  */
 
 /**
