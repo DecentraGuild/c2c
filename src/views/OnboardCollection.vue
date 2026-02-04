@@ -21,11 +21,6 @@
       <!-- Key Benefits -->
       <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-card-bg border border-border-color rounded-lg p-4 text-center">
-          <Icon icon="mdi:currency-usd" class="w-10 h-10 text-primary-color mx-auto mb-3" />
-          <h3 class="text-base font-bold text-text-primary mb-1.5">Set Your Fees</h3>
-          <p class="text-xs text-text-secondary">Monitize your own marketplace by adding a custom fee</p>
-        </div>
-        <div class="bg-card-bg border border-border-color rounded-lg p-4 text-center">
           <Icon icon="mdi:palette" class="w-10 h-10 text-primary-color mx-auto mb-3" />
           <h3 class="text-base font-bold text-text-primary mb-1.5">Full Branding</h3>
           <p class="text-xs text-text-secondary">Customize everything to match your brand. It's your storefront.</p>
@@ -34,6 +29,11 @@
           <Icon icon="mdi:wallet" class="w-10 h-10 text-primary-color mx-auto mb-3" />
           <h3 class="text-base font-bold text-text-primary mb-1.5">Multi-Currency</h3>
           <p class="text-xs text-text-secondary">Accept USDC, USDT, SOL, WBTC. Custom tokens available as add-on.</p>
+        </div>
+        <div class="bg-card-bg border border-border-color rounded-lg p-4 text-center">
+          <Icon icon="mdi:currency-usd" class="w-10 h-10 text-primary-color mx-auto mb-3" />
+          <h3 class="text-base font-bold text-text-primary mb-1.5">Set Your Fees</h3>
+          <p class="text-xs text-text-secondary">Monetize your marketplace by setting your own fee.</p>
         </div>
         <div class="bg-card-bg border border-border-color rounded-lg p-4 text-center">
           <Icon icon="mdi:shield-check" class="w-10 h-10 text-primary-color mx-auto mb-3" />
@@ -280,6 +280,105 @@
         </div>
       </div>
 
+      <!-- Technical Details (fold/unfold) -->
+      <div class="bg-card-bg border border-border-color rounded-xl p-5 lg:p-8">
+        <button
+          type="button"
+          @click="technicalDetailsOpen = !technicalDetailsOpen"
+          class="w-full flex items-center justify-between gap-2 text-left group"
+        >
+          <h2 class="text-xl font-bold text-text-primary">Technical Details</h2>
+          <Icon
+            :icon="technicalDetailsOpen ? 'mdi:chevron-up' : 'mdi:chevron-down'"
+            class="w-6 h-6 text-text-muted group-hover:text-text-primary transition-colors flex-shrink-0"
+          />
+        </button>
+        <div v-show="technicalDetailsOpen" class="mt-4 overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-border-color">
+                <th class="py-3 pr-4 text-sm font-semibold text-text-primary">Label</th>
+                <th class="py-3 pr-4 text-sm font-semibold text-text-primary">Value / content</th>
+              </tr>
+            </thead>
+            <tbody class="text-sm">
+              <tr class="border-b border-border-color">
+                <td class="py-3 pr-4 text-text-secondary align-top">Escrow Program ID</td>
+                <td class="py-3 pr-4 text-text-primary">
+                  <span class="font-mono break-all">{{ technical.escrowProgramId }}</span>
+                  <button
+                    type="button"
+                    @click.stop="copyTechnicalItem(technical.escrowProgramId, 'escrow')"
+                    class="inline-flex align-middle ml-1.5 p-0.5 rounded hover:bg-secondary-bg transition-colors text-text-muted hover:text-text-primary"
+                    title="Copy"
+                  >
+                    <Icon :icon="copyState === 'escrow' ? 'svg-spinners:ring-resize' : 'mdi:content-copy'" :class="copyState === 'escrow' ? 'text-primary-color' : ''" class="w-4 h-4" />
+                  </button>
+                </td>
+              </tr>
+              <tr class="border-b border-border-color">
+                <td class="py-3 pr-4 text-text-secondary align-top">Base currencies</td>
+                <td class="py-3 pr-4 text-text-primary">
+                  <ul class="space-y-1.5">
+                    <li v-for="c in technical.baseCurrenciesList" :key="c.symbol" class="flex items-center gap-2 flex-wrap">
+                      <span class="font-mono text-xs break-all">{{ c.symbol }} ({{ c.mint }})</span>
+                      <button
+                        type="button"
+                        @click.stop="copyTechnicalItem(c.mint, 'base-' + c.symbol)"
+                        class="p-0.5 rounded hover:bg-secondary-bg transition-colors text-text-muted hover:text-text-primary flex-shrink-0"
+                        title="Copy mint"
+                      >
+                        <Icon :icon="copyState === 'base-' + c.symbol ? 'svg-spinners:ring-resize' : 'mdi:content-copy'" :class="copyState === 'base-' + c.symbol ? 'text-primary-color' : ''" class="w-4 h-4" />
+                      </button>
+                    </li>
+                  </ul>
+                </td>
+              </tr>
+              <tr class="border-b border-border-color">
+                <td class="py-3 pr-4 text-text-secondary align-top">Token programs supported (current)</td>
+                <td class="py-3 pr-4 text-text-primary">
+                  <ul class="space-y-1.5">
+                    <li v-for="p in technical.tokenProgramsCurrent" :key="p.id" class="flex items-center gap-2 flex-wrap">
+                      <span>{{ p.label }}</span>
+                      <span class="font-mono text-xs break-all">{{ p.address }}</span>
+                      <button
+                        type="button"
+                        @click.stop="copyTechnicalItem(p.address, p.copyKey)"
+                        class="p-0.5 rounded hover:bg-secondary-bg transition-colors text-text-muted hover:text-text-primary flex-shrink-0"
+                        title="Copy"
+                      >
+                        <Icon :icon="copyState === p.copyKey ? 'svg-spinners:ring-resize' : 'mdi:content-copy'" :class="copyState === p.copyKey ? 'text-primary-color' : ''" class="w-4 h-4" />
+                      </button>
+                    </li>
+                  </ul>
+                </td>
+              </tr>
+              <tr class="border-b border-border-color">
+                <td class="py-3 pr-4 text-text-secondary align-top">Token programs supported (future)</td>
+                <td class="py-3 pr-4 text-text-primary">
+                  <ul class="space-y-1.5">
+                    <li v-for="p in technical.tokenProgramsFuture" :key="p.copyKey || p.label" class="flex items-center gap-2 flex-wrap">
+                      <span>{{ p.label }}</span>
+                      <span v-if="p.address" class="font-mono text-xs break-all">{{ p.address }}</span>
+                      <span v-else class="text-text-muted text-xs">—</span>
+                      <button
+                        v-if="p.address"
+                        type="button"
+                        @click.stop="copyTechnicalItem(p.address, p.copyKey)"
+                        class="p-0.5 rounded hover:bg-secondary-bg transition-colors text-text-muted hover:text-text-primary flex-shrink-0"
+                        title="Copy"
+                      >
+                        <Icon :icon="copyState === p.copyKey ? 'svg-spinners:ring-resize' : 'mdi:content-copy'" :class="copyState === p.copyKey ? 'text-primary-color' : ''" class="w-4 h-4" />
+                      </button>
+                    </li>
+                  </ul>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- CTA Section -->
       <div class="text-center space-y-3 pb-6">
         <h2 class="text-lg sm:text-xl font-bold text-text-primary">Ready to Launch Your Marketplace?</h2>
@@ -307,8 +406,50 @@ import { ref, computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import { TRANSACTION_COSTS } from '@/utils/constants/fees'
 import { SUBSCRIPTION_PRICING } from '@/utils/constants/ui'
+import { ESCROW_PROGRAM_ID, WHITELIST_PROGRAM_ID } from '@/utils/constants/escrow'
+import { BASE_CURRENCIES } from '@/utils/constants/baseCurrencies'
+import { TOKEN_PROGRAM_ID_STR, TOKEN_2022_PROGRAM_ID_STR, MPL_CORE_PROGRAM_ID_STR } from '@/utils/constants/tokens'
+import { useClipboard } from '@/composables/useClipboard'
+import { useToast } from '@/composables/useToast'
 
 const billingInterval = ref('yearly')
+
+const technicalDetailsOpen = ref(false)
+
+const BASE_CURRENCY_ORDER = ['USDC', 'USDT', 'SOL', 'WBTC']
+
+const technical = computed(() => {
+  const ordered = BASE_CURRENCY_ORDER.map(sym => BASE_CURRENCIES.find(c => c.symbol === sym)).filter(Boolean)
+  return {
+    escrowProgramId: ESCROW_PROGRAM_ID,
+    baseCurrenciesList: ordered.map(c => ({ symbol: c.symbol, mint: c.mint })),
+    tokenProgramsCurrent: [
+      { label: 'SPL Token Program', address: TOKEN_PROGRAM_ID_STR, copyKey: 'prog-spl' },
+      { label: 'Token-2022', address: TOKEN_2022_PROGRAM_ID_STR, copyKey: 'prog-token2022' }
+    ],
+    tokenProgramsFuture: [
+      { label: 'Whitelist support', address: WHITELIST_PROGRAM_ID, copyKey: 'prog-whitelist' },
+      { label: 'MPL Core', address: MPL_CORE_PROGRAM_ID_STR, copyKey: 'prog-mplcore' },
+      { label: 'cNFT', address: null, copyKey: null }
+    ]
+  }
+})
+
+const copyState = ref(null)
+
+const { copyToClipboard } = useClipboard()
+const { success, error: showError } = useToast()
+
+async function copyTechnicalItem(text, stateKey) {
+  copyState.value = stateKey
+  const copied = await copyToClipboard(text)
+  copyState.value = null
+  if (copied) {
+    success('Copied to clipboard')
+  } else {
+    showError('Failed to copy')
+  }
+}
 
 const displayPrice = computed(() =>
   billingInterval.value === 'monthly'

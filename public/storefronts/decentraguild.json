@@ -1,7 +1,7 @@
 {
   "id": "decentraguild",
   "name": "DecentraGuild",
-  "logo": "/Collections/DecentraGuild/dguild-logo.webp",
+  "logo": "https://www.decentraguild.com/logo/dguild-logo.svg",
   "collectionMints": [],
   "baseCurrency": ["SOL"],
   "customCurrencies": [],
