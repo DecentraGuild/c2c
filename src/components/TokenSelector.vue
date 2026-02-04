@@ -7,11 +7,6 @@
           <p class="text-sm">{{ loadingNFTs ? 'Checking NFTs...' : 'Loading balances...' }}</p>
         </div>
 
-        <!-- Loading Metadata State -->
-        <div v-else-if="loadingMetadata && displayBalances.length > 0" class="p-2 text-center text-text-muted">
-          <p class="text-xs">Loading token metadata...</p>
-        </div>
-
         <!-- Error State -->
         <div v-else-if="error" class="p-4 text-center text-text-muted">
           <Icon icon="mdi:alert-circle-outline" class="w-8 h-8 inline-block mb-2 text-status-error" />
@@ -40,6 +35,7 @@
 
         <!-- Token List -->
         <div v-else class="divide-y divide-border-color">
+          <p v-if="loadingMetadata" class="text-xs text-text-muted px-4 py-1">Loading token names...</p>
           <button
             v-for="token in displayBalances"
             :key="token.mint"

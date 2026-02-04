@@ -89,7 +89,7 @@
             aria-hidden="true"
           >
             <div
-              class="px-0.5 py-1 rounded text-[8px] font-bold whitespace-nowrap"
+              class="px-0.5 py-0.5 rounded text-[7px] font-bold whitespace-nowrap"
               :class="getBadgeClasses(storefront)"
               style="writing-mode: vertical-rl; text-orientation: mixed;"
             >

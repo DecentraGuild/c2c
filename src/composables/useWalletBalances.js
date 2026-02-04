@@ -14,7 +14,7 @@ import { cleanTokenString } from '@/utils/formatters'
 import { useTokenStore } from '@/stores/token'
 import { logError, logDebug, logWarning } from '@/utils/logger'
 import { fetchAllTokenBalancesFromDAS } from '@/utils/heliusDAS'
-import { UI_CONSTANTS } from '@/utils/constants/ui'
+import { UI_CONSTANTS, BATCH_SIZES } from '@/utils/constants/ui'
 
 const BALANCE_CACHE_TTL_MS = 60 * 1000 // 60 seconds – avoid refetching too often
 
@@ -263,22 +263,32 @@ export function useWalletBalances(options = {}) {
 
       logDebug(`Metadata: ${cacheHits.size} from cache, ${tokensNeedingFetch.length} to fetch`)
 
-      // Only fetch for tokens without valid cache
-      const metadataPromises = tokensNeedingFetch.map((token) =>
-        fetchAndUpdateTokenMetadata(token).catch(() => token)
-      )
-      const results = await Promise.allSettled(metadataPromises)
-      const fetchedMap = new Map()
-      results.forEach((result, index) => {
-        const token = tokensNeedingFetch[index]
-        const value = result.status === 'fulfilled' ? result.value : token
-        if (token?.mint) fetchedMap.set(token.mint, value)
+      // Prioritize: SOL first, then by balance descending (above-the-fold tokens first)
+      const sortedToFetch = [...tokensNeedingFetch].sort((a, b) => {
+        if (a.mint === NATIVE_SOL.mint) return -1
+        if (b.mint === NATIVE_SOL.mint) return 1
+        return (b.balance ?? 0) - (a.balance ?? 0)
       })
 
-      // Merge: cache hits + newly fetched; preserve order of original tokens
-      const merged = tokens.map((t) => fetchedMap.get(t.mint) ?? cacheHits.get(t.mint) ?? t)
-      balances.value = merged
-      return merged
+      const batchSize = BATCH_SIZES.METADATA_FETCH ?? 10
+      const fetchedMap = new Map()
+
+      for (let i = 0; i < sortedToFetch.length; i += batchSize) {
+        const batch = sortedToFetch.slice(i, i + batchSize)
+        const results = await Promise.allSettled(
+          batch.map((token) => fetchAndUpdateTokenMetadata(token).catch(() => token))
+        )
+        results.forEach((result, index) => {
+          const token = batch[index]
+          const value = result.status === 'fulfilled' ? result.value : token
+          if (token?.mint) fetchedMap.set(token.mint, value)
+        })
+        // Update UI after each batch so names/images appear progressively
+        const merged = tokens.map((t) => fetchedMap.get(t.mint) ?? cacheHits.get(t.mint) ?? t)
+        balances.value = merged
+      }
+
+      return tokens.map((t) => fetchedMap.get(t.mint) ?? cacheHits.get(t.mint) ?? t)
     } finally {
       loadingMetadata.value = false
     }
