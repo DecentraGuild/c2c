@@ -16,6 +16,13 @@
         <div v-else-if="error" class="p-4 text-center text-text-muted">
           <Icon icon="mdi:alert-circle-outline" class="w-8 h-8 inline-block mb-2 text-status-error" />
           <p class="text-sm text-status-error">{{ error }}</p>
+          <button
+            type="button"
+            class="mt-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary-bg hover:bg-secondary-bg/80 text-text-primary border border-border-color"
+            @click.stop="handleRetryFetchBalances"
+          >
+            Try again
+          </button>
         </div>
 
         <!-- No Wallet Connected -->
@@ -59,7 +66,7 @@
 <script setup>
 import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
-import { useTokenStore } from '@/stores/token'
+import { useWalletBalanceStore } from '@/stores/walletBalance'
 import { useStorefrontStore } from '@/stores/storefront'
 import { useStorefrontMetadataStore } from '@/stores/storefrontMetadata'
 import { storeToRefs } from 'pinia'
@@ -82,7 +89,7 @@ const props = defineProps({
 const emit = defineEmits(['select', 'close'])
 
 const { connected, publicKey } = storeToRefs(useWalletStore())
-const tokenStore = useTokenStore()
+const walletBalanceStore = useWalletBalanceStore()
 const storefrontStore = useStorefrontStore()
 const storefrontMetadataStore = useStorefrontMetadataStore()
 
@@ -103,7 +110,7 @@ const cachedCollectionNFTs = computed(() => {
 
 // Filter balances based on selected collection
 // Check ALL wallet SPL tokens (including NFTs) against allowed mints
-const allBalances = computed(() => tokenStore.balances)
+const allBalances = computed(() => walletBalanceStore.balances)
 const balances = computed(() => {
   const all = allBalances.value || []
   
@@ -241,10 +248,14 @@ const debouncedProcessBalances = useDebounce(processBalances, UI_CONSTANTS.METAD
 
 watch([balances, selectedStorefront], debouncedProcessBalances, { immediate: true })
 
-// Also process when dropdown opens (only if not already processing)
-watch(() => props.show, (isShowing) => {
+// Also process when dropdown opens: ensure balances are fetched, then process
+watch(() => props.show, async (isShowing) => {
   if (isShowing && connected.value) {
-    // Only trigger if balances or collection changed, otherwise use cached result
+    // If we have no balances yet or previously hit an error, force a refresh
+    const hasNoBalances = !allBalances.value || allBalances.value.length === 0
+    if (!loading.value && (hasNoBalances || error.value)) {
+      await walletBalanceStore.fetchBalances(true)
+    }
     debouncedProcessBalances()
   }
 })
@@ -274,9 +285,9 @@ const displayBalances = computed(() => {
   })
 })
 
-const loading = computed(() => tokenStore.loadingBalances)
-const error = computed(() => tokenStore.balancesError)
-const loadingMetadata = computed(() => tokenStore.loadingMetadata)
+const loading = computed(() => walletBalanceStore.loadingBalances)
+const error = computed(() => walletBalanceStore.balancesError)
+const loadingMetadata = computed(() => walletBalanceStore.loadingMetadata)
 
 // Offer side: each row is an individual NFT from the wallet; clicking selects that NFT (no instance selector)
 const handleTokenClick = (token) => {
@@ -301,5 +312,12 @@ const selectToken = (token) => {
 // Use formatBalance from utils with token decimals
 const formatBalance = (balance, decimals) => {
   return formatBalanceUtil(balance, decimals || 9, false)
+}
+
+// Allow manual retry from UI when balance fetch failed
+const handleRetryFetchBalances = () => {
+  if (connected.value) {
+    walletBalanceStore.fetchBalances(true)
+  }
 }
 </script>

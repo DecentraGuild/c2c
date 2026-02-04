@@ -108,9 +108,9 @@
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
-    /* Main frame scrollbar – same styled scrollbar as modals/dropdowns */
+    /* Main frame scrollbar – themed */
     scrollbar-width: thin;
-    scrollbar-color: rgba(42, 42, 62, 0.5) transparent;
+    scrollbar-color: var(--theme-border) transparent;
   }
 
   html::-webkit-scrollbar,
@@ -124,24 +124,12 @@
   }
   html::-webkit-scrollbar-thumb,
   body::-webkit-scrollbar-thumb {
-    background: rgba(42, 42, 62, 0.5);
-    border-radius: 3px;
+    background: var(--theme-border);
+    border-radius: var(--theme-radius-sm, 0.5rem);
   }
   html::-webkit-scrollbar-thumb:hover,
   body::-webkit-scrollbar-thumb:hover {
-    background: rgba(42, 42, 62, 0.8);
-  }
-  @supports (background: var(--theme-border)) {
-    html::-webkit-scrollbar-thumb,
-    body::-webkit-scrollbar-thumb {
-      background: var(--theme-border);
-      opacity: 0.5;
-    }
-    html::-webkit-scrollbar-thumb:hover,
-    body::-webkit-scrollbar-thumb:hover {
-      background: var(--theme-border);
-      opacity: 0.8;
-    }
+    background: var(--theme-border-light);
   }
   
   /* Support for dynamic viewport height (mobile keyboards) */
@@ -373,18 +361,17 @@
     border-radius: var(--theme-radius-lg, 1rem);
   }
 
-  /* Shared collection scrollbar styles */
+  /* Shared collection scrollbar styles – themed */
   .collection-scroll-container {
     direction: rtl;
     scrollbar-width: thin;
-    scrollbar-color: rgba(42, 42, 62, 0.5) transparent;
+    scrollbar-color: var(--theme-border) transparent;
   }
   
   .collection-scroll-content {
     direction: ltr;
   }
   
-  /* Custom scrollbar styling for Webkit browsers */
   .collection-scroll-container::-webkit-scrollbar {
     width: 6px;
   }
@@ -394,31 +381,18 @@
   }
   
   .collection-scroll-container::-webkit-scrollbar-thumb {
-    background: rgba(42, 42, 62, 0.5);
-    border-radius: 3px;
+    background: var(--theme-border);
+    border-radius: var(--theme-radius-sm, 0.5rem);
   }
   
   .collection-scroll-container::-webkit-scrollbar-thumb:hover {
-    background: rgba(42, 42, 62, 0.8);
-  }
-  
-  /* Use theme color if available, fallback to rgba */
-  @supports (background: var(--theme-border)) {
-    .collection-scroll-container::-webkit-scrollbar-thumb {
-      background: var(--theme-border);
-      opacity: 0.5;
-    }
-    
-    .collection-scroll-container::-webkit-scrollbar-thumb:hover {
-      background: var(--theme-border);
-      opacity: 0.8;
-    }
+    background: var(--theme-border-light);
   }
 
-  /* Base scroll area – reusable sliding/scroll bar (use in modals, dropdowns, lists) */
+  /* Base scroll area – themed */
   .base-scroll-area {
     scrollbar-width: thin;
-    scrollbar-color: rgba(42, 42, 62, 0.5) transparent;
+    scrollbar-color: var(--theme-border) transparent;
   }
   .base-scroll-area::-webkit-scrollbar {
     width: 6px;
@@ -427,26 +401,18 @@
     background: transparent;
   }
   .base-scroll-area::-webkit-scrollbar-thumb {
-    background: rgba(42, 42, 62, 0.5);
-    border-radius: 3px;
+    background: var(--theme-border);
+    border-radius: var(--theme-radius-sm, 0.5rem);
   }
   .base-scroll-area::-webkit-scrollbar-thumb:hover {
-    background: rgba(42, 42, 62, 0.8);
-  }
-  @supports (background: var(--theme-border)) {
-    .base-scroll-area::-webkit-scrollbar-thumb {
-      background: var(--theme-border);
-      opacity: 0.5;
-    }
-    .base-scroll-area::-webkit-scrollbar-thumb:hover {
-      background: var(--theme-border);
-      opacity: 0.8;
-    }
+    background: var(--theme-border-light);
   }
   
   .section-banner {
     background: var(--theme-gradient-primary);
-    @apply text-text-primary font-semibold text-sm font-bold py-1.5 px-4 rounded-t-xl;
+    @apply text-text-primary font-semibold text-sm font-bold py-1.5 px-4;
+    border-top-left-radius: var(--theme-radius-xl, 1.25rem);
+    border-top-right-radius: var(--theme-radius-xl, 1.25rem);
   }
 
   .text-gradient {

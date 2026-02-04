@@ -46,17 +46,17 @@
     <div
       v-if="showDropdown"
       ref="dropdownRef"
-      class="absolute z-50 mt-2 w-80 bg-secondary-bg border border-border-color rounded-lg shadow-lg max-h-96 overflow-hidden flex flex-col"
+      class="absolute z-50 mt-2 w-80 bg-window-bg border border-window-border rounded-lg shadow-lg max-h-96 overflow-hidden flex flex-col"
     >
       <!-- Search Input -->
-      <div class="p-3 border-b border-border-color">
+      <div class="p-3 border-b border-window-border">
         <div class="relative">
           <Icon icon="mdi:magnify" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-muted" />
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Search collections..."
-            class="w-full pl-9 pr-3 py-2 bg-primary-bg border border-border-color rounded-lg text-sm text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent"
+            class="w-full pl-9 pr-3 py-2 bg-primary-bg border border-window-border rounded-lg text-sm text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent"
             @focus.stop
           />
         </div>
@@ -68,7 +68,7 @@
         <div
           v-if="modelValue"
           @click="clearSelection"
-          class="px-4 py-3 hover:bg-primary-color/10 cursor-pointer transition-colors flex items-center gap-3 border-b border-border-color"
+          class="px-4 py-3 hover:bg-primary-color/10 cursor-pointer transition-colors flex items-center gap-3 border-b border-window-border"
         >
           <Icon icon="mdi:arrow-left" class="w-5 h-5 text-text-muted flex-shrink-0" />
           <div class="flex-1 min-w-0">

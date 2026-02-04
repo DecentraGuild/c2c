@@ -1,16 +1,15 @@
 <template>
   <div v-if="show" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click="handleBackdropClick">
-    <div class="bg-secondary-bg rounded-xl p-4 sm:p-6 max-w-md w-full max-h-[90vh] overflow-y-auto border border-border-color shadow-lg" @click.stop>
-      <div class="flex items-center justify-between mb-4">
+    <div class="bg-window-bg rounded-xl max-w-md w-full max-h-[90vh] overflow-hidden border border-window-border shadow-lg flex flex-col" @click.stop>
+      <div class="flex items-center justify-between p-4 sm:p-6 pb-0 flex-shrink-0 bg-window-header rounded-t-xl">
         <h3 class="text-lg font-bold text-text-primary">{{ title }}</h3>
-        <button @click="handleCancel" class="text-text-muted hover:text-text-primary transition-colors">
+        <button @click="handleCancel" class="text-text-muted hover:text-text-primary transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2">
           <Icon icon="mdi:close" class="w-5 h-5" />
         </button>
       </div>
-      
-      <p class="text-text-secondary mb-6">{{ message }}</p>
-      
-      <div class="flex gap-3">
+      <div class="p-4 sm:p-6 overflow-y-auto flex-1">
+        <p class="text-text-secondary mb-6">{{ message }}</p>
+        <div class="flex gap-3">
         <button
           @click="handleCancel"
           class="flex-1 btn-secondary py-2.5"
@@ -25,6 +24,7 @@
           <Icon v-if="loading" icon="svg-spinners:ring-resize" class="w-4 h-4 inline mr-2" />
           {{ confirmText }}
         </button>
+        </div>
       </div>
     </div>
   </div>

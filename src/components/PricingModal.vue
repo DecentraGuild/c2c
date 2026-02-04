@@ -4,27 +4,26 @@
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
     @click.self="close"
   >
-    <div class="card max-w-lg w-full mx-2 sm:mx-4 max-h-[90vh] overflow-y-auto">
-      <div class="flex items-center justify-between mb-4">
+    <div class="bg-window-bg border border-window-border rounded-xl max-w-lg w-full mx-2 sm:mx-4 max-h-[90vh] overflow-hidden flex flex-col shadow-lg">
+      <div class="flex items-center justify-between p-4 sm:p-6 pb-0 flex-shrink-0 bg-window-header rounded-t-xl">
         <h2 class="text-xl font-bold text-text-primary">Pricing</h2>
         <button
           @click="close"
-          class="p-1 hover:bg-secondary-bg rounded-lg transition-colors"
+          class="p-1 hover:bg-window-bg rounded-lg transition-colors -mr-2"
         >
           <Icon icon="mdi:close" class="w-6 h-6 text-text-muted" />
         </button>
       </div>
-
-      <div class="space-y-4">
+      <div class="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4">
         <!-- Transaction Fees -->
         <div>
           <h3 class="text-sm font-semibold text-text-primary mb-2">Transaction Fees</h3>
           <div class="space-y-2">
-            <div class="flex items-center justify-between py-2 border-b border-border-color/50">
+            <div class="flex items-center justify-between py-2 border-b border-window-border/50">
               <span class="text-sm text-text-secondary">Maker fee</span>
               <span class="text-sm font-medium text-text-primary">{{ TRANSACTION_COSTS.PLATFORM_MAKER_FEE }} SOL</span>
             </div>
-            <div class="flex items-center justify-between py-2 border-b border-border-color/50">
+            <div class="flex items-center justify-between py-2 border-b border-window-border/50">
               <span class="text-sm text-text-secondary">Taker fee</span>
               <span class="text-sm font-medium text-text-primary">{{ TRANSACTION_COSTS.PLATFORM_TAKER_FEE }} SOL</span>
             </div>
@@ -34,7 +33,7 @@
         <!-- Solana Rent Accounts -->
         <div>
           <h3 class="text-sm font-semibold text-text-primary mb-2">Solana Rent Accounts</h3>
-          <div class="flex items-center justify-between py-2 border-b border-border-color/50">
+          <div class="flex items-center justify-between py-2 border-b border-window-border/50">
             <div class="flex-1">
               <span class="text-sm text-text-secondary block">0.00022 SOL per account</span>
               <span class="text-xs text-text-muted mt-0.5 block">(recoverable, minimal 2 per escrow)</span>
@@ -49,15 +48,15 @@
             <span class="text-xs font-normal text-text-muted ml-2">(coming soon)</span>
           </h3>
           <div class="space-y-2">
-            <div class="flex items-center justify-between py-2 border-b border-border-color/50">
+            <div class="flex items-center justify-between py-2 border-b border-window-border/50">
               <span class="text-sm text-text-secondary">$5/month</span>
               <span class="text-sm font-medium text-text-primary">5 escrows free, 20% discount on rest</span>
             </div>
-            <div class="flex items-center justify-between py-2 border-b border-border-color/50">
+            <div class="flex items-center justify-between py-2 border-b border-window-border/50">
               <span class="text-sm text-text-secondary">$10/month</span>
               <span class="text-sm font-medium text-text-primary">10 escrows free, 50% discount on rest</span>
             </div>
-            <div class="flex items-center justify-between py-2 border-b border-border-color/50">
+            <div class="flex items-center justify-between py-2 border-b border-window-border/50">
               <span class="text-sm text-text-secondary">$25/month</span>
               <span class="text-sm font-medium text-text-primary">Free unlimited escrows</span>
             </div>
@@ -65,7 +64,7 @@
         </div>
       </div>
 
-      <div class="mt-6 pt-4 border-t border-border-color">
+      <div class="mt-6 pt-4 border-t border-window-border">
         <button
           @click="close"
           class="btn-primary w-full py-2"

@@ -1,7 +1,7 @@
 <template>
   <BaseDropdown
     :show="show"
-    container-class="full-screen w-full h-full bg-card-bg border border-border-color rounded-lg shadow-xl overflow-hidden flex flex-col"
+    container-class="full-screen w-full h-full bg-window-bg border border-window-border rounded-lg shadow-xl overflow-hidden flex flex-col"
     @close="$emit('close')"
   >
     <div class="p-4 border-b border-border-color flex-shrink-0">
@@ -46,10 +46,10 @@
         <!-- Dropdown panel: scrollable list of trait types and values -->
         <div
           v-show="filtersDropdownOpen"
-          class="absolute right-0 top-full mt-1 z-[60] min-w-[240px] max-w-[min(90vw,320px)] max-h-[min(60vh,320px)] overflow-y-auto overflow-x-hidden collection-scroll-container bg-card-bg border border-border-color rounded-lg shadow-xl py-2"
+          class="absolute right-0 top-full mt-1 z-[60] min-w-[240px] max-w-[min(90vw,320px)] max-h-[min(60vh,320px)] overflow-y-auto overflow-x-hidden collection-scroll-container bg-window-bg border border-window-border rounded-lg shadow-xl py-2"
         >
           <div class="collection-scroll-content">
-          <div class="px-3 pb-2 border-b border-border-color flex items-center justify-between sticky top-0 bg-card-bg z-10">
+          <div class="px-3 pb-2 border-b border-window-border flex items-center justify-between sticky top-0 bg-window-bg z-10">
             <span class="text-xs font-medium text-text-muted">Filter by traits</span>
             <button
               v-if="hasActiveTraitFilters"

@@ -1,45 +1,45 @@
 <template>
   <div v-if="show" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4" @click="handleBackdropClick">
-    <div class="bg-secondary-bg rounded-none sm:rounded-xl p-4 sm:p-6 max-w-md w-full h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto border-0 sm:border border-border-color shadow-lg flex flex-col" @click.stop>
-      <div class="flex items-center justify-between mb-4">
+    <div class="bg-window-bg rounded-none sm:rounded-xl max-w-md w-full h-full sm:h-auto sm:max-h-[90vh] overflow-hidden border-0 sm:border border-window-border shadow-lg flex flex-col" @click.stop>
+      <div class="flex items-center justify-between p-4 sm:p-6 pb-0 flex-shrink-0 bg-window-header rounded-t-none sm:rounded-t-xl">
         <h3 class="text-lg font-bold text-text-primary">{{ title }}</h3>
-        <button @click="handleClose" class="text-text-muted hover:text-text-primary transition-colors">
+        <button @click="handleClose" class="text-text-muted hover:text-text-primary transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2">
           <Icon icon="mdi:close" class="w-5 h-5" />
         </button>
       </div>
-      
-      <!-- URL Section at top -->
-      <div v-if="showUrl" class="mb-4 sm:mb-6">
-        <label class="text-sm text-text-muted mb-2 block">{{ urlLabel }}</label>
-        <div class="flex gap-2">
-          <input
-            :value="url"
-            readonly
-            class="flex-1 px-3 py-2 bg-primary-bg border border-border-color rounded-lg text-text-primary text-sm"
-          />
-          <button
-            @click="handleCopyUrl"
-            class="px-4 py-2 rounded-lg hover:opacity-80 transition-opacity"
-            style="background: var(--theme-gradient-primary); color: var(--theme-text-primary);"
-          >
-            <Icon 
-              :icon="isCopying ? 'svg-spinners:ring-resize' : 'mdi:content-copy'" 
-              class="w-5 h-5" 
+      <div class="p-4 sm:p-6 overflow-y-auto flex-1 flex flex-col">
+        <!-- URL Section at top -->
+        <div v-if="showUrl" class="mb-4 sm:mb-6">
+          <label class="text-sm text-text-muted mb-2 block">{{ urlLabel }}</label>
+          <div class="flex gap-2">
+            <input
+              :value="url"
+              readonly
+              class="flex-1 px-3 py-2 bg-primary-bg border border-window-border rounded-lg text-text-primary text-sm"
             />
-          </button>
+            <button
+              @click="handleCopyUrl"
+              class="px-4 py-2 rounded-lg hover:opacity-80 transition-opacity"
+              style="background: var(--theme-gradient-primary); color: var(--theme-text-primary);"
+            >
+              <Icon 
+                :icon="isCopying ? 'svg-spinners:ring-resize' : 'mdi:content-copy'" 
+                class="w-5 h-5" 
+              />
+            </button>
+          </div>
         </div>
-      </div>
-      
-      <!-- QR Code Section - centered in remaining space -->
-      <div v-if="showQRCode" class="flex-1 flex flex-col items-center justify-center">
-        <label class="text-sm text-text-muted mb-3 sm:mb-4 block">{{ qrLabel }}</label>
-        <div class="aspect-square w-[min(75vw,320px)] sm:w-[280px] p-2 sm:p-3 bg-white rounded-xl flex items-center justify-center overflow-hidden">
-          <canvas 
-            ref="qrCanvas" 
-            :width="qrSize" 
-            :height="qrSize"
-            class="w-full h-full rounded-lg"
-          ></canvas>
+        <!-- QR Code Section - centered in remaining space -->
+        <div v-if="showQRCode" class="flex-1 flex flex-col items-center justify-center">
+          <label class="text-sm text-text-muted mb-3 sm:mb-4 block">{{ qrLabel }}</label>
+          <div class="aspect-square w-[min(75vw,320px)] sm:w-[280px] p-2 sm:p-3 bg-window-header rounded-xl flex items-center justify-center overflow-hidden">
+            <canvas 
+              ref="qrCanvas" 
+              :width="qrSize" 
+              :height="qrSize"
+              class="w-full h-full rounded-lg"
+            ></canvas>
+          </div>
         </div>
       </div>
     </div>

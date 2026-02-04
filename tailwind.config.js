@@ -103,6 +103,13 @@ export default {
         'theme-md': 'var(--theme-radius-md, 0.75rem)',
         'theme-lg': 'var(--theme-radius-lg, 1rem)',
         'theme-xl': 'var(--theme-radius-xl, 1.25rem)',
+        'theme-full': 'var(--theme-radius-full, 9999px)',
+        /* Wire default scale to theme so storefront borderRadius applies everywhere */
+        'sm': 'var(--theme-radius-sm, 0.25rem)',
+        'md': 'var(--theme-radius-md, 0.375rem)',
+        'lg': 'var(--theme-radius-lg, 0.5rem)',
+        'xl': 'var(--theme-radius-xl, 0.75rem)',
+        '2xl': 'var(--theme-radius-xl, 1rem)',
       },
     },
   },

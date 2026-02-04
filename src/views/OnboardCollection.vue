@@ -308,7 +308,7 @@ import { Icon } from '@iconify/vue'
 import { TRANSACTION_COSTS } from '@/utils/constants/fees'
 import { SUBSCRIPTION_PRICING } from '@/utils/constants/ui'
 
-const billingInterval = ref('monthly')
+const billingInterval = ref('yearly')
 
 const displayPrice = computed(() =>
   billingInterval.value === 'monthly'

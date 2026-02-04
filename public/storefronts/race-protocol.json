@@ -1,0 +1,100 @@
+{
+  "id": "race-protocol",
+  "name": "Race Protocol",
+  "logo": "/Collections/Race Protocol/race-logo.webp",
+  "collectionMints": [
+    {
+      "mint": "5tDgUpEzVvnZT2SGAGL64uaS7mM7gSSJYfga6MQYYvUU",
+      "name": "Race Heroes",
+      "itemType": "NFT",
+      "fetchingType": "NFT",
+      "class": "Heroes",
+      "category": "Heroes",
+      "image": "https://gateway.irys.xyz/273ahLHyCA2p6dLkDkGfxJxwnK9EndvoaKyCb9LFNsCC",
+      "sellerFeeBasisPoints": 700
+    },
+    {
+      "mint": "8AmJR4JiZeDtSXtV3KQSBgjWDtpP3NsK3Mg3ZXvaW8eE",
+      "name": "RACE PASS",
+      "symbol": "RPASS",
+      "decimals": 0,
+      "itemType": "pass",
+      "fetchingType": "Token",
+      "class": "Pass",
+      "category": "Pass",
+      "uri": "https://file.dexlab.space/file/5a0cb98f39204375ad6cce026e45230b",
+      "sellerFeeBasisPoints": 0
+    }
+  ],
+  "baseCurrency": ["SOL", "USDC", "USDT"],
+  "customCurrencies": [
+    {
+      "mint": "3zE4Qmh9hrC4inHynT3aSRzHcWhnxPCHLeN9WWqvoRVz",
+      "name": "Race Raiders Rewards",
+      "symbol": "RRR",
+      "decimals": 9
+    }
+  ],
+  "colors": {
+    "primary": {
+      "main": "#1e3a8a",
+      "hover": "#2563eb",
+      "light": "#3b82f6",
+      "dark": "#1e40af"
+    },
+    "secondary": {
+      "main": "#7c3aed",
+      "hover": "#6d28d9",
+      "light": "#8b5cf6",
+      "dark": "#5b21b6"
+    },
+    "accent": {
+      "main": "#a78bfa",
+      "hover": "#8b5cf6"
+    },
+    "background": {
+      "primary": "#0f172a",
+      "secondary": "#1e293b",
+      "card": "#1e293b"
+    },
+    "text": {
+      "primary": "#f8fafc",
+      "secondary": "#e2e8f0",
+      "muted": "#94a3b8"
+    },
+    "border": {
+      "default": "#334155",
+      "light": "#475569"
+    },
+    "status": {
+      "success": "#22c55e",
+      "error": "#ef4444",
+      "warning": "#f59e0b",
+      "info": "#3b82f6"
+    },
+    "trade": {
+      "buy": "#22c55e",
+      "buyHover": "#16a34a",
+      "buyLight": "#4ade80",
+      "sell": "#ef4444",
+      "sellHover": "#dc2626",
+      "sellLight": "#f87171",
+      "trade": "#a78bfa",
+      "tradeHover": "#8b5cf6",
+      "tradeLight": "#c4b5fd"
+    },
+    "window": {
+      "background": "#1e293b",
+      "border": "#334155",
+      "header": "#0f172a"
+    }
+  },
+  "description": "Race Protocol – poker community. Dark blue and purple.",
+  "verification_status": "verified",
+  "subscriptionActive": true,
+  "subscriptionExpiresAt": null,
+  "tradeDiscount": {
+    "enabled": true,
+    "appliesTo": "all"
+  }
+}

@@ -123,7 +123,7 @@ import { useWalletContext } from '@/composables/useWalletContext'
 import { useEscrowTransactions } from '@/composables/useEscrowTransactions'
 import { useSolanaConnection } from '@/composables/useSolanaConnection'
 import { useTokenRegistry } from '@/composables/useTokenRegistry'
-import { useWalletBalances } from '@/composables/useWalletBalances'
+import { useWalletBalanceStore } from '@/stores/walletBalance'
 import { useErrorDisplay } from '@/composables/useErrorDisplay'
 import { truncateAddress, formatDecimals } from '@/utils/formatters'
 import { fetchEscrowByAddress } from '@/utils/escrowTransactions'
@@ -160,7 +160,7 @@ const storefrontMetadataStore = useStorefrontMetadataStore()
 const { publicKey, connected, anchorWallet } = useWalletContext()
 const connection = useSolanaConnection()
 const tokenRegistry = useTokenRegistry()
-const { fetchSingleTokenBalance } = useWalletBalances({ autoFetch: false })
+const walletBalanceStore = useWalletBalanceStore()
 const { cancelEscrow: cancelEscrowTx, exchangeEscrow: exchangeEscrowTx } = useEscrowTransactions()
 const { displayError } = useErrorDisplay({ errorTypes: ['transaction'] })
 const { success, error: showError, warning } = useToast()
@@ -252,7 +252,7 @@ const loadRequestTokenBalance = async () => {
 
   loadingRequestTokenBalance.value = true
   try {
-    const balance = await fetchSingleTokenBalance(escrow.value.requestToken.mint)
+    const balance = await walletBalanceStore.fetchSingleTokenBalance(escrow.value.requestToken.mint)
     requestTokenBalance.value = balance
   } catch (error) {
     logError('Failed to load request token balance:', error)

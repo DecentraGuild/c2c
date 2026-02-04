@@ -102,7 +102,7 @@ import { Icon } from '@iconify/vue'
 import TokenSelector from './TokenSelector.vue'
 import RequestTokenSelector from './RequestTokenSelector.vue'
 import BaseTokenImage from './BaseTokenImage.vue'
-import { useWalletBalances } from '@/composables/useWalletBalances'
+import { useWalletBalanceStore } from '@/stores/walletBalance'
 import { usePercentageButtons } from '@/composables/usePercentageButtons'
 import { useDecimalHandling } from '@/composables/useDecimalHandling'
 import { formatBalance as formatBalanceUtil, truncateAddress, formatDecimals } from '@/utils/formatters'
@@ -132,7 +132,7 @@ const emit = defineEmits(['update:token', 'update:amount'])
 
 const showTokenSelector = ref(false)
 const localAmount = ref(props.amount)
-const { getTokenBalance } = useWalletBalances()
+const walletBalanceStore = useWalletBalanceStore()
 
 const label = computed(() => {
   return props.type.charAt(0).toUpperCase() + props.type.slice(1)
@@ -147,7 +147,7 @@ const tokenBalance = computed(() => {
     return props.token.balance
   }
   // Otherwise, fetch from wallet balances
-  return getTokenBalance(props.token.mint)
+  return walletBalanceStore.getTokenBalance(props.token.mint)
 })
 
 // Percentage options - computed directly for reactivity

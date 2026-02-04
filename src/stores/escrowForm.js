@@ -7,7 +7,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { validateSolanaAddress, validateExpirationDate, validateSlippage, validateAmount } from '@/utils/validators'
-import { useTokenStore } from '@/stores/token'
+import { useWalletBalanceStore } from '@/stores/walletBalance'
 
 export const useEscrowFormStore = defineStore('escrowForm', () => {
   // Form state
@@ -31,8 +31,8 @@ export const useEscrowFormStore = defineStore('escrowForm', () => {
   // Form errors
   const formErrors = ref({})
   
-  // Get token store for balance checks
-  const tokenStore = useTokenStore()
+  // Get balance store for balance checks
+  const walletBalanceStore = useWalletBalanceStore()
   
   // Computed - Basic validation
   const hasValidOffer = computed(() => {
@@ -69,7 +69,7 @@ export const useEscrowFormStore = defineStore('escrowForm', () => {
     const validation = validateAmount(offerAmount.value, {
       min: 0.000001,
       decimals: offerToken.value.decimals,
-      balance: tokenStore.getTokenBalance(offerToken.value.mint)
+      balance: walletBalanceStore.getTokenBalance(offerToken.value.mint)
     })
     return validation.valid
   })
@@ -120,7 +120,7 @@ export const useEscrowFormStore = defineStore('escrowForm', () => {
       const validation = validateAmount(offerAmount.value, {
         min: 0.000001,
         decimals: offerToken.value.decimals,
-        balance: tokenStore.getTokenBalance(offerToken.value.mint)
+        balance: walletBalanceStore.getTokenBalance(offerToken.value.mint)
       })
       errors.offerAmount = validation.error || 'Please enter a valid offer amount'
     }

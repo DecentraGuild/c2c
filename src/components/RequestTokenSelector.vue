@@ -1,7 +1,7 @@
 <template>
   <BaseDropdown 
     :show="show" 
-    container-class="bg-card-bg border border-border-color rounded-xl shadow-xl max-h-64 overflow-hidden flex flex-col"
+    container-class="bg-window-bg border border-window-border rounded-xl shadow-xl max-h-64 overflow-hidden flex flex-col"
     @close="$emit('close')"
   >
     <div class="flex flex-col min-h-0 flex-1 overflow-hidden">
@@ -110,6 +110,7 @@
 import { ref, watch, computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useTokenStore } from '@/stores/token'
+import { useWalletBalanceStore } from '@/stores/walletBalance'
 import { useStorefrontStore } from '@/stores/storefront'
 import { useStorefrontMetadataStore } from '@/stores/storefrontMetadata'
 import { storeToRefs } from 'pinia'
@@ -134,6 +135,7 @@ const emit = defineEmits(['select', 'close'])
 
 const { connected } = storeToRefs(useWalletStore())
 const tokenStore = useTokenStore()
+const walletBalanceStore = useWalletBalanceStore()
 const storefrontStore = useStorefrontStore()
 const storefrontMetadataStore = useStorefrontMetadataStore()
 
@@ -216,10 +218,10 @@ const allowedCurrenciesAsTokens = computed(() => {
 const { searchQuery } = storeToRefs(tokenStore)
 
 // Access other store properties via computed to maintain reactivity
-const walletBalances = computed(() => tokenStore.balances)
-const walletBalancesLoading = computed(() => tokenStore.loadingBalances)
+const walletBalances = computed(() => walletBalanceStore.balances)
+const walletBalancesLoading = computed(() => walletBalanceStore.loadingBalances)
 const registryLoading = computed(() => tokenStore.loadingRegistry)
-const balancesError = computed(() => tokenStore.balancesError)
+const balancesError = computed(() => walletBalanceStore.balancesError)
 const registryError = computed(() => tokenStore.registryError)
 const registrySearchResults = computed(() => tokenStore.searchResults)
 const fetchingTokenInfo = computed(() => tokenStore.fetchingTokenInfo)

@@ -6,7 +6,6 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { useWalletBalances } from '@/composables/useWalletBalances'
 import { useTokenRegistry } from '@/composables/useTokenRegistry'
 import { logDebug } from '@/utils/logger'
 import { STORAGE_KEYS, CACHE_CONFIG } from '@/utils/constants/ui'
@@ -23,10 +22,6 @@ const CACHE_TTL = {
 }
 
 export const useTokenStore = defineStore('token', () => {
-  // Shared wallet balances instance
-  // Pinia stores are singletons, so this will only be created once
-  const walletBalances = useWalletBalances({ autoFetch: true })
-  
   // Shared token registry instance (already singleton at module level)
   const tokenRegistry = useTokenRegistry()
   
@@ -34,15 +29,9 @@ export const useTokenStore = defineStore('token', () => {
   const tokenMetadataCache = ref(new Map())
   
   // Loading states
-  const loadingBalances = computed(() => walletBalances.loading.value)
-  const loadingMetadata = computed(() => walletBalances.loadingMetadata.value)
   const loadingRegistry = computed(() => tokenRegistry.loading.value)
   
-  // Balances (from wallet)
-  const balances = computed(() => walletBalances.balances.value)
-  
   // Errors
-  const balancesError = computed(() => walletBalances.error.value)
   const registryError = computed(() => tokenRegistry.error.value)
   
   /**
@@ -188,54 +177,17 @@ export const useTokenStore = defineStore('token', () => {
     return tokenRegistry.searchTokens(query)
   }
   
-  /**
-   * Get token balance from wallet balances
-   * Wrapper for consistent store API
-   */
-  function getTokenBalance(mint) {
-    return walletBalances.getTokenBalance(mint)
-  }
-  
-  /**
-   * Get token info from wallet balances (only for tokens in wallet)
-   * For complete token info including metadata, use fetchTokenInfo instead
-   * Wrapper for consistent store API
-   */
-  function getTokenInfo(mint) {
-    return walletBalances.getTokenInfo(mint)
-  }
-  
-  /**
-   * Fetch all wallet balances (shared across all components)
-   * Wrapper for consistent store API
-   */
-  async function fetchBalances() {
-    return walletBalances.fetchBalances()
-  }
-  
-  /**
-   * Fetch single token balance (shared across all components)
-   * Wrapper for consistent store API
-   */
-  async function fetchSingleTokenBalance(mint) {
-    return walletBalances.fetchSingleTokenBalance(mint)
-  }
-  
   // Load cached metadata on store initialization
   loadCachedMetadata()
   
   return {
     // State
-    balances,
     tokenMetadataCache: computed(() => tokenMetadataCache.value),
     
     // Loading states
-    loadingBalances,
-    loadingMetadata,
     loadingRegistry,
     
     // Errors
-    balancesError,
     registryError,
     
     // Registry
@@ -247,10 +199,6 @@ export const useTokenStore = defineStore('token', () => {
     fetchTokenInfo,
     preloadRegistry,
     searchTokens,
-    getTokenBalance,
-    getTokenInfo,
-    fetchBalances,
-    fetchSingleTokenBalance,
     cacheMetadata,
     getCachedMetadata,
     getCachedTokenInfo

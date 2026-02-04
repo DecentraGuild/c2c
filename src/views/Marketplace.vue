@@ -146,7 +146,7 @@ import MarketplaceFilters from '@/components/MarketplaceFilters.vue'
 import CollectionBadge from '@/components/CollectionBadge.vue'
 import { useStorefrontStore } from '@/stores/storefront'
 import { useEscrowStore } from '@/stores/escrow'
-import { useWalletBalances } from '@/composables/useWalletBalances'
+import { useWalletBalanceStore } from '@/stores/walletBalance'
 import { useViewMode } from '@/composables/useViewMode'
 import useMarketplaceFilters from '@/composables/useMarketplaceFilters'
 import { logDebug } from '@/utils/logger'
@@ -155,7 +155,7 @@ const route = useRoute()
 const router = useRouter()
 const storefrontStore = useStorefrontStore()
 const escrowStore = useEscrowStore()
-const { balances, fetchBalances } = useWalletBalances({ autoFetch: true })
+const walletBalanceStore = useWalletBalanceStore()
 const { viewMode } = useViewMode('marketplace-view-mode', 'list')
 
 // State
@@ -194,11 +194,10 @@ const selectedStorefront = computed(() => {
 // User balances as a map for quick lookup
 const userBalances = computed(() => {
   const balanceMap = {}
-  if (balances.value) {
-    balances.value.forEach(token => {
-      balanceMap[token.mint] = token.balance || 0
-    })
-  }
+  const list = walletBalanceStore.balances || []
+  list.forEach(token => {
+    balanceMap[token.mint] = token.balance || 0
+  })
   return balanceMap
 })
 
@@ -271,11 +270,6 @@ watch(() => route.query.storefront, (newStorefrontId) => {
   }
 }, { immediate: true })
 
-// Watch for wallet connection to reload balances
-watch(() => balances.value, () => {
-  // Balances updated, escrows will automatically re-sort via computed
-}, { deep: true })
-
 onMounted(async () => {
   if (storefronts.value.length === 0) {
     await storefrontStore.loadStorefronts()
@@ -291,6 +285,6 @@ onMounted(async () => {
     router.replace({ query: { storefront: storefronts.value[0].id } })
     loadEscrows()
   }
-  await fetchBalances()
+  await walletBalanceStore.fetchBalances()
 })
 </script>

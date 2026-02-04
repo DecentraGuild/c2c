@@ -1,0 +1,24 @@
+{
+  "storefronts": [
+    {
+      "id": "decentraguild",
+      "name": "DecentraGuild",
+      "configUrl": "/storefronts/decentraguild.json"
+    },
+    {
+      "id": "star-atlas",
+      "name": "Escrow SA",
+      "configUrl": "/storefronts/star-atlas.json"
+    },
+    {
+      "id": "skull-bones",
+      "name": "Skull & Bones",
+      "configUrl": "/storefronts/skull-bones.json"
+    },
+    {
+      "id": "race-protocol",
+      "name": "Race Protocol",
+      "configUrl": "/storefronts/race-protocol.json"
+    }
+  ]
+}

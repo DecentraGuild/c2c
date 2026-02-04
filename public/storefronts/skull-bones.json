@@ -1,0 +1,139 @@
+{
+  "id": "skull-bones",
+  "name": "Skull & Bones",
+  "logo": "/Collections/Skull & Bones/Skull&BonesWhite.webp",
+  "creatorAddress": "snbV1PVSmktbUmLUgs14gVjmApuTLsynWtiN8aE3CDD",
+  "collectionMints": [
+    {
+      "mint": "CL2m6JiuV8H7X6cqzMqHNGWbJncj7HZ2BFXd8sQYStQ3",
+      "name": "Year 2 NFT",
+      "itemType": "NFT",
+      "fetchingType": "NFT",
+      "class": "Year 2",
+      "category": "Year 2",
+      "image": "https://ssfuazfoieojutfpat665fz4uld7fvshfa3eei72ea32s3pm52iq.arweave.net/lItAZK5BHJpMrwT97pc8osfy1kcoNkIj-iA3qW3s7pE?ext=png",
+      "sellerFeeBasisPoints": 1000
+    },
+    {
+      "mint": "6LomcBw8DVUE3T1XBLK1PZDiRyHYtFYo9E6v9UXeqjHE",
+      "name": "Year 3 NFT",
+      "itemType": "NFT",
+      "fetchingType": "NFT",
+      "class": "Year 3",
+      "category": "Year 3",
+      "image": "https://node1.irys.xyz/Yzy6JBBf7_bkTR2dZqKIDRAYYuEYg2vRj78uPoSjmHI",
+      "sellerFeeBasisPoints": 1000
+    },
+    {
+      "mint": "C1FxQEMa7ZPmzpP8ak5PYg8iMdYaxZVNHF7pfaAcCx3D",
+      "name": "DAOBloons GuildToken",
+      "itemType": "GuildToken",
+      "fetchingType": "Token",
+      "class": "DAOBloons",
+      "category": "DAOBloons",
+      "image": "",
+      "sellerFeeBasisPoints": 0
+    },
+    {
+      "mint": "4WN4y9zxqRrYtUTFkB3svJsYFVg2zo24tLTouLErnq9q",
+      "name": "DACBloons GuildToken",
+      "itemType": "GuildToken",
+      "fetchingType": "Token",
+      "class": "DACBloons",
+      "category": "DACBloons",
+      "image": "",
+      "sellerFeeBasisPoints": 0
+    }
+  ],
+  "baseCurrency": ["SOL", "USDC"],
+  "customCurrencies": [
+    {
+      "mint": "ATLASXmbPQxBUYbxPsV97usA3fPQYEqzQBUHgiFCUsXx",
+      "name": "ATLAS",
+      "symbol": "ATLAS",
+      "decimals": 8
+    },
+    {
+      "mint": "poLisWXnNRwC6oBu1vHiuKQzFjGL4XDSu4g9qjz9qV9",
+      "name": "POLIS",
+      "symbol": "POLIS",
+      "decimals": 8
+    }
+  ],
+  "borderRadius": {
+    "sm": "0",
+    "md": "0",
+    "lg": "0",
+    "xl": "0",
+    "full": "0"
+  },
+  "colors": {
+    "primary": {
+      "main": "#4a5568",
+      "hover": "#5a6578",
+      "light": "#718096",
+      "dark": "#2d3748"
+    },
+    "secondary": {
+      "main": "#a0aec0",
+      "hover": "#9099a8",
+      "light": "#cbd5e0",
+      "dark": "#718096"
+    },
+    "accent": {
+      "main": "#e2e8f0",
+      "hover": "#cbd5e0"
+    },
+    "background": {
+      "primary": "#1a202c",
+      "secondary": "#2d3748",
+      "card": "#2d3748"
+    },
+    "text": {
+      "primary": "#f7fafc",
+      "secondary": "#e2e8f0",
+      "muted": "#a0aec0"
+    },
+    "border": {
+      "default": "#4a5568",
+      "light": "#718096"
+    },
+    "status": {
+      "success": "#48bb78",
+      "error": "#fc8181",
+      "warning": "#ecc94b",
+      "info": "#63b3ed"
+    },
+    "trade": {
+      "buy": "#48bb78",
+      "buyHover": "#38a169",
+      "buyLight": "#68d391",
+      "sell": "#fc8181",
+      "sellHover": "#f56565",
+      "sellLight": "#feb2b2",
+      "trade": "#b794f4",
+      "tradeHover": "#9f7aea",
+      "tradeLight": "#d6bcfa"
+    },
+    "window": {
+      "background": "#2d3748",
+      "border": "#4a5568",
+      "header": "#2d3748"
+    }
+  },
+  "description": "Skull & Bones trading hub",
+  "verification_status": "verified",
+  "subscriptionActive": true,
+  "subscriptionExpiresAt": null,
+  "tradeDiscount": {
+    "enabled": true,
+    "appliesTo": "all"
+  },
+  "shopFee": {
+    "wallet": "HmAwHhCw3aPEYmx2dgfoQUWJ2y1LFqTdyMQPYebo9TeE",
+    "makerFlatFee": 0,
+    "takerFlatFee": 0,
+    "makerPercentFee": 0,
+    "takerPercentFee": 0
+  }
+}

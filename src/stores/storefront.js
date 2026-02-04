@@ -118,24 +118,39 @@ export const useStorefrontStore = defineStore('storefront', () => {
     selectedStorefrontId.value = null
   }
 
+  const STOREFRONT_REGISTRY_URL = '/storefronts/registry.json'
+
   const loadStorefronts = async () => {
     loadingStorefronts.value = true
     error.value = null
     try {
-      const storefrontFiles = [
-        '/Collections/DecentraGuild/decentraguild.json',
-        '/Collections/Star Atlas/star-atlas.json',
-        '/Collections/Skull & Bones/skull-bones.json',
-        '/Collections/Race Protocol/race-protocol.json'
-      ]
+      const registryRes = await fetch(STOREFRONT_REGISTRY_URL)
+      if (!registryRes.ok) throw new Error(`Failed to load registry: ${registryRes.status}`)
+      const registry = await registryRes.json()
+      const entries = registry.storefronts || []
+      if (entries.length === 0) {
+        logDebug('Storefront registry has no entries')
+        storefronts.value = []
+        return
+      }
+
+      const filesToLoad = entries.map((e) => {
+        const configUrl = e.configUrl
+        if (configUrl.startsWith('http') || configUrl.startsWith('/')) {
+          return configUrl
+        }
+        const base = STOREFRONT_REGISTRY_URL.replace(/\/[^/]+$/, '/')
+        return base + configUrl.replace(/^\.\//, '')
+      })
+
       const loaded = await Promise.all(
-        storefrontFiles.map(async (file) => {
+        filesToLoad.map(async (url) => {
           try {
-            const response = await fetch(file)
-            if (!response.ok) throw new Error(`Failed to load ${file}`)
+            const response = await fetch(url)
+            if (!response.ok) throw new Error(`Failed to load ${url}`)
             return await response.json()
           } catch (err) {
-            logError(`Failed to load storefront file ${file}:`, err)
+            logError(`Failed to load storefront file ${url}:`, err)
             return null
           }
         })

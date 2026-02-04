@@ -115,7 +115,10 @@ export function useWalletBalances(options = {}) {
           logDebug('DAS getAssetsByOwner unavailable or partial:', dasErr?.message)
           return []
         }),
-        fetchSPLTokenBalancesFromRPC(walletAddress)
+        fetchSPLTokenBalancesFromRPC(walletAddress).catch((rpcErr) => {
+          logDebug('RPC token accounts unavailable or partial:', rpcErr?.message)
+          return []
+        })
       ])
 
       logDebug(`DAS: ${dasBalances.length} token balances, RPC: ${rpcBalances.length} (Token + Token-2022)`)
@@ -311,38 +314,49 @@ export function useWalletBalances(options = {}) {
     error.value = null
 
     const timeoutMs = UI_CONSTANTS.RPC_BALANCE_FETCH_TIMEOUT_MS ?? 25000
-    const fetchPromise = (async () => {
-      const [solBalance, splBalances] = await Promise.all([
-        fetchSOLBalance(walletAddress),
-        fetchSPLTokenBalances(walletAddress)
-      ])
-      const allBalances = []
-      if (solBalance) allBalances.push(solBalance)
-      if (splBalances && splBalances.length > 0) allBalances.push(...splBalances)
-      return allBalances
-    })()
 
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => {
-        reject(new Error(`Balance fetch timed out after ${timeoutMs / 1000} seconds. Try again on a stronger connection.`))
-      }, timeoutMs)
-    })
+    const attemptFetchOnce = async () => {
+      const fetchPromise = (async () => {
+        const [solBalance, splBalances] = await Promise.all([
+          fetchSOLBalance(walletAddress),
+          fetchSPLTokenBalances(walletAddress)
+        ])
+        const allBalancesInner = []
+        if (solBalance) allBalancesInner.push(solBalance)
+        if (splBalances && splBalances.length > 0) allBalancesInner.push(...splBalances)
+        return allBalancesInner
+      })()
 
-    try {
-      const allBalances = await Promise.race([fetchPromise, timeoutPromise])
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error(`Balance fetch timed out after ${timeoutMs / 1000} seconds. Try again on a stronger connection.`))
+        }, timeoutMs)
+      })
 
-      balances.value = allBalances
-      lastBalanceFetchTs = Date.now()
-      lastBalanceFetchWallet = walletAddress
+      return Promise.race([fetchPromise, timeoutPromise])
+    }
 
-      if (allBalances.length > 0) {
-        fetchAllTokenMetadata(allBalances).then(tokensWithMetadata => {
-          balances.value = tokensWithMetadata
-        })
+    const maxAttempts = 2
+    let lastError = null
+    let allBalances = []
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      try {
+        allBalances = await attemptFetchOnce()
+        lastError = null
+        break
+      } catch (err) {
+        lastError = err
+        if (attempt < maxAttempts - 1) {
+          // Small delay before retry
+          await new Promise(resolve => setTimeout(resolve, 1500))
+        }
       }
-    } catch (err) {
-      logError('Error fetching balances:', err)
-      const msg = err?.message || ''
+    }
+
+    if (lastError) {
+      const msg = lastError?.message || ''
+      logError('Error fetching balances:', lastError)
       if (msg.includes('timed out') || msg.includes('timeout')) {
         error.value = 'Request took too long. Try again on a stronger connection (e.g. Wi‑Fi).'
       } else if (msg.includes('Failed to fetch') || msg.includes('Network request failed') || msg.includes('Load failed')) {
@@ -353,9 +367,21 @@ export function useWalletBalances(options = {}) {
         error.value = msg || 'Failed to fetch balances'
       }
       balances.value = []
-    } finally {
       loading.value = false
+      return
     }
+
+    balances.value = allBalances
+    lastBalanceFetchTs = Date.now()
+    lastBalanceFetchWallet = walletAddress
+
+    if (allBalances.length > 0) {
+      fetchAllTokenMetadata(allBalances).then(tokensWithMetadata => {
+        balances.value = tokensWithMetadata
+      })
+    }
+
+    loading.value = false
   }
 
   /**

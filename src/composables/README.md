@@ -44,7 +44,7 @@ export function useComposableName(params) {
 
 ### 2. Wallet Composables
 - `useWalletValidation` - Wallet connection and validation
-- `useWalletBalances` - Wallet balance fetching
+- `useWalletBalances` - Low-level wallet balance fetching (SOL + SPL via DAS + RPC + metadata). Wrapped by `useWalletBalanceStore` and not used directly by views.
 - `useWalletNFTs` - NFT fetching from wallet
 
 ### 3. Token Composables
