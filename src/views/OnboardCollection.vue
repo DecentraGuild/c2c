@@ -424,10 +424,10 @@ const technical = computed(() => {
     escrowProgramId: ESCROW_PROGRAM_ID,
     baseCurrenciesList: ordered.map(c => ({ symbol: c.symbol, mint: c.mint })),
     tokenProgramsCurrent: [
-      { label: 'SPL Token Program', address: TOKEN_PROGRAM_ID_STR, copyKey: 'prog-spl' },
-      { label: 'Token-2022', address: TOKEN_2022_PROGRAM_ID_STR, copyKey: 'prog-token2022' }
+      { label: 'SPL Token Program (legacy)', address: TOKEN_PROGRAM_ID_STR, copyKey: 'prog-spl' }
     ],
     tokenProgramsFuture: [
+      { label: 'Token-2022', address: TOKEN_2022_PROGRAM_ID_STR, copyKey: 'prog-token2022' },
       { label: 'Whitelist support', address: WHITELIST_PROGRAM_ID, copyKey: 'prog-whitelist' },
       { label: 'MPL Core', address: MPL_CORE_PROGRAM_ID_STR, copyKey: 'prog-mplcore' },
       { label: 'cNFT', address: null, copyKey: null }
