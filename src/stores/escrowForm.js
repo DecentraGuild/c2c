@@ -69,7 +69,7 @@ export const useEscrowFormStore = defineStore('escrowForm', () => {
     const validation = validateAmount(offerAmount.value, {
       min: 0.000001,
       decimals: offerToken.value.decimals,
-      balance: walletBalanceStore.getTokenBalance(offerToken.value.mint)
+      balance: offerToken.value?.balance ?? walletBalanceStore.getTokenBalance(offerToken.value.mint)
     })
     return validation.valid
   })
@@ -120,7 +120,7 @@ export const useEscrowFormStore = defineStore('escrowForm', () => {
       const validation = validateAmount(offerAmount.value, {
         min: 0.000001,
         decimals: offerToken.value.decimals,
-        balance: walletBalanceStore.getTokenBalance(offerToken.value.mint)
+        balance: offerToken.value?.balance ?? walletBalanceStore.getTokenBalance(offerToken.value.mint)
       })
       errors.offerAmount = validation.error || 'Please enter a valid offer amount'
     }

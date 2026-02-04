@@ -51,8 +51,8 @@
         <div class="flex-1 min-w-0">
           <div class="flex items-center justify-between mb-1.5">
             <label class="block text-xs font-semibold text-text-secondary">Amount</label>
-            <!-- Wallet Balance above input (only for offer type when token is selected) -->
-            <div v-if="type === 'offer' && token" class="text-xs text-text-muted hidden sm:block">
+            <!-- Wallet Balance above input (only for offer type when token is selected and showBalance) -->
+            <div v-if="type === 'offer' && token && showBalance" class="text-xs text-text-muted hidden sm:block">
               <span v-if="tokenBalance !== undefined && tokenBalance !== null">
                 Wallet balance : {{ formatBalance(tokenBalance) }}
               </span>
@@ -60,7 +60,7 @@
             </div>
           </div>
           <!-- Mobile: Show balance below label -->
-          <div v-if="type === 'offer' && token" class="text-xs text-text-muted mb-1.5 sm:hidden">
+          <div v-if="type === 'offer' && token && showBalance" class="text-xs text-text-muted mb-1.5 sm:hidden">
             <span v-if="tokenBalance !== undefined && tokenBalance !== null">
               Balance: {{ formatBalance(tokenBalance) }}
             </span>

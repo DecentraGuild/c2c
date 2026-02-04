@@ -14,7 +14,7 @@
           type="offer"
           v-model:token="offerToken"
           v-model:amount="offerAmount"
-          :show-balance="false"
+          :show-balance="true"
         />
 
         <!-- Request Section -->
@@ -141,6 +141,7 @@ import PricingModal from '@/components/PricingModal.vue'
 import { useEscrowStore } from '@/stores/escrow'
 import { useEscrowFormStore } from '@/stores/escrowForm'
 import { useStorefrontStore } from '@/stores/storefront'
+import { useWalletBalanceStore } from '@/stores/walletBalance'
 import { useEscrowTransactions } from '@/composables/useEscrowTransactions'
 import { useSolanaConnection } from '@/composables/useSolanaConnection'
 import { useErrorDisplay } from '@/composables/useErrorDisplay'
@@ -160,6 +161,7 @@ const router = useRouter()
 const escrowStore = useEscrowStore()
 const formStore = useEscrowFormStore()
 const storefrontStore = useStorefrontStore()
+const walletBalanceStore = useWalletBalanceStore()
 const { publicKey, connected, anchorWallet, validateWallet: validateWalletReady } = useWalletContext()
 const connection = useSolanaConnection()
 const { initializeEscrow, loading: txLoading, error: txError } = useEscrowTransactions()
@@ -168,11 +170,12 @@ const { displayError } = useErrorDisplay({ txError, errorTypes: ['transaction', 
 // Get selected collection for marketplace fee calculation
 const selectedStorefront = computed(() => storefrontStore.selectedStorefront)
 
-// When landing on /create directly, ensure collections load so last storefront can be restored
+// When landing on /create directly, ensure collections load and balances are fetched so form has up-to-date offer balances
 onMounted(async () => {
   if (storefrontStore.storefronts.length === 0) {
     await storefrontStore.loadStorefronts()
   }
+  await walletBalanceStore.fetchBalances()
 })
 
 const loading = ref(false)

@@ -111,7 +111,7 @@
         </template>
       </div>
 
-      <!-- Compact slide-down menu (right-aligned) -->
+      <!-- Compact slide-down menu (right-aligned, multi-level) -->
       <div
         v-if="mobileMenuOpen"
         class="nav-compact:hidden border-t border-border-color bg-primary-bg/98 backdrop-blur-xl relative z-10 flex justify-end"
@@ -125,69 +125,95 @@
             />
           </div>
 
-          <!-- Platform Navigation -->
-          <div class="px-2 mb-2">
-            <div class="text-xs font-semibold text-text-muted uppercase px-2 mb-1">Platform</div>
-            <router-link
-              to="/"
-              @click="mobileMenuOpen = false"
-              class="px-4 py-3 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-3"
-              :class="isActive('/') 
-                ? 'text-primary-color bg-primary-color/10' 
-                : 'text-text-secondary hover:text-primary-color hover:bg-primary-color/5'"
+          <!-- Platform (collapsible) -->
+          <div class="px-2 mb-1">
+            <button
+              type="button"
+              @click="mobilePlatformOpen = !mobilePlatformOpen"
+              class="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold rounded-lg transition-all text-text-secondary hover:text-primary-color hover:bg-primary-color/5"
+              :aria-expanded="mobilePlatformOpen"
             >
-              <Icon icon="mdi:compass-outline" class="w-5 h-5 flex-shrink-0" />
-              Explore
-            </router-link>
-            <router-link
-              to="/onboard"
-              @click="mobileMenuOpen = false"
-              class="px-4 py-3 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-3"
-              :class="isActive('/onboard') 
-                ? 'text-primary-color bg-primary-color/10' 
-                : 'text-text-secondary hover:text-primary-color hover:bg-primary-color/5'"
-            >
-              <Icon icon="mdi:domain" class="w-5 h-5 flex-shrink-0" />
-              Host
-            </router-link>
+              <span class="flex items-center gap-3">
+                <Icon icon="mdi:compass-outline" class="w-5 h-5 flex-shrink-0" />
+                Platform
+              </span>
+              <Icon :icon="mobilePlatformOpen ? 'mdi:chevron-down' : 'mdi:chevron-right'" class="w-5 h-5 flex-shrink-0" />
+            </button>
+            <div v-if="mobilePlatformOpen" class="pl-4 pb-1">
+              <router-link
+                to="/"
+                @click="mobileMenuOpen = false"
+                class="block px-4 py-2.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-3"
+                :class="isActive('/') 
+                  ? 'text-primary-color bg-primary-color/10' 
+                  : 'text-text-secondary hover:text-primary-color hover:bg-primary-color/5'"
+              >
+                <Icon icon="mdi:compass-outline" class="w-5 h-5 flex-shrink-0" />
+                Explore
+              </router-link>
+              <router-link
+                to="/onboard"
+                @click="mobileMenuOpen = false"
+                class="block px-4 py-2.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-3"
+                :class="isActive('/onboard') 
+                  ? 'text-primary-color bg-primary-color/10' 
+                  : 'text-text-secondary hover:text-primary-color hover:bg-primary-color/5'"
+              >
+                <Icon icon="mdi:domain" class="w-5 h-5 flex-shrink-0" />
+                Host
+              </router-link>
+            </div>
           </div>
 
-          <!-- Storefront Navigation -->
+          <!-- Storefront (collapsible) -->
           <div class="px-2">
-            <div class="text-xs font-semibold text-text-muted uppercase px-2 mb-1">Storefront</div>
-            <router-link
-              to="/marketplace"
-              @click="mobileMenuOpen = false"
-              class="px-4 py-3 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-3"
-              :class="isActive('/marketplace') 
-                ? 'text-primary-color bg-primary-color/10' 
-                : 'text-text-secondary hover:text-primary-color hover:bg-primary-color/5'"
+            <button
+              type="button"
+              @click="mobileStorefrontOpen = !mobileStorefrontOpen"
+              class="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold rounded-lg transition-all text-text-secondary hover:text-primary-color hover:bg-primary-color/5"
+              :aria-expanded="mobileStorefrontOpen"
             >
-              <Icon icon="mdi:storefront-outline" class="w-5 h-5 flex-shrink-0" />
-              Marketplace
-            </router-link>
-            <router-link
-              to="/create"
-              @click="mobileMenuOpen = false"
-              class="px-4 py-3 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-3"
-              :class="isActive('/create') 
-                ? 'text-primary-color bg-primary-color/10' 
-                : 'text-text-secondary hover:text-primary-color hover:bg-primary-color/5'"
-            >
-              <Icon icon="mdi:plus-circle-outline" class="w-5 h-5 flex-shrink-0" />
-              Create
-            </router-link>
-            <router-link
-              to="/manage"
-              @click="mobileMenuOpen = false"
-              class="px-4 py-3 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-3"
-              :class="isActive('/manage') 
-                ? 'text-primary-color bg-primary-color/10' 
-                : 'text-text-secondary hover:text-primary-color hover:bg-primary-color/5'"
-            >
-              <Icon icon="mdi:clipboard-list-outline" class="w-5 h-5 flex-shrink-0" />
-              Manage
-            </router-link>
+              <span class="flex items-center gap-3">
+                <Icon icon="mdi:storefront-outline" class="w-5 h-5 flex-shrink-0" />
+                Storefront
+              </span>
+              <Icon :icon="mobileStorefrontOpen ? 'mdi:chevron-down' : 'mdi:chevron-right'" class="w-5 h-5 flex-shrink-0" />
+            </button>
+            <div v-if="mobileStorefrontOpen" class="pl-4 pb-1">
+              <router-link
+                to="/marketplace"
+                @click="mobileMenuOpen = false"
+                class="block px-4 py-2.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-3"
+                :class="isActive('/marketplace') 
+                  ? 'text-primary-color bg-primary-color/10' 
+                  : 'text-text-secondary hover:text-primary-color hover:bg-primary-color/5'"
+              >
+                <Icon icon="mdi:storefront-outline" class="w-5 h-5 flex-shrink-0" />
+                Marketplace
+              </router-link>
+              <router-link
+                to="/create"
+                @click="mobileMenuOpen = false"
+                class="block px-4 py-2.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-3"
+                :class="isActive('/create') 
+                  ? 'text-primary-color bg-primary-color/10' 
+                  : 'text-text-secondary hover:text-primary-color hover:bg-primary-color/5'"
+              >
+                <Icon icon="mdi:plus-circle-outline" class="w-5 h-5 flex-shrink-0" />
+                Create
+              </router-link>
+              <router-link
+                to="/manage"
+                @click="mobileMenuOpen = false"
+                class="block px-4 py-2.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-3"
+                :class="isActive('/manage') 
+                  ? 'text-primary-color bg-primary-color/10' 
+                  : 'text-text-secondary hover:text-primary-color hover:bg-primary-color/5'"
+              >
+                <Icon icon="mdi:clipboard-list-outline" class="w-5 h-5 flex-shrink-0" />
+                Manage
+              </router-link>
+            </div>
           </div>
         </div>
       </div>
@@ -354,6 +380,8 @@ const route = useRoute()
 const router = useRouter()
 const storefrontStore = useStorefrontStore()
 const mobileMenuOpen = ref(false)
+const mobilePlatformOpen = ref(false)
+const mobileStorefrontOpen = ref(false)
 
 const selectedStorefrontId = computed({
   get: () => storefrontStore.selectedStorefrontId,
@@ -377,7 +405,12 @@ const isCollectionRoute = computed(() => {
 })
 
 const toggleMenu = () => {
-  mobileMenuOpen.value = !mobileMenuOpen.value
+  const opening = !mobileMenuOpen.value
+  mobileMenuOpen.value = opening
+  if (opening) {
+    mobilePlatformOpen.value = isPlatformRoute.value
+    mobileStorefrontOpen.value = isCollectionRoute.value
+  }
 }
 
 const handleStorefrontChange = (storefrontId) => {

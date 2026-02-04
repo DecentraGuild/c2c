@@ -34,3 +34,4 @@ Example/
 
 # Agent docs (AI/editor context; not shipped)
 Agent/
+.cursor/

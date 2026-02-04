@@ -81,8 +81,21 @@
           v-for="storefront in filteredStorefronts"
           :key="storefront.id"
           @click="selectStorefront(storefront)"
-          class="px-4 py-3 hover:bg-primary-color/10 cursor-pointer transition-colors flex items-center gap-3"
+          class="px-2 py-2 hover:bg-primary-color/10 cursor-pointer transition-colors flex items-center gap-2 min-h-0 max-h-12"
         >
+          <!-- Vertical Official/Community label on left (2-line height, no stretch) -->
+          <div
+            class="flex-shrink-0 h-10 max-h-10 flex items-center justify-center overflow-hidden"
+            aria-hidden="true"
+          >
+            <div
+              class="px-0.5 py-1 rounded text-[8px] font-bold whitespace-nowrap"
+              :class="getBadgeClasses(storefront)"
+              style="writing-mode: vertical-rl; text-orientation: mixed;"
+            >
+              {{ getBadgeLabel(storefront) }}
+            </div>
+          </div>
           <img
             v-if="storefront.logo"
             :src="storefront.logo"
@@ -94,14 +107,9 @@
             icon="mdi:image-off"
             class="w-8 h-8 text-text-muted flex-shrink-0"
           />
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-1">
-              <div class="font-semibold text-text-primary truncate">{{ storefront.name }}</div>
-              <CollectionBadge
-                :verification-status="storefront.verification_status || (storefront.verified ? 'verified' : 'community')"
-              />
-            </div>
-            <div v-if="storefront.description" class="text-xs text-text-secondary truncate">
+          <div class="flex-1 min-w-0 min-h-0 flex flex-col justify-center py-0.5">
+            <div class="font-semibold text-text-primary truncate text-sm leading-tight">{{ storefront.name }}</div>
+            <div v-if="storefront.description" class="text-xs text-text-secondary truncate leading-tight mt-0.5">
               {{ storefront.description }}
             </div>
           </div>
@@ -126,7 +134,6 @@ import { Icon } from '@iconify/vue'
 import { useStorefrontStore } from '@/stores/storefront'
 import { filterStorefrontsByQuery } from '@/utils/collectionHelpers'
 import BaseScrollArea from './BaseScrollArea.vue'
-import CollectionBadge from './CollectionBadge.vue'
 
 const props = defineProps({
   modelValue: {
@@ -157,6 +164,22 @@ const selectedStorefront = computed(() => {
 const filteredStorefronts = computed(() =>
   filterStorefrontsByQuery(storefronts.value, searchQuery.value)
 )
+
+const getVerificationStatus = (storefront) => {
+  return storefront.verification_status || (storefront.verified ? 'verified' : 'community')
+}
+
+const getBadgeLabel = (storefront) => {
+  return getVerificationStatus(storefront) === 'verified' ? 'Official' : 'Community'
+}
+
+const getBadgeClasses = (storefront) => {
+  const status = getVerificationStatus(storefront)
+  if (status === 'verified') {
+    return 'bg-status-warning/20 text-status-warning border border-status-warning/50'
+  }
+  return 'bg-status-info/20 text-status-info border border-status-info/50'
+}
 
 const selectStorefront = (storefront) => {
   emit('update:modelValue', storefront.id)
