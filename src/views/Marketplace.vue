@@ -32,9 +32,11 @@
           
           <!-- Filters -->
           <MarketplaceFilters
+            ref="filtersRef"
             :storefront="selectedStorefront"
             :escrows="allEscrows"
             @update:activeFilters="handleActiveFiltersUpdate"
+            @update:activeCollectionFilters="handleActiveCollectionFiltersUpdate"
           />
         </aside>
 
@@ -161,7 +163,9 @@ const { viewMode } = useViewMode('marketplace-view-mode', 'list')
 // State
 const selectedTradeType = ref('all')
 const activeFilters = ref(new Set()) // Set of "itemType:class" strings
+const activeCollectionFilters = ref(new Set()) // Set of collection ids (collection mint)
 const searchQuery = ref('')
+const filtersRef = ref(null)
 
 // Use escrows from the store
 const allEscrows = computed(() => escrowStore.escrows || [])
@@ -212,6 +216,7 @@ const {
   selectedTradeType,
   userBalances,
   activeFilters,
+  activeCollectionFilters,
   searchQuery
 })
 
@@ -220,9 +225,15 @@ const handleActiveFiltersUpdate = (newFilters) => {
   activeFilters.value = newFilters
 }
 
+const handleActiveCollectionFiltersUpdate = (newCollectionFilters) => {
+  activeCollectionFilters.value = newCollectionFilters
+}
+
 const clearFilters = () => {
   activeFilters.value.clear()
+  activeCollectionFilters.value.clear()
   searchQuery.value = ''
+  filtersRef.value?.clearFilters?.()
 }
 
 // Track if loadEscrows is in progress to prevent duplicate calls

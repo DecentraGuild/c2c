@@ -15,6 +15,8 @@ import {
   getTradeType,
   getShopCurrencyMints
 } from '@/utils/marketplaceHelpers'
+import { getMetadataForMint } from '@/utils/marketplaceFilterMetadata'
+import { getCollectionCurrencies } from '@/utils/constants/baseCurrencies'
 import { getEscrowItemMetadata } from './useCollectionMetadata'
 import { useStorefrontMetadataStore } from '@/stores/storefrontMetadata'
 
@@ -26,6 +28,7 @@ import { useStorefrontMetadataStore } from '@/stores/storefrontMetadata'
  * @param {import('vue').Ref<string>} options.selectedTradeType - Selected trade type filter ('all'|'nft-to-token'|'token-to-nft'|'nft-to-nft')
  * @param {import('vue').Ref<Object>} options.userBalances - User token balances map (mint -> balance)
  * @param {import('vue').Ref<Set>} options.activeFilters - Active itemType/class filters (Set of 'itemType:class' strings)
+ * @param {import('vue').Ref<Set>} options.activeCollectionFilters - Active collection filters (Set of collection mint ids)
  * @param {import('vue').Ref<string>} options.searchQuery - Search query string
  * @returns {{filteredEscrows: import('vue').ComputedRef<Array>, userFillableEscrows: import('vue').ComputedRef<Array>, otherEscrows: import('vue').ComputedRef<Array>, debouncedSearchQuery: import('vue').Ref<string>}} Filtered escrows and helper functions
  */
@@ -35,6 +38,7 @@ function useMarketplaceFilters({
   selectedTradeType,
   userBalances,
   activeFilters,
+  activeCollectionFilters,
   searchQuery
 }) {
   const { debouncedQuery: debouncedSearchQuery } = useDebouncedSearch(searchQuery)
@@ -68,11 +72,15 @@ function useMarketplaceFilters({
     const query = debouncedSearchQuery.value?.trim()
     const lowerQuery = query ? query.toLowerCase() : null
     const hasActiveFilters = activeFilters.value && activeFilters.value.size > 0
+    const hasCollectionFilters = activeCollectionFilters?.value?.size > 0
 
     const storefront = selectedStorefront.value
     const shopCurrencyMints = getShopCurrencyMints(storefront) || []
     const collectionMints = storefront.collectionMints || []
     const cachedMints = cachedCollectionMintSet.value
+    const cachedNFTs = storefront?.id ? (storefrontMetadataStore.getCachedNFTs(storefront.id) || []) : []
+    const shopCurrencies = getCollectionCurrencies(storefront) || []
+    const metadataOpts = { cachedNFTs, shopCurrencies }
 
     // Single pass filter - combines all filter conditions
     const filtered = allEscrows.value.filter(escrow => {
@@ -98,22 +106,30 @@ function useMarketplaceFilters({
           return false
         }
       }
-      
-      // Filter 4: ItemType/class filters
+
+      // Filter 4: ItemType/class filters (match if any selected filter matches deposit OR request)
       if (hasActiveFilters) {
-        const metadata = getEscrowItemMetadata(selectedStorefront.value, escrow)
-        if (!metadata) return false
-        
-        const itemType = metadata.itemType || 'unknown'
-        const classValue = metadata.class || 'unknown'
-        const filterKey = `${itemType}:${classValue}`
-        
-        if (!activeFilters.value.has(filterKey)) {
-          return false
-        }
+        const depositMeta = getMetadataForMint(storefront, depositMint, metadataOpts)
+        const requestMeta = getMetadataForMint(storefront, requestMint, metadataOpts)
+        const depositKey = depositMeta ? `${depositMeta.itemType || 'unknown'}:${depositMeta.class || 'unknown'}` : null
+        const requestKey = requestMeta ? `${requestMeta.itemType || 'unknown'}:${requestMeta.class || 'unknown'}` : null
+        const matchesFilter =
+          (depositKey && activeFilters.value.has(depositKey)) ||
+          (requestKey && activeFilters.value.has(requestKey))
+        if (!matchesFilter) return false
       }
-      
-      // Filter 5: Search query
+
+      // Filter 5: Collection filter (escrow has selected collection on deposit OR request)
+      if (hasCollectionFilters) {
+        const depositMeta = getMetadataForMint(storefront, depositMint, metadataOpts)
+        const requestMeta = getMetadataForMint(storefront, requestMint, metadataOpts)
+        const matchesCollection =
+          (depositMeta?.collectionId && activeCollectionFilters.value.has(depositMeta.collectionId)) ||
+          (requestMeta?.collectionId && activeCollectionFilters.value.has(requestMeta.collectionId))
+        if (!matchesCollection) return false
+      }
+
+      // Filter 6: Search query
       if (lowerQuery) {
         const escrowId = escrow.id?.toLowerCase() || ''
         const maker = escrow.maker?.toLowerCase() || ''

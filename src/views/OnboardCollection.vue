@@ -374,6 +374,25 @@
                   </ul>
                 </td>
               </tr>
+              <tr class="border-b border-border-color">
+                <td class="py-3 pr-4 text-text-secondary align-top">Whitelist (extra feature)</td>
+                <td class="py-3 pr-4 text-text-primary">
+                  <div class="space-y-1.5">
+                    <p class="text-text-secondary text-xs">Privatize your storefront and other parts of your organisation.</p>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="font-mono text-xs break-all">{{ technical.whitelistProgramId }}</span>
+                      <button
+                        type="button"
+                        @click.stop="copyTechnicalItem(technical.whitelistProgramId, 'prog-whitelist')"
+                        class="p-0.5 rounded hover:bg-secondary-bg transition-colors text-text-muted hover:text-text-primary flex-shrink-0"
+                        title="Copy"
+                      >
+                        <Icon :icon="copyState === 'prog-whitelist' ? 'svg-spinners:ring-resize' : 'mdi:content-copy'" :class="copyState === 'prog-whitelist' ? 'text-primary-color' : ''" class="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -422,13 +441,13 @@ const technical = computed(() => {
   const ordered = BASE_CURRENCY_ORDER.map(sym => BASE_CURRENCIES.find(c => c.symbol === sym)).filter(Boolean)
   return {
     escrowProgramId: ESCROW_PROGRAM_ID,
+    whitelistProgramId: WHITELIST_PROGRAM_ID,
     baseCurrenciesList: ordered.map(c => ({ symbol: c.symbol, mint: c.mint })),
     tokenProgramsCurrent: [
       { label: 'SPL Token Program (legacy)', address: TOKEN_PROGRAM_ID_STR, copyKey: 'prog-spl' }
     ],
     tokenProgramsFuture: [
       { label: 'Token-2022', address: TOKEN_2022_PROGRAM_ID_STR, copyKey: 'prog-token2022' },
-      { label: 'Whitelist support', address: WHITELIST_PROGRAM_ID, copyKey: 'prog-whitelist' },
       { label: 'MPL Core', address: MPL_CORE_PROGRAM_ID_STR, copyKey: 'prog-mplcore' },
       { label: 'cNFT', address: null, copyKey: null }
     ]
