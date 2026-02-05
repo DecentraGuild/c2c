@@ -9,7 +9,7 @@
         <!-- Logo: platform = own logo, storefront = storefront logo -->
         <div class="flex items-center gap-2 flex-shrink-0 h-7 sm:h-8">
           <router-link
-            v-if="isPlatformRoute || !selectedStorefrontId || (selectedStorefrontId && !isCollectionRoute)"
+            v-if="isPlatformRoute || !selectedStorefrontId || (selectedStorefrontId && !isStorefrontRoute)"
             to="/"
             class="flex items-center h-full hover:opacity-80 transition-opacity"
           >
@@ -31,37 +31,33 @@
         </div>
 
         <!-- Platform bar: Explore, Host, Wallet, Menu -->
-        <template v-if="isPlatformRoute || !selectedStorefrontId || (selectedStorefrontId && !isCollectionRoute)">
+        <template v-if="isPlatformRoute || !selectedStorefrontId || (selectedStorefrontId && !isStorefrontRoute)">
           <div class="flex-1 flex items-center justify-end gap-0.5 sm:gap-1">
-            <router-link
+            <BaseNavLink
               to="/"
               aria-label="Explore"
-              class="nav-icon-btn rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer"
-              :class="isActive('/') ? 'nav-icon-btn-active' : 'nav-icon-btn-inactive'"
+              :active="isActive('/')"
+              base-class="nav-icon-btn rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer"
+              active-class="nav-icon-btn-active"
+              inactive-class="nav-icon-btn-inactive"
             >
               <Icon icon="mdi:compass-outline" class="w-5 h-5 sm:w-6 sm:h-6 pointer-events-none" />
-            </router-link>
-            <router-link
+            </BaseNavLink>
+            <BaseNavLink
               to="/onboard"
               aria-label="Host"
-              class="nav-icon-btn rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer"
-              :class="isActive('/onboard') ? 'nav-icon-btn-active' : 'nav-icon-btn-inactive'"
+              :active="isActive('/onboard')"
+              base-class="nav-icon-btn rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer"
+              active-class="nav-icon-btn-active"
+              inactive-class="nav-icon-btn-inactive"
             >
               <Icon icon="mdi:domain" class="w-5 h-5 sm:w-6 sm:h-6 pointer-events-none" />
-            </router-link>
+            </BaseNavLink>
             <div class="wallet-button-custom wallet-button-compact flex-shrink-0">
               <WalletMultiButton dark />
             </div>
             <div class="relative z-20 flex-shrink-0">
-              <button
-                type="button"
-                aria-label="Menu"
-                :aria-expanded="mobileMenuOpen"
-                class="nav-icon-btn nav-icon-btn-inactive rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer"
-                @click.stop="toggleMenu"
-              >
-                <Icon :icon="mobileMenuOpen ? 'mdi:close' : 'mdi:menu'" class="w-5 h-5 sm:w-6 sm:h-6 pointer-events-none" />
-              </button>
+              <NavBarMenuButton :open="mobileMenuOpen" @toggle="toggleMenu" />
             </div>
           </div>
         </template>
@@ -69,43 +65,41 @@
         <!-- Storefront bar: Marketplace, Create, Manage, Wallet, Menu (no selector on bar) -->
         <template v-else>
           <div class="flex-1 flex items-center justify-end gap-0.5 sm:gap-1">
-            <router-link
+            <BaseNavLink
               to="/marketplace"
               aria-label="Marketplace"
-              class="nav-icon-btn rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer"
-              :class="isActive('/marketplace') ? 'nav-icon-btn-active' : 'nav-icon-btn-inactive'"
+              :active="isActive('/marketplace')"
+              base-class="nav-icon-btn rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer"
+              active-class="nav-icon-btn-active"
+              inactive-class="nav-icon-btn-inactive"
             >
               <Icon icon="mdi:storefront-outline" class="w-5 h-5 sm:w-6 sm:h-6 pointer-events-none" />
-            </router-link>
-            <router-link
+            </BaseNavLink>
+            <BaseNavLink
               to="/create"
               aria-label="Create"
-              class="nav-icon-btn rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer"
-              :class="isActive('/create') ? 'nav-icon-btn-active' : 'nav-icon-btn-inactive'"
+              :active="isActive('/create')"
+              base-class="nav-icon-btn rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer"
+              active-class="nav-icon-btn-active"
+              inactive-class="nav-icon-btn-inactive"
             >
               <Icon icon="mdi:plus-circle-outline" class="w-5 h-5 sm:w-6 sm:h-6 pointer-events-none" />
-            </router-link>
-            <router-link
+            </BaseNavLink>
+            <BaseNavLink
               to="/manage"
               aria-label="Manage"
-              class="nav-icon-btn rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer"
-              :class="isActive('/manage') ? 'nav-icon-btn-active' : 'nav-icon-btn-inactive'"
+              :active="isActive('/manage')"
+              base-class="nav-icon-btn rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer"
+              active-class="nav-icon-btn-active"
+              inactive-class="nav-icon-btn-inactive"
             >
               <Icon icon="mdi:clipboard-list-outline" class="w-5 h-5 sm:w-6 sm:h-6 pointer-events-none" />
-            </router-link>
+            </BaseNavLink>
             <div class="wallet-button-custom wallet-button-compact flex-shrink-0">
               <WalletMultiButton dark />
             </div>
             <div class="relative z-20 flex-shrink-0">
-              <button
-                type="button"
-                aria-label="Menu"
-                :aria-expanded="mobileMenuOpen"
-                class="nav-icon-btn nav-icon-btn-inactive rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer"
-                @click.stop="toggleMenu"
-              >
-                <Icon :icon="mobileMenuOpen ? 'mdi:close' : 'mdi:menu'" class="w-5 h-5 sm:w-6 sm:h-6 pointer-events-none" />
-              </button>
+              <NavBarMenuButton :open="mobileMenuOpen" @toggle="toggleMenu" />
             </div>
           </div>
         </template>
@@ -119,7 +113,7 @@
         <div class="flex flex-col py-2 w-full max-w-sm">
           <!-- Storefront Selector -->
           <div class="px-4 py-2 border-b border-border-color mb-2">
-            <NavBarCollectionSelector
+            <NavBarStorefrontSelector
               v-model="selectedStorefrontId"
               @update:modelValue="handleStorefrontChange"
             />
@@ -231,26 +225,26 @@
 
           <!-- Platform Navigation Links - Centered -->
           <div class="flex-1 flex items-center justify-center gap-4">
-            <router-link
+            <BaseNavLink
               to="/"
-              class="px-3 py-2 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
-              :class="isActive('/') 
-                ? 'text-primary-color' 
-                : 'text-text-secondary hover:text-primary-color transition-all duration-300'"
+              :active="isActive('/')"
+              base-class="px-3 py-2 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
+              active-class="text-primary-color"
+              inactive-class="text-text-secondary hover:text-primary-color transition-all duration-300"
             >
               <Icon icon="mdi:compass-outline" class="w-5 h-5 flex-shrink-0" />
               Explore
-            </router-link>
-            <router-link
+            </BaseNavLink>
+            <BaseNavLink
               to="/onboard"
-              class="px-3 py-2 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
-              :class="isActive('/onboard') 
-                ? 'text-primary-color' 
-                : 'text-text-secondary hover:text-primary-color transition-all duration-300'"
+              :active="isActive('/onboard')"
+              base-class="px-3 py-2 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
+              active-class="text-primary-color"
+              inactive-class="text-text-secondary hover:text-primary-color transition-all duration-300"
             >
               <Icon icon="mdi:domain" class="w-5 h-5 flex-shrink-0" />
               Host
-            </router-link>
+            </BaseNavLink>
           </div>
 
           <!-- Wallet Connect Button - Right -->
@@ -260,7 +254,7 @@
         </template>
 
         <!-- Storefront Context: Show when storefront selected AND on storefront routes -->
-        <template v-else-if="selectedStorefrontId && isCollectionRoute">
+        <template v-else-if="selectedStorefrontId && isStorefrontRoute">
           <!-- Storefront Logo - Left (fit height, auto width) -->
           <div class="flex items-center gap-2 flex-shrink-0 h-7">
             <img
@@ -278,7 +272,7 @@
 
           <!-- Storefront Selector - Next to Logo (with spacing) -->
           <div class="flex items-center gap-2 flex-shrink-0 ml-2">
-            <NavBarCollectionSelector
+            <NavBarStorefrontSelector
               v-model="selectedStorefrontId"
               hide-logo
               @update:modelValue="handleStorefrontChange"
@@ -287,36 +281,36 @@
 
           <!-- Storefront Navigation Tabs - Centered -->
           <div class="flex-1 flex items-center justify-center gap-1.5">
-            <router-link
+            <BaseNavLink
               to="/marketplace"
-              class="px-2.5 py-1.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
-              :class="isActive('/marketplace') 
-                ? 'text-primary-color' 
-                : 'text-text-secondary hover:text-primary-color transition-all duration-300'"
+              :active="isActive('/marketplace')"
+              base-class="px-2.5 py-1.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
+              active-class="text-primary-color"
+              inactive-class="text-text-secondary hover:text-primary-color transition-all duration-300"
             >
               <Icon icon="mdi:storefront-outline" class="w-5 h-5 flex-shrink-0" />
               Marketplace
-            </router-link>
-            <router-link
+            </BaseNavLink>
+            <BaseNavLink
               to="/create"
-              class="px-2.5 py-1.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
-              :class="isActive('/create') 
-                ? 'text-primary-color' 
-                : 'text-text-secondary hover:text-primary-color transition-all duration-300'"
+              :active="isActive('/create')"
+              base-class="px-2.5 py-1.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
+              active-class="text-primary-color"
+              inactive-class="text-text-secondary hover:text-primary-color transition-all duration-300"
             >
               <Icon icon="mdi:plus-circle-outline" class="w-5 h-5 flex-shrink-0" />
               Create
-            </router-link>
-            <router-link
+            </BaseNavLink>
+            <BaseNavLink
               to="/manage"
-              class="px-2.5 py-1.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
-              :class="isActive('/manage') 
-                ? 'text-primary-color' 
-                : 'text-text-secondary hover:text-primary-color transition-all duration-300'"
+              :active="isActive('/manage')"
+              base-class="px-2.5 py-1.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
+              active-class="text-primary-color"
+              inactive-class="text-text-secondary hover:text-primary-color transition-all duration-300"
             >
               <Icon icon="mdi:clipboard-list-outline" class="w-5 h-5 flex-shrink-0" />
               Manage
-            </router-link>
+            </BaseNavLink>
           </div>
 
           <!-- Wallet Connect Button - Right -->
@@ -336,26 +330,26 @@
 
           <!-- Platform Navigation Links - Centered -->
           <div class="flex-1 flex items-center justify-center gap-3">
-            <router-link
+            <BaseNavLink
               to="/"
-              class="px-2.5 py-1.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
-              :class="isActive('/') 
-                ? 'text-primary-color' 
-                : 'text-text-secondary hover:text-primary-color transition-all duration-300'"
+              :active="isActive('/')"
+              base-class="px-2.5 py-1.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
+              active-class="text-primary-color"
+              inactive-class="text-text-secondary hover:text-primary-color transition-all duration-300"
             >
               <Icon icon="mdi:compass-outline" class="w-5 h-5 flex-shrink-0" />
               Explore
-            </router-link>
-            <router-link
+            </BaseNavLink>
+            <BaseNavLink
               to="/onboard"
-              class="px-2.5 py-1.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
-              :class="isActive('/onboard') 
-                ? 'text-primary-color' 
-                : 'text-text-secondary hover:text-primary-color transition-all duration-300'"
+              :active="isActive('/onboard')"
+              base-class="px-2.5 py-1.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
+              active-class="text-primary-color"
+              inactive-class="text-text-secondary hover:text-primary-color transition-all duration-300"
             >
               <Icon icon="mdi:domain" class="w-5 h-5 flex-shrink-0" />
               Host
-            </router-link>
+            </BaseNavLink>
           </div>
 
           <!-- Wallet Connect Button - Right -->
@@ -373,7 +367,9 @@ import { ref, watch, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 import { WalletMultiButton } from 'solana-wallets-vue'
-import NavBarCollectionSelector from './NavBarCollectionSelector.vue'
+import NavBarStorefrontSelector from './NavBarStorefrontSelector.vue'
+import NavBarMenuButton from './NavBarMenuButton.vue'
+import BaseNavLink from './BaseNavLink.vue'
 import { useStorefrontStore } from '@/stores/storefront'
 
 const route = useRoute()
@@ -400,7 +396,7 @@ const isPlatformRoute = computed(() => {
 })
 
 // Determine if we're on a storefront route (including escrow detail so storefront shows)
-const isCollectionRoute = computed(() => {
+const isStorefrontRoute = computed(() => {
   return ['/marketplace', '/create', '/manage'].includes(route.path) || route.path.startsWith('/escrow/')
 })
 
@@ -409,13 +405,13 @@ const toggleMenu = () => {
   mobileMenuOpen.value = opening
   if (opening) {
     mobilePlatformOpen.value = isPlatformRoute.value
-    mobileStorefrontOpen.value = isCollectionRoute.value
+    mobileStorefrontOpen.value = isStorefrontRoute.value
   }
 }
 
 const handleStorefrontChange = (storefrontId) => {
   // If clearing selection (null), navigate to platform route if on storefront route
-  if (!storefrontId && isCollectionRoute.value) {
+  if (!storefrontId && isStorefrontRoute.value) {
     router.push('/')
     return
   }

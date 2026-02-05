@@ -300,16 +300,22 @@ export function filterActiveEscrows(escrows) {
  * Group escrows by storefront
  * @param {Array} escrows - Array of formatted escrow objects
  * @param {Array} storefronts - Array of storefront objects
+ * @param {Object} [metadataStore] - Optional storefront metadata store for cached NFT mints (individual NFTs in collection)
  * @returns {Array} Array of groups: [{ storefront: Object|null, escrows: Array, label: string, id: string }, ...]
  */
-export function groupEscrowsByStorefront(escrows, storefronts = []) {
+export function groupEscrowsByStorefront(escrows, storefronts = [], metadataStore = null) {
   if (!escrows || escrows.length === 0) return []
   const escrowToStorefront = new Map()
   const p2pEscrows = []
   escrows.forEach(escrow => {
     let matched = false
     for (const storefront of storefronts) {
-      const matchedEscrows = filterEscrowsByStorefront([escrow], storefront)
+      const cachedNFTs = metadataStore?.getCachedNFTs?.(storefront.id) || []
+      const cachedMints = new Set(
+        cachedNFTs.map(n => (n?.mint && String(n.mint).toLowerCase()) || null).filter(Boolean)
+      )
+      const options = cachedMints.size > 0 ? { cachedCollectionMints: cachedMints } : {}
+      const matchedEscrows = filterEscrowsByStorefront([escrow], storefront, options)
       if (matchedEscrows.length > 0) {
         const storefrontId = storefront.id || storefront.collectionMint
         if (!escrowToStorefront.has(storefrontId)) {

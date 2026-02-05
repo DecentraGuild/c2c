@@ -35,7 +35,7 @@
         v-if="modelValue"
         @click.stop="clearSelection"
         class="p-2 text-text-secondary hover:text-primary-color hover:bg-primary-color/10 rounded-lg transition-colors"
-        aria-label="Clear collection selection"
+        aria-label="Clear storefront selection"
         title="Back to Platform"
       >
         <Icon icon="mdi:close" class="w-5 h-5" />
@@ -45,7 +45,6 @@
     <!-- Dropdown -->
     <div
       v-if="showDropdown"
-      ref="dropdownRef"
       class="absolute z-50 mt-2 w-80 bg-window-bg border border-window-border rounded-lg shadow-lg max-h-96 overflow-hidden flex flex-col"
     >
       <!-- Search Input -->
@@ -55,7 +54,7 @@
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Search collections..."
+            placeholder="Search storefronts..."
             class="w-full pl-9 pr-3 py-2 bg-primary-bg border border-window-border rounded-lg text-sm text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent"
             @focus.stop
           />
@@ -73,7 +72,7 @@
           <Icon icon="mdi:arrow-left" class="w-5 h-5 text-text-muted flex-shrink-0" />
           <div class="flex-1 min-w-0">
             <div class="font-semibold text-text-primary">Back to Platform</div>
-            <div class="text-xs text-text-secondary">Clear collection selection</div>
+            <div class="text-xs text-text-secondary">Clear storefront selection</div>
           </div>
         </div>
 
@@ -81,11 +80,11 @@
           v-for="storefront in filteredStorefronts"
           :key="storefront.id"
           @click="selectStorefront(storefront)"
-          class="px-2 py-2 hover:bg-primary-color/10 cursor-pointer transition-colors flex items-center gap-2 min-h-0 max-h-12"
+          class="px-2 py-2.5 hover:bg-primary-color/10 cursor-pointer transition-colors flex items-center gap-2 min-h-0 max-h-14"
         >
           <!-- Vertical Official/Community label on left (2-line height, no stretch) -->
           <div
-            class="flex-shrink-0 h-10 max-h-10 flex items-center justify-center overflow-hidden"
+            class="flex-shrink-0 h-13 max-h-13 flex items-center justify-center overflow-hidden"
             aria-hidden="true"
           >
             <div
@@ -151,7 +150,6 @@ const emit = defineEmits(['update:modelValue'])
 const storefrontStore = useStorefrontStore()
 const searchQuery = ref('')
 const showDropdown = ref(false)
-const dropdownRef = ref(null)
 const containerRef = ref(null)
 
 const storefronts = computed(() => storefrontStore.storefronts || [])

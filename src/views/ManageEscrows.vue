@@ -28,7 +28,7 @@
 
       <!-- Grouped Escrows -->
       <div v-else class="space-y-4">
-        <div v-for="group in escrowGroups" :key="group.id" class="card">
+        <div v-for="group in orderedEscrowGroups" :key="group.id" class="card">
           <!-- Group Header -->
           <div class="flex items-center gap-2.5 mb-3 pb-3 border-b border-border-color/50">
             <div v-if="group.storefront && group.storefront.logo" class="flex-shrink-0">
@@ -96,6 +96,7 @@ import BaseShareModal from '@/components/BaseShareModal.vue'
 import EscrowCard from '@/components/EscrowCard.vue'
 import { useEscrowStore } from '@/stores/escrow'
 import { useStorefrontStore } from '@/stores/storefront'
+import { useStorefrontMetadataStore } from '@/stores/storefrontMetadata'
 import { useEscrowTransactions } from '@/composables/useEscrowTransactions'
 import { useErrorDisplay } from '@/composables/useErrorDisplay'
 import { useWalletContext } from '@/composables/useWalletContext'
@@ -108,6 +109,7 @@ import { groupEscrowsByStorefront } from '@/utils/marketplaceHelpers'
 
 const escrowStore = useEscrowStore()
 const storefrontStore = useStorefrontStore()
+const storefrontMetadataStore = useStorefrontMetadataStore()
 const { cancelEscrow: cancelEscrowTx, loading: txLoading, error: txError } = useEscrowTransactions()
 const { validateWallet: validateWalletReady, publicKey, connected } = useWalletContext()
 const { displayError } = useErrorDisplay({ txError, errorTypes: ['transaction', 'escrows'] })
@@ -140,11 +142,26 @@ const activeEscrows = computed(() => {
 const loadingEscrows = computed(() => escrowStore.loadingEscrows)
 const loadingStorefronts = computed(() => storefrontStore.loadingStorefronts)
 const storefronts = computed(() => storefrontStore.storefronts)
+const selectedStorefrontId = computed(() => storefrontStore.selectedStorefrontId)
 
-// Group escrows by storefront
+// Group escrows by storefront (use metadata cache so individual NFT trades group under storefront)
 const escrowGroups = computed(() => {
   if (activeEscrows.value.length === 0) return []
-  return groupEscrowsByStorefront(activeEscrows.value, storefronts.value)
+  return groupEscrowsByStorefront(activeEscrows.value, storefronts.value, storefrontMetadataStore)
+})
+
+// Active storefront group first, then others; P2P last
+const orderedEscrowGroups = computed(() => {
+  const groups = escrowGroups.value
+  const activeId = selectedStorefrontId.value
+  if (!activeId || groups.length <= 1) return groups
+  return [...groups].sort((a, b) => {
+    if (a.id === activeId) return -1
+    if (b.id === activeId) return 1
+    if (a.id === 'p2p') return 1
+    if (b.id === 'p2p') return -1
+    return 0
+  })
 })
 
 onMounted(async () => {
