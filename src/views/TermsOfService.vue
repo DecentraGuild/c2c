@@ -156,8 +156,8 @@
             Platform-level fees may include:
           </p>
           <ul class="list-disc list-inside space-y-1 text-text-secondary text-sm mb-3">
-            <li>Maker fee: 0.001 SOL</li>
-            <li>Taker fee: 0.0006 SOL</li>
+            <li>Maker fee: {{ TRANSACTION_COSTS.PLATFORM_MAKER_FEE }} SOL</li>
+            <li>Taker fee: {{ TRANSACTION_COSTS.PLATFORM_TAKER_FEE }} SOL</li>
             <li>Subscription fees payable by Shopowners</li>
             <li>Collection-level on-chain royalties</li>
             <li>Optional Shopowner-added fees</li>
@@ -347,4 +347,5 @@
 
 <script setup>
 import { Icon } from '@iconify/vue'
+import { TRANSACTION_COSTS } from '@/utils/constants/fees'
 </script>

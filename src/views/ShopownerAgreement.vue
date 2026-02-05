@@ -174,8 +174,8 @@
             The following Platform-level fees apply across all storefronts:
           </p>
           <ul class="list-disc list-inside space-y-1 text-text-secondary text-sm mb-3">
-            <li>Maker fee: 0.001 SOL</li>
-            <li>Taker fee: 0.0006 SOL</li>
+            <li>Maker fee: {{ TRANSACTION_COSTS.PLATFORM_MAKER_FEE }} SOL</li>
+            <li>Taker fee: {{ TRANSACTION_COSTS.PLATFORM_TAKER_FEE }} SOL</li>
           </ul>
           <p class="text-text-secondary text-sm leading-relaxed">
             In addition, collection-level on-chain royalties may apply depending on the asset. All fees are enforced automatically through smart contract execution.
@@ -373,4 +373,5 @@
 
 <script setup>
 import { Icon } from '@iconify/vue'
+import { TRANSACTION_COSTS } from '@/utils/constants/fees'
 </script>

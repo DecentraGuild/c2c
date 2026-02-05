@@ -53,7 +53,6 @@ export function useComposableName(params) {
 - `useCollectionNFTs` - Collection NFT fetching
 
 ### 4. UI Composables
-- `useTheme` - Theme access and management
 - `useToast` - Toast notification system
 - `useErrorDisplay` - Unified error display
 - `useConfirmationModal` - Confirmation modal state
