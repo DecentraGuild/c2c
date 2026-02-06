@@ -6,15 +6,22 @@
     <div class="max-w-7xl mx-auto px-3 sm:px-4 overflow-visible">
       <!-- Compact Layout (below lg): layer-specific icon row -->
       <div class="flex items-center justify-between h-12 sm:h-14 nav-compact:hidden gap-1">
-        <!-- Logo: platform = own logo, storefront = storefront logo -->
+        <!-- Logo: platform = own logo + Home, storefront = storefront logo -->
         <div class="flex items-center gap-2 flex-shrink-0 h-7 sm:h-8">
-          <router-link
-            v-if="isPlatformRoute || !selectedStorefrontId || (selectedStorefrontId && !isStorefrontRoute)"
-            to="/"
-            class="flex items-center h-full hover:opacity-80 transition-opacity"
-          >
-            <img src="/dguild-logo-p2p.svg" alt="DecentraGuild Logo" class="h-full w-auto" />
-          </router-link>
+          <template v-if="isPlatformRoute || !selectedStorefrontId || (selectedStorefrontId && !isStorefrontRoute)">
+            <router-link to="/" class="flex items-center h-full hover:opacity-80 transition-opacity">
+              <img src="/dguild-logo-p2p.svg" alt="DecentraGuild Logo" class="h-full w-auto" />
+            </router-link>
+            <a
+              href="https://www.decentraguild.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-xs sm:text-sm font-semibold text-text-secondary hover:text-primary-color transition-colors px-1.5 py-0.5 rounded"
+              aria-label="Home – DecentraGuild"
+            >
+              Home
+            </a>
+          </template>
           <router-link
             v-else
             :to="{ path: '/marketplace', query: { storefront: selectedStorefrontId } }"
@@ -216,11 +223,20 @@
       <div class="hidden nav-compact:flex items-center h-12 transition-all duration-300">
         <!-- Platform Context: Show when on platform routes OR when no storefront selected -->
         <template v-if="isPlatformRoute || !selectedStorefrontId">
-          <!-- Logo/Brand - Left -->
+          <!-- Logo/Brand + Home - Left -->
           <div class="flex items-center gap-2 flex-shrink-0">
             <router-link to="/" class="flex items-center hover:opacity-80 transition-opacity">
               <img src="/dguild-logo-p2p.svg" alt="DecentraGuild Logo" class="w-8 h-8" />
             </router-link>
+            <a
+              href="https://www.decentraguild.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-sm font-semibold text-text-secondary hover:text-primary-color transition-colors px-2 py-1 rounded"
+              aria-label="Home – DecentraGuild"
+            >
+              Home
+            </a>
           </div>
 
           <!-- Platform Navigation Links - Centered -->
@@ -321,11 +337,20 @@
 
         <!-- Fallback: Platform nav when storefront selected but on non-storefront route (e.g., escrow detail) -->
         <template v-else>
-          <!-- Logo/Brand - Left -->
+          <!-- Logo/Brand + Home - Left -->
           <div class="flex items-center gap-2 flex-shrink-0">
             <router-link to="/" class="flex items-center hover:opacity-80 transition-opacity">
               <img src="/dguild-logo-p2p.svg" alt="DecentraGuild Logo" class="w-7 h-7" />
             </router-link>
+            <a
+              href="https://www.decentraguild.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-sm font-semibold text-text-secondary hover:text-primary-color transition-colors px-2 py-1 rounded"
+              aria-label="Home – DecentraGuild"
+            >
+              Home
+            </a>
           </div>
 
           <!-- Platform Navigation Links - Centered -->
