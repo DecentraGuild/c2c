@@ -19,26 +19,31 @@
       </div>
 
       <!-- Key Benefits -->
-      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="bg-card-bg border border-border-color rounded-lg p-4 text-center">
+          <Icon icon="mdi:shield-lock-outline" class="w-10 h-10 text-primary-color mx-auto mb-3" />
+          <h3 class="text-base font-bold text-text-primary mb-1.5">Self-Custody</h3>
+          <p class="text-xs text-text-secondary">The program handles the trade while your users keep control of their assets.</p>
+        </div>
         <div class="bg-card-bg border border-border-color rounded-lg p-4 text-center">
           <Icon icon="mdi:palette" class="w-10 h-10 text-primary-color mx-auto mb-3" />
           <h3 class="text-base font-bold text-text-primary mb-1.5">Full Branding</h3>
-          <p class="text-xs text-text-secondary">Customize everything to match your brand. It's your storefront.</p>
+          <p class="text-xs text-text-secondary">Customize everything to match your brand—it's your storefront.</p>
         </div>
         <div class="bg-card-bg border border-border-color rounded-lg p-4 text-center">
           <Icon icon="mdi:wallet" class="w-10 h-10 text-primary-color mx-auto mb-3" />
           <h3 class="text-base font-bold text-text-primary mb-1.5">Multi-Currency</h3>
-          <p class="text-xs text-text-secondary">Accept USDC, USDT, SOL, WBTC. Custom tokens available as add-on.</p>
+          <p class="text-xs text-text-secondary">Accept USDC, USDT, SOL, and WBTC. Add custom tokens as an add-on.</p>
         </div>
         <div class="bg-card-bg border border-border-color rounded-lg p-4 text-center">
           <Icon icon="mdi:currency-usd" class="w-10 h-10 text-primary-color mx-auto mb-3" />
           <h3 class="text-base font-bold text-text-primary mb-1.5">Set Your Fees</h3>
-          <p class="text-xs text-text-secondary">Monetize your marketplace by setting your own fee.</p>
+          <p class="text-xs text-text-secondary">Monetize your marketplace with your own fee.</p>
         </div>
         <div class="bg-card-bg border border-border-color rounded-lg p-4 text-center">
           <Icon icon="mdi:shield-check" class="w-10 h-10 text-primary-color mx-auto mb-3" />
           <h3 class="text-base font-bold text-text-primary mb-1.5">Royalties Protected</h3>
-          <p class="text-xs text-text-secondary">Creator royalties are automatically respected on every trade.</p>
+          <p class="text-xs text-text-secondary">Creator royalties are respected on every trade.</p>
         </div>
       </div>
 
