@@ -3,6 +3,8 @@
  * Provides reusable validation logic for escrow operations
  */
 
+import { SYSTEM_PROGRAM_ID_STR } from '@/utils/constants/tokens'
+
 /**
  * Check if user can exchange/fill an escrow
  * @param {Object} escrow - Escrow object
@@ -12,23 +14,15 @@
 export function canUserExchangeEscrow(escrow, userPublicKey) {
   if (!escrow || !userPublicKey) return false
 
-  // Convert PublicKey to string if needed
   const userKeyString = typeof userPublicKey === 'string' 
     ? userPublicKey 
     : userPublicKey.toString()
 
-  // Can't exchange if you're the maker
   if (escrow.maker === userKeyString) return false
-
-  // Escrow must be active
   if (escrow.status !== 'active') return false
 
-  // Check recipient restriction
-  const SYSTEM_PROGRAM = '11111111111111111111111111111111'
-  const NULL_ADDRESS = '11111111111111111111111111111111'
   const isPublic = !escrow.recipient || 
-                  escrow.recipient === NULL_ADDRESS || 
-                  escrow.recipient === SYSTEM_PROGRAM
+                  escrow.recipient === SYSTEM_PROGRAM_ID_STR
 
   // If escrow has a recipient and onlyRecipient is true, taker must match recipient
   if (escrow.recipient && escrow.onlyRecipient) {

@@ -124,6 +124,7 @@ import NFTInstanceSelector from './NFTInstanceSelector.vue'
 import { useToast } from '@/composables/useToast'
 import { logError, logDebug } from '@/utils/logger'
 import { formatBalance as formatBalanceUtil } from '@/utils/formatters'
+import { SEARCH_SCORE } from '@/utils/constants/ui'
 
 const props = defineProps({
   show: {
@@ -259,7 +260,7 @@ const getMatchScore = (token, query) => {
   const tokenMint = token.mint.toLowerCase()
   
   // Exact symbol match (highest priority)
-  if (tokenSymbol === trimmedQuery) return 1000
+  if (tokenSymbol === trimmedQuery) return SEARCH_SCORE.EXACT_SYMBOL
   
   // Exact name match
   if (tokenName === trimmedQuery) return 900
@@ -274,10 +275,10 @@ const getMatchScore = (token, query) => {
   if (tokenSymbol.includes(trimmedQuery)) return 600
   
   // Name contains query
-  if (tokenName.includes(trimmedQuery)) return 500
+  if (tokenName.includes(trimmedQuery)) return SEARCH_SCORE.NAME_CONTAINS
   
   // Token ID match (only if query looks like a token ID or no name/symbol matches found)
-  if (tokenMint.includes(trimmedQuery)) return 100
+  if (tokenMint.includes(trimmedQuery)) return SEARCH_SCORE.MINT_MATCH
   
   return 0
 }
@@ -390,7 +391,7 @@ const performSearch = async (query) => {
           if (isTokenIdFormat(query)) {
             return score > 0 // Allow all matches for token ID queries
           }
-          return score >= 500 // Only name/symbol matches for text queries
+          return score >= SEARCH_SCORE.MIN_SCORE_TEXT_QUERY // Only name/symbol matches for text queries
         })
         .sort((a, b) => b.score - a.score) // Sort by score descending
       
@@ -435,18 +436,18 @@ const performSearch = async (query) => {
     // (unless query looks like a token ID)
     const hasNameSymbolMatches = results.some(token => {
       const score = token._matchScore !== undefined ? token._matchScore : getMatchScore(token, query)
-      return score >= 500 // Symbol/name contains or better
+      return score >= SEARCH_SCORE.MIN_SCORE_TEXT_QUERY // Symbol/name contains or better
     })
     
     let filteredResults = results
     if (hasNameSymbolMatches && !isTokenIdFormat(query)) {
-      // Only keep tokens that match by name/symbol (score >= 500)
+      // Only keep tokens that match by name/symbol (score >= MIN_SCORE_TEXT_QUERY)
       // Exclude token ID-only matches when we have better matches
       filteredResults = results.filter(token => {
         const score = token._matchScore !== undefined ? token._matchScore : getMatchScore(token, query)
         // Keep exact matches, starts with, and contains for name/symbol
         // Exclude token ID-only matches (score = 100)
-        return score >= 500
+        return score >= SEARCH_SCORE.MIN_SCORE_TEXT_QUERY
       })
     }
     

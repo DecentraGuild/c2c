@@ -149,6 +149,7 @@ import { formatUserFriendlyError } from '@/utils/errorMessages'
 import { logError } from '@/utils/logger'
 import { getStorefrontForEscrow } from '@/utils/marketplaceHelpers'
 import { useStorefrontStore } from '@/stores/storefront'
+import { getEscrowPath, ROUTE_PATHS } from '@/utils/constants'
 import { useTokenStore } from '@/stores/token'
 import { useStorefrontMetadataStore } from '@/stores/storefrontMetadata'
 
@@ -585,7 +586,7 @@ const loadEscrow = async () => {
 }
 
 const showShareModal = () => {
-  openShareModal(`${window.location.origin}/escrow/${escrowId.value}`)
+  openShareModal(`${window.location.origin}${getEscrowPath(escrowId.value)}`)
 }
 
 const showCancelConfirm = () => {
@@ -615,7 +616,7 @@ const executeCancel = async () => {
     })
 
     success('Escrow cancelled successfully!')
-    router.push('/manage')
+    router.push(ROUTE_PATHS.MANAGE)
   } catch (error) {
     logError('Failed to cancel escrow:', error)
     showError(formatUserFriendlyError(error, 'cancel escrow'))

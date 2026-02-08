@@ -13,7 +13,7 @@
 
       <!-- Storefront image -->
       <router-link
-        :to="`/marketplace?storefront=${storefront.id}`"
+        :to="getMarketplaceRoute(storefront.id)"
         class="relative w-full aspect-square mb-2 rounded-lg overflow-hidden bg-secondary-bg flex items-center justify-center cursor-pointer"
       >
         <img
@@ -33,7 +33,7 @@
       <!-- Storefront info -->
       <div class="flex-1 flex flex-col min-h-0">
         <router-link
-          :to="`/marketplace?storefront=${storefront.id}`"
+          :to="getMarketplaceRoute(storefront.id)"
           class="cursor-pointer flex-shrink-0"
         >
           <h3 class="text-sm font-bold text-text-primary group-hover:text-primary-color transition-colors mb-1">
@@ -81,6 +81,7 @@ import { ref } from 'vue'
 import { Icon } from '@iconify/vue'
 import CollectionBadge from './CollectionBadge.vue'
 import CollectionDetailsModal from './CollectionDetailsModal.vue'
+import { getMarketplaceRoute } from '@/utils/constants'
 
 const props = defineProps({
   storefront: {

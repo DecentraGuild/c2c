@@ -106,6 +106,7 @@ import { useToast } from '@/composables/useToast'
 import { formatUserFriendlyError } from '@/utils/errorMessages'
 import { logError } from '@/utils/logger'
 import { groupEscrowsByStorefront } from '@/utils/marketplaceHelpers'
+import { getEscrowPath } from '@/utils/constants'
 
 const escrowStore = useEscrowStore()
 const storefrontStore = useStorefrontStore()
@@ -183,7 +184,7 @@ watch([connected, publicKey], ([newConnected, newPublicKey]) => {
  * Show share modal for escrow
  */
 const showShareModal = (escrow) => {
-  openShareModal(`${window.location.origin}/escrow/${escrow.id}`)
+  openShareModal(`${window.location.origin}${getEscrowPath(escrow.id)}`)
 }
 
 /**

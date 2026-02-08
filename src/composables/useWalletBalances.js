@@ -15,8 +15,7 @@ import { useTokenStore } from '@/stores/token'
 import { logError, logDebug, logWarning } from '@/utils/logger'
 import { fetchAllTokenBalancesFromDAS } from '@/utils/heliusDAS'
 import { UI_CONSTANTS, BATCH_SIZES } from '@/utils/constants/ui'
-
-const BALANCE_CACHE_TTL_MS = 60 * 1000 // 60 seconds – avoid refetching too often
+import { TOKEN_PROGRAM_ID_PK, TOKEN_2022_PROGRAM_ID_PK } from '@/utils/constants/tokens'
 
 export function useWalletBalances(options = {}) {
   const { autoFetch = true } = options
@@ -62,17 +61,14 @@ export function useWalletBalances(options = {}) {
    * and Token-2022. Reliably returns USDC, USDT, and other standard SPL tokens that DAS may omit.
    */
   const fetchSPLTokenBalancesFromRPC = async (walletAddress) => {
-    const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
-    const TOKEN_2022_PROGRAM_ID = new PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb')
-
     const [standardTokenAccounts, token2022Accounts] = await Promise.all([
       connection.getParsedTokenAccountsByOwner(
         new PublicKey(walletAddress),
-        { programId: TOKEN_PROGRAM_ID }
+        { programId: TOKEN_PROGRAM_ID_PK }
       ).catch(() => ({ value: [] })),
       connection.getParsedTokenAccountsByOwner(
         new PublicKey(walletAddress),
-        { programId: TOKEN_2022_PROGRAM_ID }
+        { programId: TOKEN_2022_PROGRAM_ID_PK }
       ).catch(() => ({ value: [] }))
     ])
 
@@ -308,7 +304,7 @@ export function useWalletBalances(options = {}) {
     const cacheFresh = !forceRefresh &&
       lastBalanceFetchWallet === walletAddress &&
       balances.value.length > 0 &&
-      (Date.now() - lastBalanceFetchTs) < BALANCE_CACHE_TTL_MS
+      (Date.now() - lastBalanceFetchTs) < UI_CONSTANTS.BALANCE_CACHE_TTL_MS
     if (cacheFresh) {
       logDebug('Balance cache still fresh, skipping refetch')
       return
@@ -323,7 +319,7 @@ export function useWalletBalances(options = {}) {
     loading.value = true
     error.value = null
 
-    const timeoutMs = UI_CONSTANTS.RPC_BALANCE_FETCH_TIMEOUT_MS ?? 25000
+    const timeoutMs = UI_CONSTANTS.RPC_BALANCE_FETCH_TIMEOUT_MS
 
     const attemptFetchOnce = async () => {
       const fetchPromise = (async () => {

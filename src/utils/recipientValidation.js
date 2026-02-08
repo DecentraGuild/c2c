@@ -4,6 +4,7 @@
  */
 
 import { SystemProgram, PublicKey } from '@solana/web3.js'
+import { SYSTEM_PROGRAM_ID_STR } from '@/utils/constants/tokens'
 
 /**
  * Check if a recipient is SystemProgram (public escrow)
@@ -45,8 +46,7 @@ export function validateRecipientAddress(recipientAddress) {
   }
   
   // Check if recipient is SystemProgram (invalid for direct escrows)
-  const SYSTEM_PROGRAM_ID_STR = SystemProgram.programId.toString()
-  if (trimmed === SYSTEM_PROGRAM_ID_STR || trimmed === '11111111111111111111111111111111') {
+  if (trimmed === SystemProgram.programId.toString() || trimmed === SYSTEM_PROGRAM_ID_STR) {
     return {
       valid: false,
       error: 'Cannot use SystemProgram (1111...1111) as recipient. Use a valid wallet address or disable Direct mode for public escrows.',

@@ -10,8 +10,7 @@ import { fetchTokenMetadata } from '@/utils/metaplex'
 import { fetchCollectionNFTsFromHelius } from '@/utils/heliusNFTs'
 import { logError, logDebug } from '@/utils/logger'
 
-// Metaplex Token Metadata Program ID
-const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s')
+import { TOKEN_METADATA_PROGRAM_ID_PK } from '@/utils/constants/tokens'
 
 /**
  * Fetch all NFTs from a collection mint address
@@ -43,10 +42,10 @@ export async function fetchNFTsFromCollection(collectionMintAddress, options = {
     const [collectionMetadataPDA] = PublicKey.findProgramAddressSync(
       [
         Buffer.from('metadata'),
-        TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+        TOKEN_METADATA_PROGRAM_ID_PK.toBuffer(),
         collectionMint.toBuffer(),
       ],
-      TOKEN_METADATA_PROGRAM_ID
+      TOKEN_METADATA_PROGRAM_ID_PK
     )
 
     // Find all metadata accounts that reference this collection
@@ -76,7 +75,7 @@ export async function fetchNFTsFromCollection(collectionMintAddress, options = {
     // For now, we'll get program accounts and filter manually
     // This is a simplified approach - in production, use an indexing service
     const allMetadataAccounts = await connection.getProgramAccounts(
-      TOKEN_METADATA_PROGRAM_ID,
+      TOKEN_METADATA_PROGRAM_ID_PK,
       {
         filters: [
           {

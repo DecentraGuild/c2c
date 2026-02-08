@@ -563,7 +563,7 @@ export function getEscrowProgramReadOnly(connection) {
  * @returns {Promise<Array>} Array of escrow accounts
  */
 export async function fetchAllEscrows(connection, makerFilter = null) {
-  const timeoutMs = UI_CONSTANTS.RPC_ESCROW_FETCH_TIMEOUT_MS ?? 25000
+  const timeoutMs = UI_CONSTANTS.RPC_ESCROW_FETCH_TIMEOUT_MS
 
   const fetchPromise = (async () => {
     const program = getEscrowProgramReadOnly(connection)

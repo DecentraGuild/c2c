@@ -5,6 +5,26 @@
  * message map or override layer here rather than scattering strings elsewhere.
  */
 
+/** Form validation messages (create escrow and validators) */
+export const FORM_MESSAGES = {
+  SELECT_OFFER_TOKEN: 'Please select a token to offer',
+  SELECT_REQUEST_TOKEN: 'Please select a token to request',
+  VALID_OFFER_AMOUNT: 'Please enter a valid offer amount',
+  VALID_REQUEST_AMOUNT: 'Please enter a valid request amount',
+  TOKENS_MUST_DIFFER: 'Offer and request tokens must be different'
+}
+
+/** Escrow/blockchain load messages */
+export const ESCROW_MESSAGES = {
+  INVALID_DATA: 'Invalid data received from blockchain',
+  MISSING_DECIMALS: 'Missing decimals for deposit or request token'
+}
+
+/** Network/offline messages */
+export const NETWORK_MESSAGES = {
+  OFFLINE_WARNING: 'You are offline. Some features may not work.'
+}
+
 /**
  * Format error message from various sources
  * @param {Error|string|Object} error - Error object, string, or error-like object

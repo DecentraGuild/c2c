@@ -10,6 +10,7 @@ import { logError, logDebug } from '@/utils/logger'
 import { useThemeStore } from '@/stores/theme'
 import { filterEscrowsByStorefront, filterActiveEscrows } from '@/utils/marketplaceHelpers'
 import { useStorefrontMetadataStore } from '@/stores/storefrontMetadata'
+import { STORAGE_KEYS, STOREFRONT_REGISTRY_PATH } from '@/utils/constants'
 
 export const useStorefrontStore = defineStore('storefront', () => {
   const storefronts = ref([])
@@ -53,13 +54,12 @@ export const useStorefrontStore = defineStore('storefront', () => {
   }
 
   const preloadingStorefronts = ref(new Set())
-  const LAST_STOREFRONT_STORAGE_KEY = 'c2c_last_storefront_id'
 
   const setSelectedStorefront = (storefrontId) => {
     selectedStorefrontId.value = storefrontId
     if (storefrontId) {
       try {
-        localStorage.setItem(LAST_STOREFRONT_STORAGE_KEY, storefrontId)
+        localStorage.setItem(STORAGE_KEYS.LAST_STOREFRONT_ID, storefrontId)
       } catch (e) {
         // Ignore storage errors (private mode, quota)
       }
@@ -118,13 +118,11 @@ export const useStorefrontStore = defineStore('storefront', () => {
     selectedStorefrontId.value = null
   }
 
-  const STOREFRONT_REGISTRY_URL = '/storefronts/registry.json'
-
   const loadStorefronts = async () => {
     loadingStorefronts.value = true
     error.value = null
     try {
-      const registryRes = await fetch(STOREFRONT_REGISTRY_URL)
+      const registryRes = await fetch(STOREFRONT_REGISTRY_PATH)
       if (!registryRes.ok) throw new Error(`Failed to load registry: ${registryRes.status}`)
       const registry = await registryRes.json()
       const entries = registry.storefronts || []
@@ -139,7 +137,7 @@ export const useStorefrontStore = defineStore('storefront', () => {
         if (configUrl.startsWith('http') || configUrl.startsWith('/')) {
           return configUrl
         }
-        const base = STOREFRONT_REGISTRY_URL.replace(/\/[^/]+$/, '/')
+        const base = STOREFRONT_REGISTRY_PATH.replace(/\/[^/]+$/, '/')
         return base + configUrl.replace(/^\.\//, '')
       })
 
@@ -158,7 +156,7 @@ export const useStorefrontStore = defineStore('storefront', () => {
       storefronts.value = loaded.filter(s => s !== null)
       if (!selectedStorefrontId.value && storefronts.value.length > 0) {
         try {
-          const lastId = localStorage.getItem(LAST_STOREFRONT_STORAGE_KEY)
+          const lastId = localStorage.getItem(STORAGE_KEYS.LAST_STOREFRONT_ID)
           if (lastId && storefronts.value.some(s => s.id === lastId)) {
             setSelectedStorefront(lastId)
           }

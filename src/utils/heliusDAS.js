@@ -7,8 +7,6 @@
 import { logError, logDebug } from './logger'
 import { SEARCH_LIMITS } from './constants/ui'
 
-const DAS_PAGE_LIMIT = 1000
-
 /**
  * Get Helius RPC URL for DAS calls (same as connection)
  */
@@ -48,7 +46,7 @@ export async function getAssetsByOwner(ownerAddress) {
       params: {
         ownerAddress,
         page,
-        limit: DAS_PAGE_LIMIT
+        limit: SEARCH_LIMITS.DAS_PAGE_LIMIT
       }
     }
 
@@ -79,7 +77,7 @@ export async function getAssetsByOwner(ownerAddress) {
     allItems.push(...items)
     logDebug(`DAS getAssetsByOwner page ${page}: ${items.length} items (total so far: ${allItems.length})`)
 
-    hasMore = items.length === DAS_PAGE_LIMIT && (result.total == null || allItems.length < result.total)
+    hasMore = items.length === SEARCH_LIMITS.DAS_PAGE_LIMIT && (result.total == null || allItems.length < result.total)
     page++
 
     if (allItems.length >= SEARCH_LIMITS.NFT_FETCH_LIMIT) {

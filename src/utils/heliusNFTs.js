@@ -198,7 +198,7 @@ async function fetchNFTsByCreatorDAS(creatorAddress) {
       params: {
         creatorAddress: creatorAddress,
         page: 1,
-        limit: 1000
+        limit: SEARCH_LIMITS.DAS_PAGE_LIMIT
       }
     }
 
@@ -324,7 +324,7 @@ export async function fetchCollectionNFTsFromHelius(collectionMint, options = {}
           groupKey: 'collection',
           groupValue: collectionMint,
           page: page,
-          limit: 1000 // DAS API supports up to 1000 items per page
+          limit: SEARCH_LIMITS.DAS_PAGE_LIMIT
         }
       }
 
@@ -363,7 +363,7 @@ export async function fetchCollectionNFTsFromHelius(collectionMint, options = {}
       allNFTs.push(...formattedNFTs)
 
       // Check if there are more pages
-      hasMore = result.total > allNFTs.length && items.length === 1000
+      hasMore = result.total > allNFTs.length && items.length === SEARCH_LIMITS.DAS_PAGE_LIMIT
       page++
 
       // Safety limit: don't fetch more than 10,000 NFTs

@@ -1,6 +1,6 @@
 <template>
   <router-link
-    :to="`/escrow/${escrow.id}`"
+    :to="getEscrowPath(escrow.id)"
     class="card hover:border-primary-color/50 transition-all duration-200 hover:shadow-lg block h-full w-full"
   >
     <!-- Card View (Vertical) -->
@@ -192,6 +192,7 @@ import { computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import { formatDecimals } from '@/utils/formatters'
 import { getTradeType, getShopCurrencyMints, canUserFillEscrow } from '@/utils/marketplaceHelpers'
+import { getEscrowPath } from '@/utils/constants'
 import { useCollectionMetadata } from '@/composables/useCollectionMetadata'
 
 const props = defineProps({

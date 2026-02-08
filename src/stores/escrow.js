@@ -13,6 +13,7 @@ import { formatEscrowData } from '@/utils/escrowHelpers'
 import { toPublicKey } from '@/utils/solanaUtils'
 import { logError } from '@/utils/logger'
 import { BATCH_SIZES } from '@/utils/constants'
+import { ESCROW_MESSAGES } from '@/utils/errorMessages'
 
 export const useEscrowStore = defineStore('escrow', () => {
   // Escrows list (from blockchain)
@@ -58,7 +59,7 @@ export const useEscrowStore = defineStore('escrow', () => {
       if (!rawEscrows || !Array.isArray(rawEscrows)) {
         logError('fetchAllEscrows returned invalid data:', rawEscrows)
         escrows.value = []
-        errors.value.escrows = 'Invalid data received from blockchain'
+        errors.value.escrows = ESCROW_MESSAGES.INVALID_DATA
         return
       }
       

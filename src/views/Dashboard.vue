@@ -33,7 +33,7 @@
           
           <!-- Create Marketplace Button -->
           <router-link
-            to="/onboard"
+            :to="ROUTE_PATHS.ONBOARD"
             class="flex-shrink-0 px-3 py-2 bg-primary-color text-white rounded-lg hover:bg-primary-color/90 transition-colors text-sm font-semibold flex items-center gap-2"
           >
             <Icon icon="mdi:plus-circle" class="w-4 h-4" />
@@ -101,10 +101,11 @@ import { useEscrowStore } from '@/stores/escrow'
 import { useViewMode } from '@/composables/useViewMode'
 import { useDebouncedSearch } from '@/composables/useDebouncedSearch'
 import { filterStorefrontsByQuery } from '@/utils/collectionHelpers'
+import { ROUTE_PATHS, STORAGE_KEYS } from '@/utils/constants'
 
 const storefrontStore = useStorefrontStore()
 const escrowStore = useEscrowStore()
-const { viewMode } = useViewMode('dashboard-view-mode', 'tile')
+const { viewMode } = useViewMode(STORAGE_KEYS.VIEW_MODE_DASHBOARD, 'tile')
 const searchQuery = ref('')
 const { debouncedQuery: debouncedSearchQuery } = useDebouncedSearch(searchQuery)
 

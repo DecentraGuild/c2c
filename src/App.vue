@@ -16,20 +16,19 @@ import { useTokenStore } from './stores/token'
 import { useThemeStore } from './stores/theme'
 import { useStorefrontStore } from './stores/storefront'
 import { useNetworkStatus } from './composables/useNetworkStatus'
+import { ROUTE_PATHS, STOREFRONT_ROUTE_PATHS } from '@/utils/constants'
 
 const route = useRoute()
 const themeStore = useThemeStore()
 const storefrontStore = useStorefrontStore()
 
-// Theming only on storefront (2nd layer) routes; Explore (/) and Host (/onboard) always use default theme
-const STOREFRONT_ROUTE_PATHS = ['/marketplace', '/create', '/manage']
 const isStorefrontRoute = (path) =>
-  STOREFRONT_ROUTE_PATHS.includes(path) || path.startsWith('/escrow/')
+  STOREFRONT_ROUTE_PATHS.includes(path) || path.startsWith(ROUTE_PATHS.ESCROW_PREFIX)
 
 watch(
   () => ({ path: route.path, storefront: storefrontStore.selectedStorefront }),
   ({ path, storefront }) => {
-    if (path === '/' || path === '/onboard') {
+    if (path === ROUTE_PATHS.HOME || path === ROUTE_PATHS.ONBOARD) {
       themeStore.resetToDefault()
       return
     }

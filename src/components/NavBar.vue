@@ -9,7 +9,7 @@
         <!-- Logo: platform = own logo + Home, storefront = storefront logo -->
         <div class="flex items-center gap-2 flex-shrink-0 h-7 sm:h-8">
           <template v-if="isPlatformRoute || !selectedStorefrontId || (selectedStorefrontId && !isStorefrontRoute)">
-            <router-link to="/" class="flex items-center h-full hover:opacity-80 transition-opacity">
+            <router-link :to="ROUTE_PATHS.HOME" class="flex items-center h-full hover:opacity-80 transition-opacity">
               <img src="/dguild-logo-p2p.svg" alt="DecentraGuild Logo" class="h-full w-auto" />
             </router-link>
             <a
@@ -24,7 +24,7 @@
           </template>
           <router-link
             v-else
-            :to="{ path: '/marketplace', query: { storefront: selectedStorefrontId } }"
+            :to="getMarketplaceRoute(selectedStorefrontId)"
             class="flex items-center h-full hover:opacity-80 transition-opacity"
           >
             <img
@@ -41,9 +41,9 @@
         <template v-if="isPlatformRoute || !selectedStorefrontId || (selectedStorefrontId && !isStorefrontRoute)">
           <div class="flex-1 flex items-center justify-end gap-0.5 sm:gap-1">
             <BaseNavLink
-              to="/"
+              :to="ROUTE_PATHS.HOME"
               aria-label="Explore"
-              :active="isActive('/')"
+              :active="isActive(ROUTE_PATHS.HOME)"
               base-class="nav-icon-btn rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer"
               active-class="nav-icon-btn-active"
               inactive-class="nav-icon-btn-inactive"
@@ -51,9 +51,9 @@
               <Icon icon="mdi:compass-outline" class="w-5 h-5 sm:w-6 sm:h-6 pointer-events-none" />
             </BaseNavLink>
             <BaseNavLink
-              to="/onboard"
+              :to="ROUTE_PATHS.ONBOARD"
               aria-label="Host"
-              :active="isActive('/onboard')"
+              :active="isActive(ROUTE_PATHS.ONBOARD)"
               base-class="nav-icon-btn rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer"
               active-class="nav-icon-btn-active"
               inactive-class="nav-icon-btn-inactive"
@@ -73,9 +73,9 @@
         <template v-else>
           <div class="flex-1 flex items-center justify-end gap-0.5 sm:gap-1">
             <BaseNavLink
-              to="/marketplace"
+              :to="ROUTE_PATHS.MARKETPLACE"
               aria-label="Marketplace"
-              :active="isActive('/marketplace')"
+              :active="isActive(ROUTE_PATHS.MARKETPLACE)"
               base-class="nav-icon-btn rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer"
               active-class="nav-icon-btn-active"
               inactive-class="nav-icon-btn-inactive"
@@ -83,9 +83,9 @@
               <Icon icon="mdi:storefront-outline" class="w-5 h-5 sm:w-6 sm:h-6 pointer-events-none" />
             </BaseNavLink>
             <BaseNavLink
-              to="/create"
+              :to="ROUTE_PATHS.CREATE"
               aria-label="Create"
-              :active="isActive('/create')"
+              :active="isActive(ROUTE_PATHS.CREATE)"
               base-class="nav-icon-btn rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer"
               active-class="nav-icon-btn-active"
               inactive-class="nav-icon-btn-inactive"
@@ -93,9 +93,9 @@
               <Icon icon="mdi:plus-circle-outline" class="w-5 h-5 sm:w-6 sm:h-6 pointer-events-none" />
             </BaseNavLink>
             <BaseNavLink
-              to="/manage"
+              :to="ROUTE_PATHS.MANAGE"
               aria-label="Manage"
-              :active="isActive('/manage')"
+              :active="isActive(ROUTE_PATHS.MANAGE)"
               base-class="nav-icon-btn rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer"
               active-class="nav-icon-btn-active"
               inactive-class="nav-icon-btn-inactive"
@@ -153,10 +153,10 @@
                 Explore
               </router-link>
               <router-link
-                to="/onboard"
+                :to="ROUTE_PATHS.ONBOARD"
                 @click="mobileMenuOpen = false"
                 class="block px-4 py-2.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-3"
-                :class="isActive('/onboard') 
+                :class="isActive(ROUTE_PATHS.ONBOARD) 
                   ? 'text-primary-color bg-primary-color/10' 
                   : 'text-text-secondary hover:text-primary-color hover:bg-primary-color/5'"
               >
@@ -182,10 +182,10 @@
             </button>
             <div v-if="mobileStorefrontOpen" class="pl-4 pb-1">
               <router-link
-                to="/marketplace"
+                :to="ROUTE_PATHS.MARKETPLACE"
                 @click="mobileMenuOpen = false"
                 class="block px-4 py-2.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-3"
-                :class="isActive('/marketplace') 
+                :class="isActive(ROUTE_PATHS.MARKETPLACE) 
                   ? 'text-primary-color bg-primary-color/10' 
                   : 'text-text-secondary hover:text-primary-color hover:bg-primary-color/5'"
               >
@@ -193,10 +193,10 @@
                 Marketplace
               </router-link>
               <router-link
-                to="/create"
+                :to="ROUTE_PATHS.CREATE"
                 @click="mobileMenuOpen = false"
                 class="block px-4 py-2.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-3"
-                :class="isActive('/create') 
+                :class="isActive(ROUTE_PATHS.CREATE) 
                   ? 'text-primary-color bg-primary-color/10' 
                   : 'text-text-secondary hover:text-primary-color hover:bg-primary-color/5'"
               >
@@ -204,10 +204,10 @@
                 Create
               </router-link>
               <router-link
-                to="/manage"
+                :to="ROUTE_PATHS.MANAGE"
                 @click="mobileMenuOpen = false"
                 class="block px-4 py-2.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-3"
-                :class="isActive('/manage') 
+                :class="isActive(ROUTE_PATHS.MANAGE) 
                   ? 'text-primary-color bg-primary-color/10' 
                   : 'text-text-secondary hover:text-primary-color hover:bg-primary-color/5'"
               >
@@ -225,7 +225,7 @@
         <template v-if="isPlatformRoute || !selectedStorefrontId">
           <!-- Logo/Brand + Home - Left -->
           <div class="flex items-center gap-2 flex-shrink-0">
-            <router-link to="/" class="flex items-center hover:opacity-80 transition-opacity">
+            <router-link :to="ROUTE_PATHS.HOME" class="flex items-center hover:opacity-80 transition-opacity">
               <img src="/dguild-logo-p2p.svg" alt="DecentraGuild Logo" class="w-8 h-8" />
             </router-link>
             <a
@@ -242,8 +242,8 @@
           <!-- Platform Navigation Links - Centered -->
           <div class="flex-1 flex items-center justify-center gap-4">
             <BaseNavLink
-              to="/"
-              :active="isActive('/')"
+              :to="ROUTE_PATHS.HOME"
+              :active="isActive(ROUTE_PATHS.HOME)"
               base-class="px-3 py-2 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
               active-class="text-primary-color"
               inactive-class="text-text-secondary hover:text-primary-color transition-all duration-300"
@@ -252,8 +252,8 @@
               Explore
             </BaseNavLink>
             <BaseNavLink
-              to="/onboard"
-              :active="isActive('/onboard')"
+              :to="ROUTE_PATHS.ONBOARD"
+              :active="isActive(ROUTE_PATHS.ONBOARD)"
               base-class="px-3 py-2 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
               active-class="text-primary-color"
               inactive-class="text-text-secondary hover:text-primary-color transition-all duration-300"
@@ -298,8 +298,8 @@
           <!-- Storefront Navigation Tabs - Centered -->
           <div class="flex-1 flex items-center justify-center gap-1.5">
             <BaseNavLink
-              to="/marketplace"
-              :active="isActive('/marketplace')"
+              :to="ROUTE_PATHS.MARKETPLACE"
+              :active="isActive(ROUTE_PATHS.MARKETPLACE)"
               base-class="px-2.5 py-1.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
               active-class="text-primary-color"
               inactive-class="text-text-secondary hover:text-primary-color transition-all duration-300"
@@ -308,8 +308,8 @@
               Marketplace
             </BaseNavLink>
             <BaseNavLink
-              to="/create"
-              :active="isActive('/create')"
+              :to="ROUTE_PATHS.CREATE"
+              :active="isActive(ROUTE_PATHS.CREATE)"
               base-class="px-2.5 py-1.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
               active-class="text-primary-color"
               inactive-class="text-text-secondary hover:text-primary-color transition-all duration-300"
@@ -318,8 +318,8 @@
               Create
             </BaseNavLink>
             <BaseNavLink
-              to="/manage"
-              :active="isActive('/manage')"
+              :to="ROUTE_PATHS.MANAGE"
+              :active="isActive(ROUTE_PATHS.MANAGE)"
               base-class="px-2.5 py-1.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
               active-class="text-primary-color"
               inactive-class="text-text-secondary hover:text-primary-color transition-all duration-300"
@@ -339,7 +339,7 @@
         <template v-else>
           <!-- Logo/Brand + Home - Left -->
           <div class="flex items-center gap-2 flex-shrink-0">
-            <router-link to="/" class="flex items-center hover:opacity-80 transition-opacity">
+            <router-link :to="ROUTE_PATHS.HOME" class="flex items-center hover:opacity-80 transition-opacity">
               <img src="/dguild-logo-p2p.svg" alt="DecentraGuild Logo" class="w-7 h-7" />
             </router-link>
             <a
@@ -356,8 +356,8 @@
           <!-- Platform Navigation Links - Centered -->
           <div class="flex-1 flex items-center justify-center gap-3">
             <BaseNavLink
-              to="/"
-              :active="isActive('/')"
+              :to="ROUTE_PATHS.HOME"
+              :active="isActive(ROUTE_PATHS.HOME)"
               base-class="px-2.5 py-1.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
               active-class="text-primary-color"
               inactive-class="text-text-secondary hover:text-primary-color transition-all duration-300"
@@ -366,8 +366,8 @@
               Explore
             </BaseNavLink>
             <BaseNavLink
-              to="/onboard"
-              :active="isActive('/onboard')"
+              :to="ROUTE_PATHS.ONBOARD"
+              :active="isActive(ROUTE_PATHS.ONBOARD)"
               base-class="px-2.5 py-1.5 text-sm font-semibold rounded-lg transition-all nav-link flex items-center gap-2"
               active-class="text-primary-color"
               inactive-class="text-text-secondary hover:text-primary-color transition-all duration-300"
@@ -396,6 +396,7 @@ import NavBarStorefrontSelector from './NavBarStorefrontSelector.vue'
 import NavBarMenuButton from './NavBarMenuButton.vue'
 import BaseNavLink from './BaseNavLink.vue'
 import { useStorefrontStore } from '@/stores/storefront'
+import { ROUTE_PATHS, STOREFRONT_ROUTE_PATHS, getMarketplaceRoute } from '@/utils/constants'
 
 const route = useRoute()
 const router = useRouter()
@@ -411,18 +412,14 @@ const selectedStorefrontId = computed({
 
 const selectedStorefront = computed(() => storefrontStore.selectedStorefront)
 
-const isActive = (path) => {
-  return route.path === path
-}
+const isActive = (path) => route.path === path
 
-// Determine if we're on a platform route (not storefront-specific)
 const isPlatformRoute = computed(() => {
-  return route.path === '/' || route.path === '/onboard'
+  return route.path === ROUTE_PATHS.HOME || route.path === ROUTE_PATHS.ONBOARD
 })
 
-// Determine if we're on a storefront route (including escrow detail so storefront shows)
 const isStorefrontRoute = computed(() => {
-  return ['/marketplace', '/create', '/manage'].includes(route.path) || route.path.startsWith('/escrow/')
+  return STOREFRONT_ROUTE_PATHS.includes(route.path) || route.path.startsWith(ROUTE_PATHS.ESCROW_PREFIX)
 })
 
 const toggleMenu = () => {
@@ -437,12 +434,11 @@ const toggleMenu = () => {
 const handleStorefrontChange = (storefrontId) => {
   // If clearing selection (null), navigate to platform route if on storefront route
   if (!storefrontId && isStorefrontRoute.value) {
-    router.push('/')
+    router.push(ROUTE_PATHS.HOME)
     return
   }
   
-  // Update URL if on marketplace page
-  if (route.path === '/marketplace') {
+  if (route.path === ROUTE_PATHS.MARKETPLACE) {
     router.replace({ query: { storefront: storefrontId } })
   }
 }

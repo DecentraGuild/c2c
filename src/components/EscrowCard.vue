@@ -68,7 +68,7 @@
             <span class="hidden sm:inline">Share</span>
           </button>
           <router-link
-            :to="`/escrow/${escrow.id}`"
+            :to="getEscrowPath(escrow.id)"
             class="btn-secondary text-xs py-2 px-2.5 inline-flex items-center justify-center gap-1.5 flex-1 sm:flex-initial min-h-[40px]"
             title="View details"
           >
@@ -132,6 +132,7 @@ import { Icon } from '@iconify/vue'
 import TokenAmountDisplay from './TokenAmountDisplay.vue'
 import BaseAddressDisplay from './BaseAddressDisplay.vue'
 import { formatTimestamp, formatDecimals } from '@/utils/formatters'
+import { getEscrowPath } from '@/utils/constants'
 
 defineProps({
   escrow: {

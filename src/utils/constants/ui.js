@@ -12,7 +12,12 @@ export const UI_CONSTANTS = {
   DROPDOWN_BLUR_DELAY: 200, // ms before closing dropdown on blur (allows click to fire)
   QR_CODE_SIZE: 280, // Share modal QR code size in pixels
   RPC_ESCROW_FETCH_TIMEOUT_MS: 25000, // Timeout for fetching escrows (avoids hang on slow/mobile networks)
-  RPC_BALANCE_FETCH_TIMEOUT_MS: 25000 // Timeout for fetching wallet balances (avoids hang on slow/mobile networks)
+  RPC_BALANCE_FETCH_TIMEOUT_MS: 25000, // Timeout for fetching wallet balances (avoids hang on slow/mobile networks)
+  BALANCE_CACHE_TTL_MS: 60 * 1000, // 60 seconds – avoid refetching balances too often
+  METADATA_FETCH_TIMEOUT_MS: 5000, // Timeout for fetching metadata JSON from URI
+  RATE_LIMIT_INITIAL_DELAY_MS: 500, // Initial backoff for rate limit retries
+  WALLET_STANDARD_MAX_WAIT_MS: 5000, // Max wait for Wallet Standard on mobile
+  WALLET_STANDARD_POLL_MS: 100 // Poll interval when waiting for Wallet Standard
 }
 
 // Debounce delay constants (in milliseconds)
@@ -59,10 +64,15 @@ export const WALLET_PROVIDERS = {
 export const STORAGE_KEYS = {
   CONNECTED_WALLET: 'connectedWallet',
   THEME_PREFERENCE: 'themePreference',
+  THEME_DATA: 'dguild_escrow_theme_data',
+  SELECTED_THEME: 'dguild_escrow_selected_theme',
+  LAST_STOREFRONT_ID: 'c2c_last_storefront_id',
   RECENT_TOKENS: 'recentTokens',
   ESCROW_DRAFTS: 'escrowDrafts',
   TOKEN_METADATA: 'token_metadata_cache',
-  CACHE_TIMESTAMP: 'token_cache_timestamp'
+  CACHE_TIMESTAMP: 'token_cache_timestamp',
+  VIEW_MODE_DASHBOARD: 'dashboard-view-mode',
+  VIEW_MODE_MARKETPLACE: 'marketplace-view-mode'
 }
 
 // Cache configuration
@@ -94,5 +104,17 @@ export const SUBSCRIPTION_PRICING = {
 export const SEARCH_LIMITS = {
   TOKEN_SEARCH_RESULTS: 100, // Maximum token search results to return
   TOKEN_SEARCH_DISPLAY: 50, // Maximum tokens to display in UI
-  NFT_FETCH_LIMIT: 10000 // Safety limit for NFT fetching
+  NFT_FETCH_LIMIT: 10000, // Safety limit for NFT fetching
+  DAS_PAGE_LIMIT: 1000 // DAS API pagination limit (getAssetsByOwner, etc.)
 }
+
+// Token/search ranking scores (for symbol/name/mint matching)
+export const SEARCH_SCORE = {
+  EXACT_SYMBOL: 1000,
+  NAME_CONTAINS: 500,
+  MINT_MATCH: 100,
+  MIN_SCORE_TEXT_QUERY: 500
+}
+
+// Storefront registry path (public asset)
+export const STOREFRONT_REGISTRY_PATH = '/storefronts/registry.json'

@@ -8,6 +8,8 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { validateSolanaAddress, validateExpirationDate, validateSlippage, validateAmount } from '@/utils/validators'
 import { useWalletBalanceStore } from '@/stores/walletBalance'
+import { VALIDATION_LIMITS } from '@/utils/constants/escrow'
+import { FORM_MESSAGES } from '@/utils/errorMessages'
 
 export const useEscrowFormStore = defineStore('escrowForm', () => {
   // Form state
@@ -67,7 +69,7 @@ export const useEscrowFormStore = defineStore('escrowForm', () => {
   const isValidOfferAmount = computed(() => {
     if (!offerToken.value) return false
     const validation = validateAmount(offerAmount.value, {
-      min: 0.000001,
+      min: VALIDATION_LIMITS.MIN_AMOUNT,
       decimals: offerToken.value.decimals,
       balance: offerToken.value?.balance ?? walletBalanceStore.getTokenBalance(offerToken.value.mint)
     })
@@ -77,7 +79,7 @@ export const useEscrowFormStore = defineStore('escrowForm', () => {
   const isValidRequestAmount = computed(() => {
     if (!requestToken.value) return false
     const validation = validateAmount(requestAmount.value, {
-      min: 0.000001,
+      min: VALIDATION_LIMITS.MIN_AMOUNT,
       decimals: requestToken.value.decimals
     })
     return validation.valid
@@ -115,29 +117,29 @@ export const useEscrowFormStore = defineStore('escrowForm', () => {
     const errors = {}
     
     if (!offerToken.value) {
-      errors.offerToken = 'Please select a token to offer'
+      errors.offerToken = FORM_MESSAGES.SELECT_OFFER_TOKEN
     } else if (!isValidOfferAmount.value) {
       const validation = validateAmount(offerAmount.value, {
-        min: 0.000001,
+        min: VALIDATION_LIMITS.MIN_AMOUNT,
         decimals: offerToken.value.decimals,
         balance: offerToken.value?.balance ?? walletBalanceStore.getTokenBalance(offerToken.value.mint)
       })
-      errors.offerAmount = validation.error || 'Please enter a valid offer amount'
+      errors.offerAmount = validation.error || FORM_MESSAGES.VALID_OFFER_AMOUNT
     }
     
     if (!requestToken.value) {
-      errors.requestToken = 'Please select a token to request'
+      errors.requestToken = FORM_MESSAGES.SELECT_REQUEST_TOKEN
     } else if (!isValidRequestAmount.value) {
       const validation = validateAmount(requestAmount.value, {
-        min: 0.000001,
+        min: VALIDATION_LIMITS.MIN_AMOUNT,
         decimals: requestToken.value.decimals
       })
-      errors.requestAmount = validation.error || 'Please enter a valid request amount'
+      errors.requestAmount = validation.error || FORM_MESSAGES.VALID_REQUEST_AMOUNT
     }
     
     if (offerToken.value && requestToken.value && 
         offerToken.value.mint === requestToken.value.mint) {
-      errors.tokens = 'Offer and request tokens must be different'
+      errors.tokens = FORM_MESSAGES.TOKENS_MUST_DIFFER
     }
     
     // Only validate optional settings if they are enabled

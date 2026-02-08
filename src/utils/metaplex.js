@@ -7,12 +7,7 @@ import { PublicKey, Connection } from '@solana/web3.js'
 import { cleanTokenString } from './formatters'
 import { loadTokenRegistryMap } from './tokenRegistry'
 import { logDebug } from './logger'
-
-// Metaplex Token Metadata Program ID
-const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s')
-
-// Wrapped SOL mint address (used for fetching SOL logo)
-const WRAPPED_SOL_MINT = 'So11111111111111111111111111111111111111112'
+import { TOKEN_METADATA_PROGRAM_ID_PK, NATIVE_SOL } from './constants/tokens'
 
 /**
  * Get SOL metadata fallback (used when registry doesn't have it or fails)
@@ -33,7 +28,7 @@ function getSOLMetadataFallback() {
  */
 async function getTokenFromRegistry(mintAddress) {
   // Special handling for wrapped SOL - always return SOL metadata
-  if (mintAddress === WRAPPED_SOL_MINT) {
+  if (mintAddress === NATIVE_SOL.mint) {
     try {
       const registry = await loadTokenRegistryMap()
       const tokenData = registry.get(mintAddress)
@@ -78,10 +73,10 @@ export async function getMetadataPDA(mintAddress) {
   const [metadataPDA] = PublicKey.findProgramAddressSync(
     [
       Buffer.from('metadata'),
-      TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+      TOKEN_METADATA_PROGRAM_ID_PK.toBuffer(),
       mintPubkey.toBuffer(),
     ],
-    TOKEN_METADATA_PROGRAM_ID
+    TOKEN_METADATA_PROGRAM_ID_PK
   )
   return metadataPDA
 }

@@ -11,7 +11,7 @@ import { loadTokenRegistryList, preloadTokenRegistry as preloadSharedRegistry } 
 import { cleanTokenString } from '@/utils/formatters'
 import { getMint } from '@solana/spl-token'
 import { logDebug, logError } from '@/utils/logger'
-import { SEARCH_LIMITS } from '@/utils/constants/ui'
+import { SEARCH_LIMITS, SEARCH_SCORE } from '@/utils/constants/ui'
 
 // Use shared connection
 const connection = useSolanaConnection()
@@ -137,7 +137,7 @@ export function useTokenRegistry() {
         const mint = token.mint.toLowerCase()
         
         // Exact symbol match (highest priority)
-        if (symbol === lowerQuery) return 1000
+        if (symbol === lowerQuery) return SEARCH_SCORE.EXACT_SYMBOL
         // Exact name match
         if (name === lowerQuery) return 900
         // Symbol starts with query
@@ -147,9 +147,9 @@ export function useTokenRegistry() {
         // Symbol contains query
         if (symbol.includes(lowerQuery)) return 600
         // Name contains query
-        if (name.includes(lowerQuery)) return 500
+        if (name.includes(lowerQuery)) return SEARCH_SCORE.NAME_CONTAINS
         // Mint contains query (lowest priority)
-        if (mint.includes(lowerQuery)) return 100
+        if (mint.includes(lowerQuery)) return SEARCH_SCORE.MINT_MATCH
         
         return 0
       }

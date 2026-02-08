@@ -18,5 +18,8 @@ export * from './fees.js'
 // UI constants
 export * from './ui.js'
 
+// Route path constants
+export * from './routes.js'
+
 // Base currencies
 export * from './baseCurrencies.js'

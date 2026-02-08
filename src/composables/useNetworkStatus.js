@@ -5,6 +5,7 @@
 
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useToast } from './useToast'
+import { NETWORK_MESSAGES } from '@/utils/errorMessages'
 
 export function useNetworkStatus() {
   const isOnline = ref(typeof navigator !== 'undefined' ? navigator.onLine : true)
@@ -16,7 +17,7 @@ export function useNetworkStatus() {
 
   const handleOffline = () => {
     isOnline.value = false
-    warning('You are offline. Some features may not work.')
+    warning(NETWORK_MESSAGES.OFFLINE_WARNING)
   }
 
   onMounted(() => {

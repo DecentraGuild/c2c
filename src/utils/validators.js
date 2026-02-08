@@ -3,6 +3,8 @@
  */
 
 import { PublicKey } from '@solana/web3.js'
+import { VALIDATION_LIMITS } from '@/utils/constants/escrow'
+import { FORM_MESSAGES } from '@/utils/errorMessages'
 
 /**
  * Validate a Solana address
@@ -280,7 +282,7 @@ export function validateEscrowForm(formData) {
   // Validate offer amount
   if (formData.offerToken) {
     const amountValidation = validateAmount(formData.offerAmount, {
-      min: 0.000001,
+      min: VALIDATION_LIMITS.MIN_AMOUNT,
       balance: formData.offerToken.amount
     })
     if (!amountValidation.valid) {
@@ -290,12 +292,12 @@ export function validateEscrowForm(formData) {
   
   // Validate request token
   if (!formData.requestToken) {
-    errors.requestToken = 'Please select a token to request'
+    errors.requestToken = FORM_MESSAGES.SELECT_REQUEST_TOKEN
   }
   
   // Validate request amount
   const requestAmountValidation = validateAmount(formData.requestAmount, {
-    min: 0.000001
+    min: VALIDATION_LIMITS.MIN_AMOUNT
   })
   if (!requestAmountValidation.valid) {
     errors.requestAmount = requestAmountValidation.error
@@ -304,7 +306,7 @@ export function validateEscrowForm(formData) {
   // Validate same token
   if (formData.offerToken && formData.requestToken && 
       formData.offerToken.mint === formData.requestToken.mint) {
-    errors.tokens = 'Offer and request tokens must be different'
+    errors.tokens = FORM_MESSAGES.TOKENS_MUST_DIFFER
   }
   
   // Validate direct address if enabled

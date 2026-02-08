@@ -3,6 +3,8 @@
  * Used by router/index.js at module load (GitHub Pages) and in beforeEach (deep links).
  */
 
+import { getEscrowPath, ROUTE_PATHS } from '@/utils/constants'
+
 /**
  * GitHub Pages redirect: 404s serve 404.html with path as ?/path.
  * Normalise to /path so the SPA router can handle it.
@@ -28,14 +30,15 @@ export function applyGitHubPagesRedirect() {
  */
 export function getRedirectFromRoute(to) {
   if (to.query.escrow) {
-    return { path: `/escrow/${to.query.escrow}`, query: {} }
+    return { path: getEscrowPath(to.query.escrow), query: {} }
   }
   if (typeof window !== 'undefined') {
     const url = new URL(window.location.href)
+    const escrowPrefix = ROUTE_PATHS.ESCROW_PREFIX
     if (url.protocol === 'solana-mobile:' || url.searchParams.has('deep_link')) {
-      const escrowId = url.pathname.split('/escrow/')[1] || url.searchParams.get('escrow')
+      const escrowId = url.pathname.split(escrowPrefix)[1] || url.searchParams.get('escrow')
       if (escrowId) {
-        return { path: `/escrow/${escrowId}`, query: {} }
+        return { path: getEscrowPath(escrowId), query: {} }
       }
     }
   }

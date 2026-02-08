@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { applyGitHubPagesRedirect, getRedirectFromRoute } from './redirectHelpers'
+import { ROUTE_PATHS } from '@/utils/constants'
 
 // Lazy load routes for better initial bundle size
 const Dashboard = () => import('../views/Dashboard.vue')
@@ -15,52 +16,15 @@ const ShopownerAgreement = () => import('../views/ShopownerAgreement.vue')
 applyGitHubPagesRedirect()
 
 const routes = [
-  {
-    path: '/',
-    name: 'Dashboard',
-    component: Dashboard
-  },
-  {
-    path: '/marketplace',
-    name: 'Marketplace',
-    component: Marketplace
-  },
-  {
-    path: '/create',
-    name: 'Create',
-    component: CreateEscrow
-  },
-  {
-    path: '/manage',
-    name: 'Manage',
-    component: ManageEscrows
-  },
-  {
-    path: '/escrow/:id',
-    name: 'EscrowDetail',
-    component: EscrowDetail,
-    props: true
-  },
-  {
-    path: '/onboard',
-    name: 'OnboardCollection',
-    component: OnboardCollection
-  },
-  {
-    path: '/terms',
-    name: 'TermsOfService',
-    component: TermsOfService
-  },
-  {
-    path: '/privacy',
-    name: 'PrivacyPolicy',
-    component: PrivacyPolicy
-  },
-  {
-    path: '/shopowner-agreement',
-    name: 'ShopownerAgreement',
-    component: ShopownerAgreement
-  }
+  { path: ROUTE_PATHS.HOME, name: 'Dashboard', component: Dashboard },
+  { path: ROUTE_PATHS.MARKETPLACE, name: 'Marketplace', component: Marketplace },
+  { path: ROUTE_PATHS.CREATE, name: 'Create', component: CreateEscrow },
+  { path: ROUTE_PATHS.MANAGE, name: 'Manage', component: ManageEscrows },
+  { path: ROUTE_PATHS.ESCROW_ID, name: 'EscrowDetail', component: EscrowDetail, props: true },
+  { path: ROUTE_PATHS.ONBOARD, name: 'OnboardCollection', component: OnboardCollection },
+  { path: ROUTE_PATHS.TERMS, name: 'TermsOfService', component: TermsOfService },
+  { path: ROUTE_PATHS.PRIVACY, name: 'PrivacyPolicy', component: PrivacyPolicy },
+  { path: ROUTE_PATHS.SHOPOWNER_AGREEMENT, name: 'ShopownerAgreement', component: ShopownerAgreement }
 ]
 
 const router = createRouter({

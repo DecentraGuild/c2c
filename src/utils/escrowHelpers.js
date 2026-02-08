@@ -5,6 +5,7 @@
 
 import { fromSmallestUnits } from './formatters'
 import { isPublicRecipient } from './recipientValidation'
+import { ESCROW_MESSAGES } from './errorMessages'
 
 /**
  * Calculate escrow status based on account data
@@ -43,7 +44,7 @@ export function formatEscrowData(escrowData, depositTokenInfo, requestTokenInfo)
   const depositDecimals = depositTokenInfo?.decimals
   const requestDecimals = requestTokenInfo?.decimals
   if (depositDecimals == null || requestDecimals == null) {
-    throw new Error('Missing decimals for deposit or request token')
+    throw new Error(ESCROW_MESSAGES.MISSING_DECIMALS)
   }
 
   // Calculate amounts in human-readable format

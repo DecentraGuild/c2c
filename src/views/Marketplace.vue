@@ -152,13 +152,14 @@ import { useWalletBalanceStore } from '@/stores/walletBalance'
 import { useViewMode } from '@/composables/useViewMode'
 import useMarketplaceFilters from '@/composables/useMarketplaceFilters'
 import { logDebug } from '@/utils/logger'
+import { ROUTE_PATHS, STORAGE_KEYS } from '@/utils/constants'
 
 const route = useRoute()
 const router = useRouter()
 const storefrontStore = useStorefrontStore()
 const escrowStore = useEscrowStore()
 const walletBalanceStore = useWalletBalanceStore()
-const { viewMode } = useViewMode('marketplace-view-mode', 'list')
+const { viewMode } = useViewMode(STORAGE_KEYS.VIEW_MODE_MARKETPLACE, 'list')
 
 // State
 const selectedTradeType = ref('all')
@@ -258,7 +259,7 @@ const loadEscrows = async () => {
 let lastLoadedStorefrontId = null
 
 watch(() => storefrontStore.selectedStorefrontId, (newStorefrontId) => {
-  if (newStorefrontId && route.path === '/marketplace') {
+  if (newStorefrontId && route.path === ROUTE_PATHS.MARKETPLACE) {
     if (route.query.storefront !== newStorefrontId) {
       router.replace({ query: { storefront: newStorefrontId } })
     }

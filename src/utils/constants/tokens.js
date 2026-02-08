@@ -11,9 +11,16 @@ export const TOKEN_2022_PROGRAM_ID_STR = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEp
 // MPL Core (Metaplex Core) - single-account NFT standard; not SPL Token
 export const MPL_CORE_PROGRAM_ID_STR = 'CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d'
 
+// Metaplex Token Metadata program (legacy NFT metadata)
+export const TOKEN_METADATA_PROGRAM_ID_STR = 'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s'
+
+// System program (public key for "no recipient" / public escrow)
+export const SYSTEM_PROGRAM_ID_STR = '11111111111111111111111111111111'
+
 export const TOKEN_PROGRAM_ID_PK = new PublicKey(TOKEN_PROGRAM_ID_STR)
 export const TOKEN_2022_PROGRAM_ID_PK = new PublicKey(TOKEN_2022_PROGRAM_ID_STR)
 export const MPL_CORE_PROGRAM_ID_PK = new PublicKey(MPL_CORE_PROGRAM_ID_STR)
+export const TOKEN_METADATA_PROGRAM_ID_PK = new PublicKey(TOKEN_METADATA_PROGRAM_ID_STR)
 
 // Native SOL configuration
 export const NATIVE_SOL = {

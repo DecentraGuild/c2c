@@ -147,7 +147,7 @@ import { useSolanaConnection } from '@/composables/useSolanaConnection'
 import { useErrorDisplay } from '@/composables/useErrorDisplay'
 import { toSmallestUnits, formatDecimals } from '@/utils/formatters'
 import { useTokenStore } from '@/stores/token'
-import { CONTRACT_FEE_ACCOUNT } from '@/utils/constants'
+import { CONTRACT_FEE_ACCOUNT, getEscrowPath } from '@/utils/constants'
 import { ESCROW_PROGRAM_ID, SLIPPAGE_DIVISOR } from '@/utils/constants/escrow'
 import { calculateEscrowCreationCosts } from '@/utils/transactionCosts'
 import { useTransactionCosts } from '@/composables/useTransactionCosts'
@@ -430,7 +430,7 @@ const handleCreateEscrow = async () => {
 
     // Navigate to escrow details page with share query parameter to auto-open share modal
     router.push({
-      path: `/escrow/${escrowPubkey.toString()}`,
+      path: getEscrowPath(escrowPubkey.toString()),
       query: { share: 'true' }
     })
   } catch (err) {

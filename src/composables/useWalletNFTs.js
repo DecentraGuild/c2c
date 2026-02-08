@@ -12,8 +12,7 @@ import { fetchTokenMetadata } from '@/utils/metaplex'
 import { fetchWalletNFTsFromHelius } from '@/utils/heliusNFTs'
 import { logError, logDebug } from '@/utils/logger'
 
-// Metaplex Token Metadata Program ID
-const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s')
+import { TOKEN_METADATA_PROGRAM_ID_PK, TOKEN_PROGRAM_ID_PK } from '@/utils/constants/tokens'
 
 /**
  * Fetch NFTs from wallet that match collection item mints
@@ -47,7 +46,7 @@ export async function fetchWalletNFTsByCollection(walletAddress, collectionMintA
       const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
         new PublicKey(walletAddress),
         {
-          programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
+          programId: TOKEN_PROGRAM_ID_PK
         }
       )
 

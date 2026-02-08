@@ -170,6 +170,7 @@ import BaseScrollArea from './BaseScrollArea.vue'
 import BaseAddressDisplay from './BaseAddressDisplay.vue'
 import { useCollectionDisplay } from '@/composables/useCollectionDisplay'
 import { truncateAddress } from '@/utils/formatters'
+import { getMarketplaceRoute } from '@/utils/constants'
 
 const imageError = ref(false)
 
@@ -199,8 +200,5 @@ const {
   acceptedCurrencies
 } = useCollectionDisplay(computed(() => props.storefront))
 
-const marketplaceRoute = computed(() => {
-  if (!props.storefront?.id) return '/marketplace'
-  return { path: '/marketplace', query: { storefront: props.storefront.id } }
-})
+const marketplaceRoute = computed(() => getMarketplaceRoute(props.storefront?.id))
 </script>

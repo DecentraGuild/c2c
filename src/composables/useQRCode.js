@@ -4,6 +4,7 @@
 
 import { ref, computed } from 'vue'
 import { logWarning, logError } from '@/utils/logger'
+import { UI_CONSTANTS } from '@/utils/constants/ui'
 
 export function useQRCode() {
   const isGenerating = ref(false)
@@ -40,7 +41,7 @@ export function useQRCode() {
 
     // Ensure canvas has dimensions
     if (!canvas.width || !canvas.height) {
-      const size = options.width || 200
+      const size = options.width || UI_CONSTANTS.QR_CODE_SIZE
       canvas.width = size
       canvas.height = size
     }
@@ -59,7 +60,7 @@ export function useQRCode() {
       const errorCorrectionLevel = options.errorCorrectionLevel || 'H'
       
       await QRCode.toCanvas(canvas, text, {
-        width: options.width || canvas.width || 200,
+        width: options.width || canvas.width || UI_CONSTANTS.QR_CODE_SIZE,
         margin: options.margin || 2,
         color: {
           dark: options.darkColor || '#000000',

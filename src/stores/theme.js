@@ -7,6 +7,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { logError, logWarning } from '@/utils/logger'
+import { STORAGE_KEYS } from '@/utils/constants'
 
 // Default theme configuration (green primary, red secondary theme)
 const defaultTheme = {
@@ -154,13 +155,7 @@ export const useThemeStore = defineStore('theme', () => {
   const error = ref(null)
   const isCustomTheme = ref(false)  // Whether theme is loaded from external source
   
-  // Local storage keys
-  const STORAGE_KEYS = {
-    SELECTED_THEME: 'dguild_escrow_selected_theme',
-    THEME_DATA: 'dguild_escrow_theme_data'
-  }
-  
-  // Computed properties for easy access
+// Computed properties for easy access
   const colors = computed(() => currentTheme.value.colors)
   const fonts = computed(() => currentTheme.value.fonts)
   const fontSize = computed(() => currentTheme.value.fontSize)

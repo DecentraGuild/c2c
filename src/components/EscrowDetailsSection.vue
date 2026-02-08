@@ -96,12 +96,12 @@
       <span
         :class="[
           'px-3 py-1 rounded-lg text-xs font-semibold',
-          !escrow.recipient || escrow.recipient === '11111111111111111111111111111111' 
+          !escrow.recipient || escrow.recipient === SYSTEM_PROGRAM_ID_STR 
             ? 'bg-status-success/20 text-status-success' 
             : 'bg-secondary-bg/50 text-text-muted'
         ]"
       >
-        Public: {{ !escrow.recipient || escrow.recipient === '11111111111111111111111111111111' ? 'yes' : 'no' }}
+        Public: {{ !escrow.recipient || escrow.recipient === SYSTEM_PROGRAM_ID_STR ? 'yes' : 'no' }}
       </span>
       <span
         :class="[
@@ -121,6 +121,7 @@ import BaseAddressDisplay from './BaseAddressDisplay.vue'
 import TokenAmountDisplay from './TokenAmountDisplay.vue'
 import { formatTimestamp } from '@/utils/formatters'
 import { computed } from 'vue'
+import { SYSTEM_PROGRAM_ID_STR } from '@/utils/constants/tokens'
 
 const props = defineProps({
   escrow: {
@@ -136,8 +137,7 @@ const props = defineProps({
 defineEmits(['toggle'])
 
 const isPublicEscrow = computed(() => {
-  const NULL_ADDRESS = '11111111111111111111111111111111'
-  return !props.escrow.recipient || props.escrow.recipient === NULL_ADDRESS
+  return !props.escrow.recipient || props.escrow.recipient === SYSTEM_PROGRAM_ID_STR
 })
 
 const remainingPercentage = computed(() => {

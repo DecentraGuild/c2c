@@ -4,9 +4,7 @@
  */
 
 import { logDebug, logWarning } from './logger'
-
-/** Max wait (ms) for Wallet Standard on mobile; in-app browsers can inject late. */
-const MOBILE_WALLET_STANDARD_WAIT_MS = 6000
+import { UI_CONSTANTS } from './constants/ui'
 
 /**
  * Check if we're on a mobile device
@@ -29,14 +27,16 @@ export function isInAppBrowser() {
 /**
  * Wait for Wallet Standard API to be available (used only inside initializeWalletDetection).
  */
-function waitForWalletStandard(maxWait = 5000) {
+function waitForWalletStandard(maxWait = undefined) {
+  const waitMs = maxWait ?? UI_CONSTANTS.WALLET_STANDARD_MAX_WAIT_MS
+  const pollMs = UI_CONSTANTS.WALLET_STANDARD_POLL_MS
   return new Promise((resolve) => {
     if (typeof window !== 'undefined' && (window.navigator?.wallets || window.solana)) {
       resolve(true)
       return
     }
     let attempts = 0
-    const maxAttempts = Math.max(1, Math.floor(maxWait / 100))
+    const maxAttempts = Math.max(1, Math.floor(waitMs / pollMs))
     const interval = setInterval(() => {
       attempts++
       if (typeof window !== 'undefined' && (window.navigator?.wallets || window.solana)) {
@@ -48,14 +48,14 @@ function waitForWalletStandard(maxWait = 5000) {
         clearInterval(interval)
         resolve(false)
       }
-    }, 100)
+    }, pollMs)
   })
 }
 
 /**
  * Single entry: initialize wallet detection for mobile. Called once from main.js at bootstrap.
  * On mobile (especially in-app browsers), Wallet Standard can inject late; we wait up to
- * MOBILE_WALLET_STANDARD_WAIT_MS so the wallet picker sees Backpack etc.
+ * WALLET_STANDARD_MAX_WAIT_MS so the wallet picker sees Backpack etc.
  */
 export async function initializeWalletDetection() {
   if (!isMobileDevice() || typeof window === 'undefined') {
@@ -63,7 +63,7 @@ export async function initializeWalletDetection() {
   }
 
   logDebug('[Wallet Detection] Mobile: waiting for Wallet Standard...')
-  const available = await waitForWalletStandard(MOBILE_WALLET_STANDARD_WAIT_MS)
+  const available = await waitForWalletStandard(UI_CONSTANTS.WALLET_STANDARD_MAX_WAIT_MS)
 
   if (available && window.navigator?.wallets && Array.isArray(window.navigator.wallets)) {
     logDebug('[Wallet Detection] Available:', window.navigator.wallets.map(w => w.name || w.id))
