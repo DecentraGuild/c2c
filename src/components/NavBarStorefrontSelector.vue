@@ -30,17 +30,25 @@
         <Icon icon="mdi:chevron-down" class="w-4 h-4 text-text-muted flex-shrink-0" />
       </button>
       
-      <!-- Clear Button (shown when collection is selected) -->
+      <!-- Storefront details (shown when a storefront is selected) -->
       <button
         v-if="modelValue"
-        @click.stop="clearSelection"
+        @click.stop="showDetailsModal = true"
         class="p-2 text-text-secondary hover:text-primary-color hover:bg-primary-color/10 rounded-lg transition-colors"
-        aria-label="Clear storefront selection"
-        title="Back to Platform"
+        aria-label="View storefront details"
+        title="Storefront details"
       >
-        <Icon icon="mdi:close" class="w-5 h-5" />
+        <Icon icon="mdi:information-outline" class="w-5 h-5" />
       </button>
     </div>
+
+    <Teleport to="body">
+      <CollectionDetailsModal
+        v-model:show="showDetailsModal"
+        :storefront="selectedStorefront"
+        :open-trades="openTradesCount"
+      />
+    </Teleport>
 
     <!-- Dropdown -->
     <div
@@ -133,6 +141,7 @@ import { Icon } from '@iconify/vue'
 import { useStorefrontStore } from '@/stores/storefront'
 import { filterStorefrontsByQuery } from '@/utils/collectionHelpers'
 import BaseScrollArea from './BaseScrollArea.vue'
+import CollectionDetailsModal from './CollectionDetailsModal.vue'
 
 const props = defineProps({
   modelValue: {
@@ -150,6 +159,7 @@ const emit = defineEmits(['update:modelValue'])
 const storefrontStore = useStorefrontStore()
 const searchQuery = ref('')
 const showDropdown = ref(false)
+const showDetailsModal = ref(false)
 const containerRef = ref(null)
 
 const storefronts = computed(() => storefrontStore.storefronts || [])
@@ -158,6 +168,10 @@ const selectedStorefront = computed(() => {
   if (!props.modelValue) return null
   return storefronts.value.find(s => s.id === props.modelValue)
 })
+
+const openTradesCount = computed(() =>
+  props.modelValue ? storefrontStore.getOpenTradesCount(props.modelValue) : 0
+)
 
 const filteredStorefronts = computed(() =>
   filterStorefrontsByQuery(storefronts.value, searchQuery.value)

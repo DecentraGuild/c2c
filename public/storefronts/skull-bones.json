@@ -50,14 +50,12 @@
     {
       "mint": "ATLASXmbPQxBUYbxPsV97usA3fPQYEqzQBUHgiFCUsXx",
       "name": "ATLAS",
-      "symbol": "ATLAS",
-      "decimals": 8
+      "symbol": "ATLAS"
     },
     {
       "mint": "poLisWXnNRwC6oBu1vHiuKQzFjGL4XDSu4g9qjz9qV9",
       "name": "POLIS",
-      "symbol": "POLIS",
-      "decimals": 8
+      "symbol": "POLIS"
     }
   ],
   "borderRadius": {

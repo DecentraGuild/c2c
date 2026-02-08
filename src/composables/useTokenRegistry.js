@@ -66,14 +66,10 @@ async function fetchTokenInfo(mintAddress, getCachedTokenInfo = null) {
       fetchTokenMetadata(connection, mintAddress, true)
     )
     
-    // Get decimals - prefer registry, then on-chain, then default to 9
-    // Always try on-chain first to ensure accuracy, then fall back to registry
+    // Get decimals from on-chain first, then registry; never default (callers must error if missing)
     let decimals = await fetchTokenDecimals(mintAddress)
     if (decimals === null || decimals === undefined) {
-      decimals = registryToken?.decimals || null
-    }
-    if (decimals === null || decimals === undefined) {
-      decimals = 9 // Default fallback (don't warn, it's common for new tokens)
+      decimals = registryToken?.decimals ?? null
     }
     
     // Only return data if we have at least a name (successful fetch)
@@ -105,7 +101,7 @@ async function fetchTokenInfo(mintAddress, getCachedTokenInfo = null) {
       name: null, // Null name = failed fetch, will retry on refresh
       symbol: null,
       image: null,
-      decimals: 9
+      decimals: null
     }
   }
 }

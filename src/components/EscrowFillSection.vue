@@ -313,10 +313,10 @@ const handleFillAmountInput = (event) => {
   // Convert to string and trim
   let amountValue = String(rawValue).trim()
   
-  // Get decimals based on input side
-  const decimals = inputSide.value === 'request' 
-    ? (props.escrow?.requestToken?.decimals ?? 9)
-    : (props.escrow?.depositToken?.decimals ?? 9)
+  // Get decimals based on input side (from cache/fetch; no fallback)
+  const decimals = inputSide.value === 'request'
+    ? props.escrow?.requestToken?.decimals
+    : props.escrow?.depositToken?.decimals
   
   // Process input based on token decimals
   amountValue = processAmountInput(amountValue, decimals, inputElement)
@@ -358,10 +358,10 @@ const handleFillAmountInput = (event) => {
 
 // Handle keydown with correct decimals
 const handleFillAmountKeydown = (event) => {
-  const decimals = inputSide.value === 'request' 
-    ? (props.escrow?.requestToken?.decimals ?? 9)
-    : (props.escrow?.depositToken?.decimals ?? 9)
-  
+  const decimals = inputSide.value === 'request'
+    ? props.escrow?.requestToken?.decimals
+    : props.escrow?.depositToken?.decimals
+
   if (shouldPreventKeydown(event, decimals)) {
     event.preventDefault()
     return false

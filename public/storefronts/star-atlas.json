@@ -3580,14 +3580,12 @@
       "mint": "ATLASXmbPQxBUYbxPsV97usA3fPQYEqzQBUHgiFCUsXx",
       "name": "ATLAS",
       "symbol": "ATLAS",
-      "image": "https://storage.googleapis.com/nft-assets/items/ATLAS.jpg",
-      "decimals": 8
+      "image": "https://storage.googleapis.com/nft-assets/items/ATLAS.jpg"
     },
     {
       "mint": "poLisWXnNRwC6oBu1vHiuKQzFjGL4XDSu4g9qjz9qV9",
       "name": "POLIS",
-      "symbol": "POLIS",
-      "decimals": 8
+      "symbol": "POLIS"
     }
   ],
   "colors": {
@@ -3653,7 +3651,7 @@
     "appliesTo": "all"
   },
   "shopFee": {
-    "wallet": "HmAwHhCw3aPEYmx2dgfoQUWJ2y1LFqTdyMQPYebo9TeE",
+    "wallet": "budkxEapRhWjRYXSEurLjyT9jpsd92y1smqMYzSBgTC",
     "makerFlatFee": 0,
     "takerFlatFee": 0,
     "makerPercentFee": 0,

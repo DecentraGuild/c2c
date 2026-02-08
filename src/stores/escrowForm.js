@@ -163,6 +163,7 @@ export const useEscrowFormStore = defineStore('escrowForm', () => {
    */
   const setOfferToken = (token) => {
     offerToken.value = token
+    if (token?.decimals === 0) offerAmount.value = '1'
   }
   
   /**
@@ -179,6 +180,7 @@ export const useEscrowFormStore = defineStore('escrowForm', () => {
    */
   const setRequestToken = (token) => {
     requestToken.value = token
+    if (token?.decimals === 0) requestAmount.value = '1'
   }
   
   /**

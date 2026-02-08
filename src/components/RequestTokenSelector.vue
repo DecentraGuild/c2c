@@ -121,6 +121,7 @@ import { getStorefrontCurrencies } from '@/utils/constants/baseCurrencies'
 import BaseDropdown from './BaseDropdown.vue'
 import TokenDisplay from './TokenDisplay.vue'
 import NFTInstanceSelector from './NFTInstanceSelector.vue'
+import { useToast } from '@/composables/useToast'
 import { logError, logDebug } from '@/utils/logger'
 import { formatBalance as formatBalanceUtil } from '@/utils/formatters'
 
@@ -179,7 +180,7 @@ const collectionMintsAsTokens = computed(() => {
         mint: item.mint,
         name: cachedTokenInfo?.name || cachedMetadata?.name || item.name || '',
         symbol: cachedTokenInfo?.symbol || cachedMetadata?.symbol || item.name || item.mint.slice(0, 8),
-        decimals: item.fetchingType === 'NFT' ? 0 : (item.decimals || 9),
+        decimals: item.fetchingType === 'NFT' ? 0 : (cachedTokenInfo?.decimals ?? undefined),
         image: image,
         isCollectionItem: true,
         itemType: item.itemType,
@@ -205,7 +206,7 @@ const allowedCurrenciesAsTokens = computed(() => {
       mint: currency.mint,
       name: cachedTokenInfo?.name || currency.name || '',
       symbol: cachedTokenInfo?.symbol || currency.symbol || '',
-      decimals: cachedTokenInfo?.decimals || 9,
+      decimals: cachedTokenInfo?.decimals ?? undefined,
       image: cachedTokenInfo?.image || null, // Use cached image if available
       isCollectionItem: false,
       fetchingType: 'Token',
@@ -233,6 +234,7 @@ const {
   fetchTokenInfo
 } = tokenStore
 
+const { error: showError } = useToast()
 const searchError = ref(null)
 const searchLoading = ref(false)
 const localSearchResults = ref([])
@@ -626,32 +628,35 @@ const handleTokenClick = async (token) => {
 }
 
 const handleNFTSelect = async (nft) => {
-  // Fetch complete token info if needed
   let tokenToSelect = nft
-  
+
   if (nft.decimals === null || nft.decimals === undefined) {
     const completeInfo = await fetchTokenInfo(nft.mint)
-    if (completeInfo) {
+    if (completeInfo?.decimals != null) {
       tokenToSelect = completeInfo
+    } else {
+      showError('Could not load token decimals')
+      return
     }
   }
-  
+
   emit('select', tokenToSelect)
   emit('close')
 }
 
 const selectToken = async (token) => {
-  // If token doesn't have decimals, fetch complete info
   let tokenToSelect = token
-  
+
   if (token.decimals === null || token.decimals === undefined) {
-    // Fetch complete token info including decimals
     const completeInfo = await fetchTokenInfo(token.mint)
-    if (completeInfo) {
+    if (completeInfo?.decimals != null) {
       tokenToSelect = completeInfo
+    } else {
+      showError('Could not load token decimals')
+      return
     }
   }
-  
+
   emit('select', tokenToSelect)
   emit('close')
 }
@@ -700,5 +705,5 @@ watch(() => props.show, (isShowing) => {
   }
 })
 
-const formatBalance = (balance, decimals) => formatBalanceUtil(balance, decimals ?? 9, false)
+const formatBalance = (balance, decimals) => formatBalanceUtil(balance, decimals, false)
 </script>

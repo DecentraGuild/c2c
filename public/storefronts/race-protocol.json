@@ -17,7 +17,6 @@
       "mint": "8AmJR4JiZeDtSXtV3KQSBgjWDtpP3NsK3Mg3ZXvaW8eE",
       "name": "RACE PASS",
       "symbol": "RPASS",
-      "decimals": 0,
       "itemType": "pass",
       "fetchingType": "Token",
       "class": "Pass",
@@ -31,8 +30,7 @@
     {
       "mint": "3zE4Qmh9hrC4inHynT3aSRzHcWhnxPCHLeN9WWqvoRVz",
       "name": "Race Raiders Rewards",
-      "symbol": "RRR",
-      "decimals": 9
+      "symbol": "RRR"
     }
   ],
   "colors": {

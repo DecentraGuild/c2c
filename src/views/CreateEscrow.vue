@@ -146,7 +146,7 @@ import { useEscrowTransactions } from '@/composables/useEscrowTransactions'
 import { useSolanaConnection } from '@/composables/useSolanaConnection'
 import { useErrorDisplay } from '@/composables/useErrorDisplay'
 import { toSmallestUnits, formatDecimals } from '@/utils/formatters'
-import { getDecimalsForMintFromCollections } from '@/utils/collectionHelpers'
+import { useTokenStore } from '@/stores/token'
 import { CONTRACT_FEE_ACCOUNT } from '@/utils/constants'
 import { ESCROW_PROGRAM_ID, SLIPPAGE_DIVISOR } from '@/utils/constants/escrow'
 import { calculateEscrowCreationCosts } from '@/utils/transactionCosts'
@@ -160,6 +160,7 @@ import { logError } from '@/utils/logger'
 const router = useRouter()
 const escrowStore = useEscrowStore()
 const formStore = useEscrowFormStore()
+const tokenStore = useTokenStore()
 const storefrontStore = useStorefrontStore()
 const walletBalanceStore = useWalletBalanceStore()
 const { publicKey, connected, anchorWallet, validateWallet: validateWalletReady } = useWalletContext()
@@ -326,27 +327,36 @@ const handleCreateEscrow = async () => {
       recipientAddress = validation.pubkey.toString()
     }
     
-    // Resolve decimals from collection config (blockchain truth: wrong decimals = wrong on-chain price).
-    // Use full storefronts list; if empty (e.g. direct /create), ensure loaded and fall back to selectedStorefront.
-    let storefrontsForDecimals = storefrontStore.storefronts || []
-    if (storefrontsForDecimals.length === 0) {
-      await storefrontStore.loadStorefronts()
-      storefrontsForDecimals = storefrontStore.storefronts || []
+    // Resolve decimals from token store (cache/fetch only); error if missing
+    let depositTokenInfo = tokenStore.getCachedTokenInfo(formStore.offerToken.mint)
+    if (depositTokenInfo?.decimals == null) {
+      depositTokenInfo = await tokenStore.fetchTokenInfo(formStore.offerToken.mint)
     }
-    if (storefrontsForDecimals.length === 0 && selectedStorefront.value) {
-      storefrontsForDecimals = [selectedStorefront.value]
+    if (depositTokenInfo?.decimals == null) {
+      escrowStore.setError('form', { general: 'Could not get token decimals for offer token. Please try again.' })
+      loading.value = false
+      return
     }
-    const depositDecimals = getDecimalsForMintFromCollections(formStore.offerToken.mint, storefrontsForDecimals) ??
-      formStore.offerToken?.decimals ?? 9
-    const requestDecimals = getDecimalsForMintFromCollections(formStore.requestToken.mint, storefrontsForDecimals) ??
-      formStore.requestToken?.decimals ?? 9
+
+    let requestTokenInfo = tokenStore.getCachedTokenInfo(formStore.requestToken.mint)
+    if (requestTokenInfo?.decimals == null) {
+      requestTokenInfo = await tokenStore.fetchTokenInfo(formStore.requestToken.mint)
+    }
+    if (requestTokenInfo?.decimals == null) {
+      escrowStore.setError('form', { general: 'Could not get token decimals for request token. Please try again.' })
+      loading.value = false
+      return
+    }
+
+    const depositDecimals = depositTokenInfo.decimals
+    const requestDecimals = requestTokenInfo.decimals
 
     // Convert amounts to smallest units (must match chain expectation: raw units per token decimals)
     const depositAmount = toSmallestUnits(
       formStore.offerAmount,
       depositDecimals
     )
-    
+
     const requestAmount = toSmallestUnits(
       formStore.requestAmount,
       requestDecimals

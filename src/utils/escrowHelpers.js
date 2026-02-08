@@ -39,9 +39,12 @@ export function calculateEscrowStatus(escrowAccount) {
  */
 export function formatEscrowData(escrowData, depositTokenInfo, requestTokenInfo) {
   const { account: escrowAccount, publicKey: escrowPubkey } = escrowData
-  
-  const depositDecimals = depositTokenInfo?.decimals ?? 9
-  const requestDecimals = requestTokenInfo?.decimals ?? 9
+
+  const depositDecimals = depositTokenInfo?.decimals
+  const requestDecimals = requestTokenInfo?.decimals
+  if (depositDecimals == null || requestDecimals == null) {
+    throw new Error('Missing decimals for deposit or request token')
+  }
 
   // Calculate amounts in human-readable format
   const depositRemaining = fromSmallestUnits(

@@ -54,10 +54,10 @@ const formattedAmount = computed(() => {
     return '0'
   }
   
-  const decimals = props.decimals !== null && props.decimals !== undefined 
-    ? props.decimals 
-    : (props.token?.decimals || 9)
-  
+  const decimals = props.decimals !== null && props.decimals !== undefined
+    ? props.decimals
+    : props.token?.decimals
+
   return formatBalance(props.amount, decimals)
 })
 

@@ -205,9 +205,13 @@ function calculateMinimumFillableAmount(escrow) {
   if (!escrow || !escrow.depositToken || !escrow.requestToken || !escrow.price) {
     return 0
   }
-  
-  const depositDecimals = escrow.depositToken.decimals || 0
-  const requestDecimals = escrow.requestToken.decimals || 0
+
+  const depositDecimals = escrow.depositToken.decimals
+  const requestDecimals = escrow.requestToken.decimals
+  if (depositDecimals == null || requestDecimals == null) {
+    return 0
+  }
+
   const price = escrow.price
   
   // Minimum fillable = 1 smallest unit of deposit token

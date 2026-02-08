@@ -192,8 +192,8 @@ const updateAmount = (event) => {
   // Convert to string and trim
   let amountValue = String(rawValue).trim()
   
-  // Process input based on token decimals
-  const decimals = props.token?.decimals ?? 9 // Default to 9 if no token
+  // Process input based on token decimals (from cache/fetch; no fallback)
+  const decimals = props.token?.decimals
   amountValue = processAmountInput(amountValue, decimals, inputElement)
   
   // Update values
@@ -222,7 +222,7 @@ const handleBlur = () => {
 }
 
 const handleKeydown = (event) => {
-  const decimals = props.token?.decimals ?? 9 // Default to 9 if no token
+  const decimals = props.token?.decimals
   if (shouldPreventKeydown(event, decimals)) {
     event.preventDefault()
     return false

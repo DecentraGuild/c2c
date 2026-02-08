@@ -122,7 +122,6 @@ import { Icon } from '@iconify/vue'
 import { useWalletContext } from '@/composables/useWalletContext'
 import { useEscrowTransactions } from '@/composables/useEscrowTransactions'
 import { useSolanaConnection } from '@/composables/useSolanaConnection'
-import { useTokenRegistry } from '@/composables/useTokenRegistry'
 import { useWalletBalanceStore } from '@/stores/walletBalance'
 import { useErrorDisplay } from '@/composables/useErrorDisplay'
 import { truncateAddress, formatDecimals } from '@/utils/formatters'
@@ -149,17 +148,17 @@ import { calculateDepositAmountToExchange, prepareExchangeAmounts } from '@/util
 import { formatUserFriendlyError } from '@/utils/errorMessages'
 import { logError } from '@/utils/logger'
 import { getStorefrontForEscrow } from '@/utils/marketplaceHelpers'
-import { getDecimalsForMintFromCollections } from '@/utils/collectionHelpers'
 import { useStorefrontStore } from '@/stores/storefront'
+import { useTokenStore } from '@/stores/token'
 import { useStorefrontMetadataStore } from '@/stores/storefrontMetadata'
 
 const route = useRoute()
 const router = useRouter()
 const storefrontStore = useStorefrontStore()
 const storefrontMetadataStore = useStorefrontMetadataStore()
+const tokenStore = useTokenStore()
 const { publicKey, connected, anchorWallet } = useWalletContext()
 const connection = useSolanaConnection()
-const tokenRegistry = useTokenRegistry()
 const walletBalanceStore = useWalletBalanceStore()
 const { cancelEscrow: cancelEscrowTx, exchangeEscrow: exchangeEscrowTx } = useEscrowTransactions()
 const { displayError } = useErrorDisplay({ errorTypes: ['transaction'] })
@@ -353,8 +352,8 @@ const updateFillAmountFromInput = (event) => {
   // Convert to string and trim
   let amountValue = String(rawValue).trim()
   
-  // Process input based on token decimals
-  const decimals = escrow.value?.requestToken?.decimals ?? 9
+  // Process input based on token decimals (from cache/fetch; no fallback)
+  const decimals = escrow.value?.requestToken?.decimals
   amountValue = processAmountInput(amountValue, decimals, inputElement)
   
   // Update fillAmount
@@ -386,7 +385,7 @@ const updateFillAmountFromInput = (event) => {
 }
 
 const handleFillAmountKeydown = (event) => {
-  const decimals = escrow.value?.requestToken?.decimals ?? 9
+  const decimals = escrow.value?.requestToken?.decimals
   if (shouldPreventKeydown(event, decimals)) {
     event.preventDefault()
     return false
@@ -525,31 +524,31 @@ const loadEscrow = async () => {
     const depositMint = escrowAccount.depositToken.toString()
     const requestMint = escrowAccount.requestToken.toString()
 
-    // Fetch token info
+    // Fetch token info (decimals from cache/fetch only)
     let [depositTokenInfo, requestTokenInfo] = await Promise.all([
-      tokenRegistry.fetchTokenInfo(depositMint),
-      tokenRegistry.fetchTokenInfo(requestMint)
+      tokenStore.fetchTokenInfo(depositMint),
+      tokenStore.fetchTokenInfo(requestMint)
     ])
 
-    const storefronts = storefrontStore.storefronts || []
-    const depositDecimalsFromCollection = getDecimalsForMintFromCollections(depositMint, storefronts)
-    const requestDecimalsFromCollection = getDecimalsForMintFromCollections(requestMint, storefronts)
-    // Prefer collection decimals (e.g. RACE PASS = 0); blockchain amounts are in raw units per these decimals
-    const depositDecimals = depositDecimalsFromCollection ?? depositTokenInfo?.decimals ?? 9
-    const requestDecimals = requestDecimalsFromCollection ?? requestTokenInfo?.decimals ?? 9
+    if (depositTokenInfo?.decimals == null || requestTokenInfo?.decimals == null) {
+      error.value = 'Could not load token decimals for this escrow'
+      loading.value = false
+      return
+    }
+
     depositTokenInfo = {
       mint: depositMint,
       name: depositTokenInfo?.name ?? null,
       symbol: depositTokenInfo?.symbol ?? null,
       image: depositTokenInfo?.image ?? null,
-      decimals: depositDecimals
+      decimals: depositTokenInfo.decimals
     }
     requestTokenInfo = {
       mint: requestMint,
       name: requestTokenInfo?.name ?? null,
       symbol: requestTokenInfo?.symbol ?? null,
       image: requestTokenInfo?.image ?? null,
-      decimals: requestDecimals
+      decimals: requestTokenInfo.decimals
     }
 
     // Format escrow data using helper function

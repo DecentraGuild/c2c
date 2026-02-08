@@ -2,7 +2,7 @@
  * Helper functions for working with collections
  */
 
-import { getCollectionCurrencies, getBaseCurrency } from './constants/baseCurrencies'
+import { getCollectionCurrencies } from './constants/baseCurrencies'
 
 /**
  * Get all allowed mint addresses for a collection
@@ -93,27 +93,4 @@ export function filterCollectionsByQuery(collections, query, { includeId = false
     const idMatch = includeId && collection.id?.toLowerCase().includes(lower)
     return nameMatch || descriptionMatch || idMatch
   })
-}
-
-/**
- * Get decimals for a mint from collection config (settings JSON).
- * Used as fallback when on-chain/registry fetch has no decimals (e.g. SFTs, custom tokens).
- * @param {string} mint - Mint address
- * @param {Array<Object>} collections - List of collection configs (e.g. from collection store)
- * @returns {number|null} Decimals if found in any collection's baseCurrency, customCurrencies, or collectionMints; null otherwise
- */
-export function getDecimalsForMintFromCollections(mint, collections) {
-  if (!mint || !collections?.length) return null
-  const base = getBaseCurrency(mint)
-  if (base && typeof base.decimals === 'number') return base.decimals
-  for (const collection of collections) {
-    const currencies = getCollectionCurrencies(collection)
-    const currency = currencies.find(c => c.mint === mint)
-    if (currency?.decimals != null) return currency.decimals
-    const custom = (collection.customCurrencies || []).find(c => c?.mint === mint)
-    if (typeof custom?.decimals === 'number') return custom.decimals
-    const item = (collection.collectionMints || []).find(m => (typeof m === 'object' && m?.mint === mint) || m === mint)
-    if (typeof item === 'object' && typeof item.decimals === 'number') return item.decimals
-  }
-  return null
 }

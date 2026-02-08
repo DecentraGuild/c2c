@@ -305,9 +305,9 @@ const selectToken = (token) => {
   emit('close')
 }
 
-// Use formatBalance from utils with token decimals
+// Use formatBalance from utils with token decimals (no fallback; pass through)
 const formatBalance = (balance, decimals) => {
-  return formatBalanceUtil(balance, decimals || 9, false)
+  return formatBalanceUtil(balance, decimals, false)
 }
 
 // Allow manual retry from UI when balance fetch failed
